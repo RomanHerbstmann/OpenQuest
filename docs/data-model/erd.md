@@ -353,3 +353,18 @@ Proposed `attribute_schema` for `ASSET_TYPE = tree` (first version):
   }
 }
 ```
+
+## Implementation notes (backend, .NET)
+
+Where the running backend differs from or adds to the draft above. Tables use singular snake_case names (`asset`, `claim`, `user`, …); enums are stored as snake_case strings.
+
+- **Not implemented yet:** `ASSET_SNAPSHOT` and `SYNC_RUN.snapshot_key` / `schema_hash` / `record_count` (the sync keeps only the current state in `asset`; it does already fail loudly on an unexpected CRS or missing fields, and refuses to mark assets as removed if the source suddenly delivers less than half of them). `POINT_TRANSACTION`, `BADGE`, `USER_BADGE` (gamification). `USER.total_points` exists but is not updated yet. `MEDIA.captured_at` stays null (the EXIF time is dropped with the rest of the metadata).
+- **`external_id` of Münster trees:** hash of the coordinate only (EPSG:25832 rounded to 0.1 m), not of genus/street key, so a corrected genus does not create a new asset (this implements the recommendation in the open point above). During sync, a "new" tree within 1 m of a not-yet-seen existing one is treated as that tree (moved slightly). If the source suddenly delivers less than half of the known assets, the sync run fails instead of marking the rest `removed_at_source`.
+- **`asset.attributes` for trees** additionally contain `genus_raw` (value as delivered). The backend currently writes these `quality_flags`: `genus_missing`, `genus_corrected`, `hybrid`, `street_key_missing`, `street_key_padded`, `near_duplicate`. **These names differ from the enum in the schema above** (`placeholder_genus`, `near_duplicate`, `typo_corrected`) and `street_name` / `district` are not filled yet: to be aligned. Quests can select assets with a JSONB containment filter on these, e.g. `{"genus": null}`. The `condition` enum is `good | damaged | dead | gone`, used by the `condition_report` task.
+- **Claims:** the partial unique index covers `status IN ('active','submitted')` (not only `active`), so a player cannot claim a quest again after handing in a submission. A rejected submission sets the claim to `cancelled`, which frees the slot and allows a retry. `quest.status = 'full'` is derived from `slots_taken` and set automatically.
+- **Task types:** `task_config` / `payload` are validated with the JSON Schemas in `task_type` (`verify_attribute` and `measure` need `{"attribute": "<key>"}` in `task_config`, the key must exist in the asset type's `attribute_schema`). Each task type maps to the attribute it changes: `photo` → `photo_url` (`/media/{id}`), `condition_report` → `condition`, the other two → `task_config.attribute`.
+- **Attribute changes:** created as `proposed` on submit, `accepted` on approval, `discarded` on rejection, `exported` by an export run.
+- **`MEDIA.phash`** is 16 hex characters (64-bit difference hash).
+- **Recovery codes:** 8 codes of 12 characters (`XXXX-XXXX-XXXX`, ambiguous characters left out), matched case- and separator-insensitively.
+- **Outbox:** table `outbox_message` (`type`, `payload` jsonb, `occurred_at`, `available_at`, `processed_at`, `attempts`, `last_error`, `status` = `pending | processed | dead`) holds domain events written in the same transaction as the change they describe; a trigger sends `NOTIFY outbox`. See [ADR-0004](../adr/0004-event-driven-writeback.md).
+- **`EXPORT_RUN`** is now created by the event handler for every delivered batch of accepted changes, so `created_by` is nullable (null = triggered by the system). `storage_key` holds the location of the published resource (public feed path or GitHub URL).
