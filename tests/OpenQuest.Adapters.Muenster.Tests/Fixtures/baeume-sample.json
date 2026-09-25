@@ -1,0 +1,572 @@
+{
+ "type": "FeatureCollection",
+ "name": "Baeume",
+ "crs": {
+  "type": "name",
+  "properties": {
+   "name": "urn:ogc:def:crs:EPSG::25832"
+  }
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Tilia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404685.243,
+     5759126.262
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Tilia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404698.459,
+     5759130.288
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Carpinus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404692.992,
+     5759278.839
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Carpinus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404692.909,
+     5759289.147
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Carpinus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404692.118,
+     5759319.032
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Tilia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404685.647,
+     5759520.435
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Tilia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404683.583,
+     5759605.462
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Standort"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404664.747,
+     5760283.643
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Carpinus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404662.299,
+     5760349.83
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Platanus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404352.732,
+     5758911.89
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Platanus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404318.559,
+     5758966.392
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Acer"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404356.819,
+     5758921.679
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Platanus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404593.647,
+     5758631.946
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02270",
+    "baumgruppe": "Platanus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404611.44,
+     5758645.911
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Platanus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404564.444,
+     5758690.445
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Platanus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404533.45,
+     5758728.152
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Platanus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404517.223,
+     5758748.136
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Acer"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404754.281,
+     5758461.838
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Acer"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404204.906,
+     5759064.092
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Platanus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404198.549,
+     5759071.558
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06350",
+    "baumgruppe": "Fagus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     403881.283,
+     5759388.167
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Tilia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404635.447,
+     5760587.896
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Acer"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404663.547,
+     5760936.122
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Acer"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404674.459,
+     5760998.108
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "02505",
+    "baumgruppe": "Carpinus"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404689.399,
+     5761086.755
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "01400",
+    "baumgruppe": "Baum Amt62"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     403692.192,
+     5758082.257
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "00930",
+    "baumgruppe": "Baumgruppe"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     407197.691,
+     5757420.052
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "06185",
+    "baumgruppe": ""
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404465.727,
+     5754450.781
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "04710",
+    "baumgruppe": "Leerer"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404977.95,
+     5758747.574
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "07050",
+    "baumgruppe": "Unbekannt"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     406762.312,
+     5757651.993
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "00595",
+    "baumgruppe": "Leerer Standort"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     407013.681,
+     5753948.069
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "05145",
+    "baumgruppe": "Catalpha"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     403531.182,
+     5754678.265
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "05733",
+    "baumgruppe": "Cladrastris"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404869.246,
+     5754909.436
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "03092",
+    "baumgruppe": "Metasequoia glyptostroboides"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     406098.052,
+     5750944.209
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "01130",
+    "baumgruppe": "Malus-Hybride"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     406453.211,
+     5757139.263
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "03845",
+    "baumgruppe": "Catalpa"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     404015.139,
+     5755892.918
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "",
+    "baumgruppe": "Tilia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     405685.371,
+     5757092.528
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "1005",
+    "baumgruppe": "Tilia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     407027.072,
+     5751614.951
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "00105",
+    "baumgruppe": "Tilia"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     408322.296,
+     5753996.096
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "str_schl": "00105",
+    "baumgruppe": "Baum Amt62"
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     408322.015,
+     5753996.629
+    ]
+   }
+  }
+ ]
+}

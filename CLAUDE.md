@@ -69,6 +69,8 @@ Adapter rules:
 - Every adapter ships with fixture data and tests so it can be developed offline.
 - Assets are **imported/synced into our own database** (scheduled job), not fetched live per request. The open data platform is not a runtime dependency of the game.
 
+The way back to the city is **event-driven**. Accepting a contribution publishes a domain event (transactional outbox); handlers push the change to open data right away, never on a timer ([ADR-0004](docs/adr/0004-event-driven-writeback.md)).
+
 Adding a new city = add a new adapter package + config. Adding a new asset type = add an asset type definition (schema + allowed task types) in core, then support it in adapters.
 
 ## Münster data source
@@ -86,32 +88,31 @@ Decided in [ADR-0001](docs/adr/0001-baumkataster-datenbezug-und-rueckkanal.md), 
 
 The ERD and the reasoning behind it live in [docs/data-model/erd.md](docs/data-model/erd.md). Keep it in sync when the schema changes. Short version: open data objects are generic `ASSET`s with an `ASSET_TYPE` and JSONB `attributes` (validated by a JSON Schema per type), so new data sets need no schema migration.
 
-## Suggested tech stack (proposal — not final)
+## Tech stack
 
-Nothing is set in stone yet. Update this section once decisions are made.
+Decided for the backend (see [ADR-0003](docs/adr/0003-backend-dotnet.md)); the frontend stack is decided by the frontend team.
 
-- **Language:** TypeScript end-to-end.
-- **Monorepo:** pnpm workspaces.
-- **Web app:** mobile-first **PWA** (camera + geolocation in the browser, no app store needed). Map with **MapLibre GL** + OpenStreetMap-based tiles.
-- **Admin panel:** separate app or protected area of the web app for quest creation, review queue and stats.
-- **Backend API:** Node.js (e.g. Fastify or NestJS) with OpenAPI spec.
-- **Database:** PostgreSQL + **PostGIS** for geo queries ("quests within 500 m").
-- **File storage:** S3-compatible (MinIO locally) for photos.
-- **Local dev:** Docker Compose (Postgres/PostGIS, MinIO).
+- **Backend:** .NET 10, ASP.NET Core Minimal API, EF Core + Npgsql + NetTopologySuite. OpenAPI spec at `/openapi/v1.json` is the contract for clients.
+- **Database:** PostgreSQL + **PostGIS** ([data model](docs/data-model/erd.md)).
+- **File storage:** S3-compatible (MinIO locally) for photos and export files.
+- **Auth:** username + password (argon2id), JWT, recovery codes, roles `player | moderator | admin`.
+- **Local dev:** Docker Compose (PostGIS, MinIO).
+- **Web app / admin panel:** mobile-first PWA with MapLibre GL + OpenStreetMap tiles (proposal, owned by the frontend team).
 
-Proposed layout:
+Layout:
 
 ```
 apps/
-  web/          # player PWA
-  admin/        # admin panel
-  api/          # backend API + sync jobs
+  api/          # ASP.NET Core API, persistence, auth, background jobs
+  web/          # player PWA (frontend team)
+  admin/        # admin panel (frontend team)
 packages/
-  core/         # domain model, adapter interface, quest/claim logic (framework-free)
-  adapters/
-    de-muenster/  # Münster open data adapter
-  ui/           # shared UI components (optional)
-docs/           # architecture notes, ADRs, adapter guide
+  core/OpenQuest.Core/                              # C#: domain model, adapter interface, quest/claim/geofence rules (framework-free)
+  adapters/de-muenster/OpenQuest.Adapters.Muenster/ # C#: Münster open data adapter (asset import)
+  adapters/de-muenster/src, test/                   # TypeScript: nearby trees from the WFS for photo verification
+  tree-verification/                                # TypeScript: photo verification pipeline
+tests/          # unit tests (core, adapter) and API integration tests
+docs/           # ADRs, data model, research notes
 ```
 
 ## Game & product requirements
@@ -142,12 +143,26 @@ This is a public, open-source civic project — handle data carefully (GDPR / DS
 ## Conventions
 
 - **Language:** code, identifiers, commits, issues and docs in **English** (open source, other cities). UI is localized; German is the first locale — no hard-coded UI strings.
-- Keep domain logic (quest limits, claim expiry, geofence) in `packages/core`, framework-free and unit-tested.
+- Keep domain logic (quest limits, claim expiry, geofence) in `packages/core` (`OpenQuest.Core`), framework-free and unit-tested.
 - Conventional Commits (`feat:`, `fix:`, `docs:`, …). Small, focused PRs.
 - Record significant architecture decisions as short ADRs in `docs/adr/` (numbered, e.g. `0001-…md`) and research with sources in `docs/research/`.
 - License: open source — **TODO: choose license** (e.g. MIT, Apache-2.0 or EUPL-1.2, the latter being common for public sector projects) and add `LICENSE`.
 
 ## Commands
+
+### Backend (.NET 10)
+
+```bash
+docker compose up -d                          # PostGIS + MinIO
+dotnet run --project apps/api/OpenQuest.Api   # API on http://localhost:5076 (migrates + seeds on start)
+dotnet build                                  # whole solution (OpenQuest.slnx)
+dotnet test                                   # unit + integration tests (see apps/api/README.md for the test database)
+dotnet ef migrations add <Name> --project apps/api/OpenQuest.Api --output-dir Data/Migrations
+```
+
+More: [apps/api/README.md](apps/api/README.md).
+
+### TypeScript packages (pnpm)
 
 pnpm workspace (Node >= 20). Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.
 
@@ -157,7 +172,7 @@ pnpm workspace (Node >= 20). Copy `.env.example` to `.env` and set `OPENROUTER_A
 - `pnpm eval:fetch && pnpm eval`: tree photo verification evaluation (see ADR-0002)
 - `pnpm verify <image> --lat .. --lon ..`: verify a single photo against the nearest Münster tree
 
-Packages so far: `packages/tree-verification` (photo verification, framework free), `packages/adapters/de-muenster` (Münster tree WFS as `NearbyTreeProvider`).
+Packages so far: `packages/tree-verification` (photo verification, framework free), `packages/adapters/de-muenster` (Münster tree WFS as `NearbyTreeProvider`, TypeScript). The .NET projects live in the same folders under `OpenQuest.*` subfolders.
 
 ## Open questions
 

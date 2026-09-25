@@ -1,0 +1,191 @@
+using System.Security.Cryptography;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using OpenQuest.Adapters.Muenster;
+using OpenQuest.Api.Auth;
+using OpenQuest.Api.Config;
+using OpenQuest.Api.Data;
+using OpenQuest.Api.Eventing;
+using OpenQuest.Api.Features;
+using OpenQuest.Api.Photos;
+using OpenQuest.Api.Publishing;
+using OpenQuest.Api.Queries;
+using OpenQuest.Api.Services;
+using OpenQuest.Api.Startup;
+using OpenQuest.Api.Storage;
+using OpenQuest.Api.Sync;
+using OpenQuest.Core.Events;
+using OpenQuest.Core.Publishing;
+
+namespace OpenQuest.Api.Composition;
+
+/// <summary>
+/// The composition root, one method per module. Consumers depend on the small interfaces; concrete classes are only named here.
+/// To add behaviour, register another <see cref="IEventHandler{TEvent}"/>, <see cref="IContributionPublisher"/> or
+/// <see cref="IStartupTask"/>; existing code stays untouched.
+/// </summary>
+public static class ServiceRegistration
+{
+    public static IServiceCollection AddOpenQuestOptions(this IServiceCollection s, IConfiguration c)
+    {
+        s.Configure<AuthOptions>(c.GetSection(AuthOptions.Section));
+        s.Configure<JwtOptions>(c.GetSection(JwtOptions.Section));
+        s.Configure<AdminOptions>(c.GetSection(AdminOptions.Section));
+        s.Configure<GameOptions>(c.GetSection(GameOptions.Section));
+        s.Configure<StorageOptions>(c.GetSection(StorageOptions.Section));
+        s.Configure<AdapterOptions>(c.GetSection(AdapterOptions.Section));
+        s.Configure<OutboxOptions>(c.GetSection(OutboxOptions.Section));
+        s.Configure<PublishingOptions>(c.GetSection(PublishingOptions.Section));
+        s.AddSingleton(TimeProvider.System);
+        return s;
+    }
+
+    public static IServiceCollection AddOpenQuestPersistence(this IServiceCollection s, IConfiguration c)
+        => s.AddDbContext<AppDbContext>(o => o
+            .UseNpgsql(c.GetConnectionString("Default"), npgsql => npgsql.UseNetTopologySuite())
+            .UseSnakeCaseNamingConvention());
+
+    public static IServiceCollection AddOpenQuestAuth(this IServiceCollection s, IConfiguration c, IHostEnvironment env)
+    {
+        var jwt = c.GetSection(JwtOptions.Section).Get<JwtOptions>() ?? new JwtOptions();
+        if (jwt.Key.Length < 32)
+        {
+            // Only in Development: a random key per start (tokens become invalid on restart) instead of a key in git.
+            if (!env.IsDevelopment()) throw new InvalidOperationException("Jwt:Key must be set and at least 32 characters long.");
+            jwt.Key = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+            s.PostConfigure<JwtOptions>(o => o.Key = jwt.Key);
+        }
+
+        s.AddSingleton<IPasswordService, PasswordService>();
+        s.AddSingleton<ITokenService, TokenService>();
+        s.AddScoped<IRecoveryCodeIssuer, RecoveryCodeIssuer>();
+        s.AddScoped<IUserRegistration, UserRegistration>();
+        s.AddScoped<IUserAuthentication, PasswordAuthentication>();
+        s.AddScoped<IAccountRecovery, AccountRecovery>();
+
+        s.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o =>
+        {
+            o.MapInboundClaims = false;
+            o.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidIssuer = jwt.Issuer, ValidAudience = jwt.Audience, IssuerSigningKey = TokenService.SigningKey(jwt),
+                ClockSkew = TimeSpan.FromMinutes(1), NameClaimType = "unique_name", RoleClaimType = "role",
+            };
+        });
+        s.AddAuthorizationBuilder()
+            .AddPolicy("Admin", p => p.RequireRole("admin"))
+            .AddPolicy("Moderator", p => p.RequireRole("moderator", "admin"));
+
+        var perMinute = c.GetValue("Auth:RateLimitPerMinute", 10);
+        s.AddRateLimiter(o =>
+        {
+            o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            o.AddPolicy(AuthEndpoints.RateLimitPolicy, ctx => RateLimitPartition.GetFixedWindowLimiter(
+                ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = perMinute, Window = TimeSpan.FromMinutes(1) }));
+        });
+        return s;
+    }
+
+    public static IServiceCollection AddOpenQuestStorage(this IServiceCollection s)
+    {
+        s.AddSingleton<S3BlobStore>();
+        s.AddSingleton<IBlobWriter>(sp => sp.GetRequiredService<S3BlobStore>());
+        s.AddSingleton<IBlobReader>(sp => sp.GetRequiredService<S3BlobStore>());
+        s.AddSingleton<IBlobDeleter>(sp => sp.GetRequiredService<S3BlobStore>());
+        s.AddSingleton<IPhotoProcessor, SkiaPhotoProcessor>();
+        s.AddScoped<IPhotoDuplicateFinder, DbPhotoDuplicateFinder>();
+        s.AddScoped<IPhotoIngestor, PhotoIngestor>();
+        return s;
+    }
+
+    public static IServiceCollection AddOpenQuestGame(this IServiceCollection s)
+    {
+        s.AddSingleton<IJsonSchemaValidator, JsonSchemaValidator>();
+        s.AddSingleton<IAttributeChangeFactory, AttributeChangeFactory>();
+        s.AddScoped<IQuestSlotLedger, QuestSlotLedger>();
+        s.AddScoped<IQuestClaimService, QuestClaimService>();
+        s.AddScoped<IClaimExpiryService, ClaimExpiryService>();
+        s.AddScoped<ISubmissionService, SubmissionService>();
+        s.AddScoped<ISubmissionReviewService, SubmissionReviewService>();
+        s.AddScoped<IQuestCampaignService, QuestCampaignService>();
+
+        s.AddScoped<INearbyQuests, NearbyQuests>();
+        s.AddScoped<INearbyAssets, NearbyAssets>();
+        s.AddScoped<IPlayerClaims, PlayerClaims>();
+        s.AddScoped<IModerationQueue, ModerationQueue>();
+        s.AddScoped<IQuestOverview, QuestOverview>();
+        s.AddScoped<IPublicationOverview, PublicationOverview>();
+        s.AddScoped<IAssetHistory, AssetHistory>();
+
+        s.AddHostedService<ClaimExpiryWorker>();
+        return s;
+    }
+
+    public static IServiceCollection AddOpenQuestSync(this IServiceCollection s, IConfiguration c)
+    {
+        s.AddMuensterAdapter(c);
+        s.AddSingleton<IAdapterProvider, ConfiguredAdapterProvider>();
+        s.AddSingleton<IAssetBatchUpserter, AssetBatchUpserter>();
+        s.AddSingleton<AssetSyncService>();
+        s.AddSingleton<IAssetSynchronizer>(sp => sp.GetRequiredService<AssetSyncService>());
+        s.AddSingleton<ISyncTrigger>(sp => sp.GetRequiredService<AssetSyncService>());
+        s.AddSingleton<ISyncStatus>(sp => sp.GetRequiredService<AssetSyncService>());
+        s.AddHostedService<ScheduledSyncWorker>();
+        return s;
+    }
+
+    /// <summary>Domain events with a transactional outbox: see <see cref="OutboxProcessor"/>.</summary>
+    public static IServiceCollection AddOpenQuestEventing(this IServiceCollection s)
+    {
+        s.AddSingleton<IOutboxClock, SystemOutboxClock>();
+        s.AddSingleton<EventTypeRegistry>();
+        s.AddSingleton<IEventDispatcher, EventDispatcher>();
+        s.AddScoped<IEventPublisher, OutboxEventPublisher>();
+        s.AddHostedService<OutboxProcessor>();
+
+        // Handlers: add one line per reaction to an event.
+        s.AddScoped<IEventHandler<AttributeChangeAccepted>, PublishAcceptedChangesHandler>();
+        return s;
+    }
+
+    public static IServiceCollection AddOpenQuestPublishing(this IServiceCollection s, IConfiguration c)
+    {
+        s.AddSingleton<IContributionPublisher, StorageContributionPublisher>();
+        if (!string.IsNullOrWhiteSpace(c[$"{PublishingOptions.Section}:GitHub:Token"]))
+        {
+            s.AddHttpClient<GitHubContributionPublisher>(h => h.DefaultRequestHeaders.UserAgent.ParseAdd("OpenQuest/0.1"));
+            s.AddTransient<IContributionPublisher>(sp => sp.GetRequiredService<GitHubContributionPublisher>());
+        }
+        s.AddSingleton<IPublishedFeed, BlobPublishedFeed>();
+        s.AddScoped<IChangeRepublisher, ChangeRepublisher>();
+        return s;
+    }
+
+    public static IServiceCollection AddOpenQuestStartupTasks(this IServiceCollection s)
+    {
+        // Order matters: migrate, then seed the catalog, then the admin.
+        foreach (var type in new[] { typeof(MigrateDatabaseTask), typeof(SeedCatalogTask), typeof(SeedAdminTask) })
+        {
+            s.AddScoped(type);
+            s.AddSingleton(new StartupTaskDescriptor(type));
+        }
+        s.AddSingleton<StartupTaskRunner>();
+        return s;
+    }
+
+    public static IEndpointRouteBuilder MapOpenQuestApi(this IEndpointRouteBuilder app)
+    {
+        app.MapGet("/health", () => Results.Ok(new { status = "ok" })).WithTags("System");
+        app.MapAuth();
+        app.MapPlayer();
+        app.MapMedia();
+        app.MapAdminQuests();
+        app.MapModeration();
+        app.MapPublishing();
+        app.MapSync();
+        return app;
+    }
+}
