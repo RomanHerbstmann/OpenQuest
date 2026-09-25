@@ -32,6 +32,10 @@ export interface VerificationConfig {
     /** Jev confidence in "reject" needed to send a submission to review. Jev's verdict is conservative, so this is high. */
     jevRejectVeto: number;
   };
+  /** No inventory tree within this distance of the player makes a photographed tree a "new tree" candidate. */
+  newTreeRadiusM: number;
+  /** Assessment findings below this confidence are not proposed as changes. */
+  minProposalConfidence: number;
   /** Weight of Jev's tree probability vs. the vision ensemble (0 = ignore Jev). */
   jevWeight: number;
 
@@ -40,8 +44,10 @@ export interface VerificationConfig {
 
 export const DEFAULT_CONFIG: Omit<VerificationConfig, "openRouterApiKey"> = {
   openRouterBaseUrl: "https://openrouter.ai/api",
-  visionModels: ["google/gemini-3.8-flash", "openai/gpt-6-luna"],
-  escalationModel: "google/gemini-3.5-flash-lite",
+  // ADR-0003: gpt-6-luna as second model often labels real photos as illustrations and misses
+  // thin young trees; the Gemini pair was better on every metric. Luna stays as cheap tie breaker.
+  visionModels: ["google/gemini-3.8-flash", "google/gemini-3.5-flash-lite"],
+  escalationModel: "openai/gpt-6-luna",
   jevModel: "typesafe/jev-1.13",
   appUrl: "https://openquest.fun",
   appName: "OpenQuest",
@@ -60,6 +66,8 @@ export const DEFAULT_CONFIG: Omit<VerificationConfig, "openRouterApiKey"> = {
     jevRejectVeto: 0.9,
   },
   jevWeight: 0.35,
+  newTreeRadiusM: 12,
+  minProposalConfidence: 0.5,
 
   timeouts: { visionMs: 45_000, jevMs: 15_000, geoMs: 8_000 },
 };
