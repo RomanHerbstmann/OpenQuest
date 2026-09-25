@@ -74,9 +74,14 @@ Adding a new city = add a new adapter package + config. Adding a new asset type 
 ## Münster data source
 
 - Platform: https://opendata.stadt-muenster.de (check the platform's API; many German municipal portals are CKAN-based).
-- Dataset: tree inventory / Baumkataster. **TODO: verify exact dataset id, format (CSV / GeoJSON / WFS), coordinate system, update cadence and license** and document them in the adapter's README.
+- Dataset: tree inventory (`gruen_opendata.csv`, ~43k trees) with only three columns: `WKT` (point, WGS84), `str_schl` (street key), `baumgruppe` (genus). **It has no id column**, so the adapter must derive a stable `external_id`. Details: [docs/data-model/erd.md](docs/data-model/erd.md#münster-tree-data-gruen_opendatacsv).
+- **TODO: verify dataset id on the portal, update cadence and license** and document them in the adapter's README.
 - Respect the dataset license (typically dl-de/by-2.0 or CC BY) — attribution must be shown in the app.
 - Write-back: the portal is most likely read-only for us. Plan for exporting approved contributions as a dataset/file handed to the city until an official ingestion path exists.
+
+## Data model
+
+The ERD and the reasoning behind it live in [docs/data-model/erd.md](docs/data-model/erd.md). Keep it in sync when the schema changes. Short version: open data objects are generic `ASSET`s with an `ASSET_TYPE` and JSONB `attributes` (validated by a JSON Schema per type), so new data sets need no schema migration.
 
 ## Suggested tech stack (proposal — not final)
 
@@ -125,7 +130,7 @@ Admin panel:
 
 This is a public, open-source civic project — handle data carefully (GDPR / DSGVO).
 - Strip EXIF metadata from uploaded photos before storing/publishing (keep only what we need, e.g. timestamp, stored separately).
-- Minimize personal data: pseudonymous player accounts, no precise location history beyond what a submission needs.
+- Minimize personal data: pseudonymous player accounts (username + password, **no email address**; lost passwords are recovered with one-time recovery codes), no precise location history beyond what a submission needs.
 - Photos may contain people or license plates — review step before anything is published; consider blurring later.
 - Anti-cheat basics: geofence, rate limiting, duplicate photo detection (perceptual hash), claim expiry.
 - Player safety: don't create quests in unsafe spots (roads, private property); show a safety hint.
@@ -147,6 +152,5 @@ No code exists yet. Add build/test/dev commands here as soon as the project is s
 
 - Exact Münster tree dataset and its fields/license (see above).
 - How approved contributions get back to the city (file export vs. API vs. manual process) — needs contact with Stadt Münster.
-- Authentication method for players (email magic link, OAuth, anonymous + optional account).
 - Moderation model: admin-only review vs. community validation (e.g. "2 of 3 players agree on the species").
 - Hosting for the Münster instance.
