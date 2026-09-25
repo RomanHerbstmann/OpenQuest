@@ -5,34 +5,29 @@
  *
  * The OpenRouter key stays on the server; the browser only talks to /api/*.
  */
-import { createReadStream, existsSync, readFileSync } from "node:fs";
+import { createReadStream, existsSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createRequire } from "node:module";
 import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
-import { TypeSafeClient } from "@typesafe-ai/sdk";
-import { execute, interpret, type JevLike, type SearchResult, type TreeData } from "./search.ts";
+import { createJev, loadTreeData, searchTrees, TREE_DATA_PATH, type SearchResult } from "@openquest/tree-search";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..");
 const publicDir = join(root, "public");
-const dataFile = join(root, "data", "trees.json");
 const port = Number(process.env.PORT ?? 8787);
-const jevModel = process.env.JEV_MODEL || "typesafe/jev-1.13";
+const dataFile = process.env.TREE_DATA_PATH || TREE_DATA_PATH;
 
 if (!existsSync(dataFile)) {
-  console.error("data/trees.json missing: run `pnpm --filter @openquest/dashboard build-data` first");
+  console.error(`${dataFile} missing: run \`pnpm --filter @openquest/tree-search build-data\` first`);
   process.exit(1);
 }
-const data = JSON.parse(readFileSync(dataFile, "utf8")) as TreeData;
+const data = loadTreeData(dataFile);
 const dataGz = gzipSync(JSON.stringify(data));
 
-const apiKey = process.env.OPENROUTER_API_KEY;
-const jev: JevLike | null = apiKey
-  ? (new TypeSafeClient({ apiKey, baseURL: "https://openrouter.ai/api", defaultModel: jevModel, timeout: 10_000, retry: { maxRetries: 1 }, logLevel: "off" }) as unknown as JevLike)
-  : null;
-if (!jev) console.warn("OPENROUTER_API_KEY not set: search falls back to rules");
+const jev = createJev();
+if (!jev.jev) console.warn("OPENROUTER_API_KEY not set: search falls back to rules");
 
 const require = createRequire(import.meta.url);
 const maplibreDir = dirname(require.resolve("maplibre-gl/package.json"));
@@ -74,11 +69,10 @@ const server = createServer(async (req, res) => {
       const key = query.toLowerCase();
       let result = cache.get(key);
       if (!result) {
-        const { interpretation, latencyMs, costUsd } = await interpret(query, data, jev, jevModel);
-        result = { ...execute(query, data, interpretation), jevLatencyMs: latencyMs, costUsd };
+        result = await searchTrees(query, data, jev);
         cache.set(key, result);
         if (cache.size > 500) cache.delete(cache.keys().next().value!);
-        console.log(`search "${query}" -> ${result.total} (${interpretation.source}, ${latencyMs ?? 0} ms)`);
+        console.log(`search "${query}" -> ${result.total} (${result.interpretation.source}, ${result.jevLatencyMs ?? 0} ms)`);
       }
       return json(res, 200, result, /gzip/.test(String(req.headers["accept-encoding"])));
     }

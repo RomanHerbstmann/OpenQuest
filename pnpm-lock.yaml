@@ -26,22 +26,13 @@ importers:
 
   apps/dashboard:
     dependencies:
-      '@openquest/adapter-de-muenster':
+      '@openquest/tree-search':
         specifier: workspace:*
-        version: link:../../packages/adapters/de-muenster
-      '@openquest/adapter-de-nrw':
-        specifier: workspace:*
-        version: link:../../packages/adapters/de-nrw
-      '@typesafe-ai/sdk':
-        specifier: ^0.6.0
-        version: 0.6.0
+        version: link:../../packages/tree-search
       maplibre-gl:
         specifier: ^5.6.0
         version: 5.24.0
     devDependencies:
-      undici:
-        specifier: ^7.30.0
-        version: 7.30.0
       vitest:
         specifier: ^3.2.0
         version: 3.2.7(@types/node@24.13.6)(tsx@4.23.15)
@@ -62,6 +53,25 @@ importers:
         specifier: ^2.1.3
         version: 2.1.3
     devDependencies:
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.7(@types/node@24.13.6)(tsx@4.23.15)
+
+  packages/tree-search:
+    dependencies:
+      '@openquest/adapter-de-muenster':
+        specifier: workspace:*
+        version: link:../adapters/de-muenster
+      '@openquest/adapter-de-nrw':
+        specifier: workspace:*
+        version: link:../adapters/de-nrw
+      '@typesafe-ai/sdk':
+        specifier: ^0.6.0
+        version: 0.6.0
+    devDependencies:
+      undici:
+        specifier: ^7.30.0
+        version: 7.30.0
       vitest:
         specifier: ^3.2.0
         version: 3.2.7(@types/node@24.13.6)(tsx@4.23.15)

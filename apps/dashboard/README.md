@@ -6,7 +6,7 @@ All 43,114 Münster inventory trees on a map, with one search field. The query i
 cp .env.example .env                                   # OPENROUTER_API_KEY
 pnpm install
 pnpm --filter @openquest/dashboard start               # http://localhost:8787
-pnpm --filter @openquest/dashboard build-data          # optional: rebuild data/trees.json (~20 min, resumable)
+pnpm --filter @openquest/tree-search build-data        # optional: rebuild the tree data (~20 min, resumable)
 ```
 
 Without `OPENROUTER_API_KEY` the search falls back to simple rules.
@@ -15,7 +15,7 @@ Example queries: `größte Bäume`, `Birken in Hiltrup`, `älteste Eichen`, `Lin
 
 ## Data
 
-`data/trees.json` (committed, 2.4 MB, columnar) is built by `scripts/build-data.ts`:
+Search logic and data live in [`packages/tree-search`](../../packages/tree-search) so other apps (e.g. the player app) can reuse them. `packages/tree-search/data/trees.json` (committed, 2.4 MB, columnar) is built by `packages/tree-search/scripts/build-data.ts`:
 
 | Field | Source |
 |---|---|
@@ -34,7 +34,7 @@ Honest limits:
 
 ```
 browser (MapLibre, OSM raster tiles)  --GET /api/trees-->   server.ts  (data/trees.json, gzipped)
-                                      --POST /api/search-->  search.ts: interpret() -> Jev systemone (sort, genus, area, intent)
+                                      --POST /api/search-->  @openquest/tree-search: interpret() -> Jev systemone (sort, genus, area, intent)
                                                                          parseDeterministic() (heights, limit, street)
                                                              execute()   filter + order, top N + all match indices
 ```

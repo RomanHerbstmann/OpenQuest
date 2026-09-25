@@ -1,8 +1,8 @@
 /**
- * Builds apps/dashboard/data/trees.json: all Münster inventory trees, enriched with street name,
+ * Builds packages/tree-search/data/trees.json: all Münster inventory trees, enriched with street name,
  * district, quarter and a height from the NRW surface model (nDOM50).
  *
- *   pnpm --filter @openquest/dashboard build-data      (~20 min on first run, resumable)
+ *   pnpm --filter @openquest/tree-search build-data      (~20 min on first run, resumable)
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
