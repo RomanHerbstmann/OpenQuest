@@ -10,6 +10,16 @@ import pytest
 
 FIXTURES = Path(__file__).parent / "fixtures"
 SAMPLE = FIXTURES / "muenster_trees_sample.geojson"
+STREETS_SAMPLE = FIXTURES / "muenster_streets_sample.csv"
+DISTRICTS_SAMPLE = FIXTURES / "muenster_districts_sample.geojson"
+QUARTERS_SAMPLE = FIXTURES / "muenster_quarters_sample.geojson"
+NDOM_CELL = FIXTURES / "ndom_cell_404682_5759122.tif"
+
+
+def sample_options(trees: Path = SAMPLE) -> dict:
+    """Adapter options that read everything from fixtures (no network)."""
+    return {"file": str(trees), "streets_file": str(STREETS_SAMPLE), "districts_file": str(DISTRICTS_SAMPLE),
+            "quarters_file": str(QUARTERS_SAMPLE)}
 
 
 @pytest.fixture

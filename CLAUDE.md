@@ -68,7 +68,7 @@ Adapter rules:
 - Adapters are selected via configuration (env / config file), never via `if (city === "muenster")` in core code.
 - Every adapter ships with fixture data and tests so it can be developed offline.
 - Assets are **imported/synced into our own database** (scheduled job), not fetched live per request. The open data platform is not a runtime dependency of the game. The import is done by a separate importer app, **not by the .NET API**: the API only reads assets.
-- **Implementation:** the importer is a Python package in `apps/importer` ([README](apps/importer/README.md)). Adapters subclass `DataSourceAdapter` and are registered via the `openquest.adapters` entry point group, so another city can ship its adapter as a separate package. The TypeScript interface sketch above describes the same contract.
+- **Implementation:** the importer is a Python package in `apps/importer` ([README](apps/importer/README.md)). Adapters subclass `DataSourceAdapter` and are registered via the `openquest.adapters` entry point group, so another city can ship its adapter as a separate package. The TypeScript interface sketch above describes the same contract. Data keyed by location from other providers (e.g. tree heights from the NRW surface model) comes from **enrichers** (`openquest.enrichers`), which any source in their area can switch on in `importer.toml`.
 
 The way back to the city is **event-driven**. Accepting a contribution publishes a domain event (transactional outbox); handlers push the change to open data right away, never on a timer ([ADR-0004](docs/adr/0004-event-driven-writeback.md)).
 

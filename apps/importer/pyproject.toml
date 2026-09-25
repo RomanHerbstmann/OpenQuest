@@ -25,6 +25,9 @@ openquest-importer = "openquest_importer.cli:main"
 [project.entry-points."openquest.adapters"]
 "de_muenster.trees" = "openquest_importer.adapters.de_muenster.trees:MuensterTreesAdapter"
 
+[project.entry-points."openquest.enrichers"]
+"de_nrw.ndom_height" = "openquest_importer.enrichers.de_nrw.ndom:NdomHeightEnricher"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/openquest_importer"]
 

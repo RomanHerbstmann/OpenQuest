@@ -1,4 +1,4 @@
-"""Importer configuration (TOML file; DATABASE_URL and OPENQUEST_SNAPSHOT_DIR override it)."""
+"""Importer configuration (TOML file; DATABASE_URL, OPENQUEST_SNAPSHOT_DIR and OPENQUEST_CACHE_DIR override it)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,12 @@ class SyncOptions:
 
 
 @dataclass(frozen=True)
+class EnricherConfig:
+    name: str  # entry point name, e.g. "de_nrw.ndom_height"
+    options: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class SourceConfig:
     key: str
     adapter: str
@@ -33,6 +39,7 @@ class SourceConfig:
     attribution: str | None = None
     options: dict[str, Any] = field(default_factory=dict)
     sync: SyncOptions = field(default_factory=SyncOptions)
+    enrichers: tuple[EnricherConfig, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -40,6 +47,7 @@ class Config:
     database_url: str | None
     snapshot_dir: Path
     sources: dict[str, SourceConfig]
+    cache_dir: Path | None = None
 
 
 def load_config(path: Path) -> Config:
@@ -52,11 +60,8 @@ def load_config(path: Path) -> Config:
 
     base = path.parent
     database_url = os.environ.get("DATABASE_URL") or data.get("database", {}).get("url")
-    snapshot_dir = Path(
-        os.environ.get("OPENQUEST_SNAPSHOT_DIR") or data.get("snapshots", {}).get("dir", "data/snapshots")
-    )
-    if not snapshot_dir.is_absolute():
-        snapshot_dir = (base / snapshot_dir).resolve()
+    snapshot_dir = _dir(base, os.environ.get("OPENQUEST_SNAPSHOT_DIR") or data.get("snapshots", {}).get("dir", "data/snapshots"))
+    cache_dir = _dir(base, os.environ.get("OPENQUEST_CACHE_DIR") or data.get("cache", {}).get("dir", "data/cache"))
 
     sources: dict[str, SourceConfig] = {}
     for entry in data.get("sources", []):
@@ -71,6 +76,10 @@ def load_config(path: Path) -> Config:
                 attribution=entry.get("attribution"),
                 options=dict(entry.get("options", {})),
                 sync=SyncOptions(**entry.get("sync", {})),
+                enrichers=tuple(
+                    EnricherConfig(name=e["name"], options=dict(e.get("options", {})))
+                    for e in entry.get("enrichers", [])
+                ),
             )
         except KeyError as exc:
             raise ConfigError(f"Source is missing required field {exc}") from exc
@@ -80,4 +89,9 @@ def load_config(path: Path) -> Config:
             raise ConfigError(f"Duplicate source key: {source.key}")
         sources[source.key] = source
 
-    return Config(database_url=database_url, snapshot_dir=snapshot_dir, sources=sources)
+    return Config(database_url=database_url, snapshot_dir=snapshot_dir, sources=sources, cache_dir=cache_dir)
+
+
+def _dir(base: Path, value: str) -> Path:
+    path = Path(value)
+    return path if path.is_absolute() else (base / path).resolve()

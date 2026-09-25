@@ -11,6 +11,7 @@ from pathlib import Path
 from openquest_importer.adapters import available_adapters, create_adapter
 from openquest_importer.config import ConfigError, load_config
 from openquest_importer.db import connect, migrate
+from openquest_importer.enrichers import available_enrichers, create_enricher
 from openquest_importer.snapshots import LocalSnapshotStore
 from openquest_importer.sync import run_sync
 
@@ -36,7 +37,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync.add_argument("--force", action="store_true",
                       help="apply the sync even if it removes more assets than max_removal_ratio")
 
-    commands.add_parser("adapters", help="list installed adapters")
+    commands.add_parser("adapters", help="list installed adapters and enrichers")
     return parser
 
 
@@ -49,7 +50,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "adapters":
         for key, cls in sorted(available_adapters().items()):
-            print(f"{key}\t{cls.__module__}.{cls.__qualname__}\tasset type: {cls.asset_type}")
+            print(f"adapter   {key}\t{cls.__module__}.{cls.__qualname__}\tasset type: {cls.asset_type}")
+        for key, cls in sorted(available_enrichers().items()):
+            print(f"enricher  {key}\t{cls.__module__}.{cls.__qualname__}\tsets: {', '.join(sorted(cls.attributes))}")
         return 0
 
     try:
@@ -81,8 +84,9 @@ def main(argv: list[str] | None = None) -> int:
         for key in keys:
             source = config.sources[key]
             try:
+                enrichers = [(e.name, create_enricher(e.name, e.options, config.cache_dir)) for e in source.enrichers]
                 report = run_sync(conn, source, create_adapter(source.adapter, source.options), store,
-                                  force=args.force)
+                                  enrichers=enrichers, force=args.force)
             except Exception as exc:  # report and continue with the other sources
                 log.error("%s: %s", key, exc)
                 failed += 1

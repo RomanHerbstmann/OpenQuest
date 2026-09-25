@@ -7,7 +7,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     OPENQUEST_MIGRATIONS_DIR=/app/db/migrations \
-    OPENQUEST_SNAPSHOT_DIR=/app/data/snapshots
+    OPENQUEST_SNAPSHOT_DIR=/app/data/snapshots \
+    OPENQUEST_CACHE_DIR=/app/data/cache
 
 WORKDIR /app/apps/importer
 
@@ -20,7 +21,7 @@ COPY db/migrations /app/db/migrations
 COPY apps/importer/ ./
 RUN pip install --no-deps . \
     && useradd --system --uid 10001 --home-dir /app openquest \
-    && mkdir -p /app/data/snapshots && chown openquest /app/data/snapshots \
+    && mkdir -p /app/data/snapshots /app/data/cache && chown openquest /app/data/snapshots /app/data/cache \
     && chmod +x docker-entrypoint.sh
 
 USER openquest

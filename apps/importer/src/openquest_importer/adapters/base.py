@@ -27,11 +27,21 @@ class Identity(Enum):
 
 
 @dataclass(frozen=True)
+class SnapshotFile:
+    content: bytes
+    extension: str  # file extension without dot, e.g. "csv"
+
+
+@dataclass(frozen=True)
 class Snapshot:
     """A raw download from the source, stored unchanged."""
 
     content: bytes
     extension: str  # file extension without dot, e.g. "geojson"
+    #: Further files the adapter needs to parse the main file, e.g. reference
+    #: data for enrichment. They are stored with the snapshot so every sync can
+    #: be reproduced exactly.
+    extras: Mapping[str, SnapshotFile] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

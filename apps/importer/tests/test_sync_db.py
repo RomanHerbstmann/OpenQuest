@@ -7,6 +7,7 @@ from openquest_importer.adapters.de_muenster.trees import MuensterTreesAdapter
 from openquest_importer.config import SourceConfig, SyncOptions
 from openquest_importer.snapshots import LocalSnapshotStore
 from openquest_importer.sync import RemovalGuardError, SchemaChangedError, run_sync
+from tests.conftest import sample_options
 
 ONE_METRE_LAT = 1 / 111_320
 
@@ -18,7 +19,7 @@ def source(max_removal_ratio=0.2):
 
 def sync(conn, path, store, **kwargs):
     cfg = kwargs.pop("cfg", source())
-    return run_sync(conn, cfg, MuensterTreesAdapter({"file": str(path)}), store, **kwargs)
+    return run_sync(conn, cfg, MuensterTreesAdapter(sample_options(path)), store, **kwargs)
 
 
 def assets(conn):
@@ -39,7 +40,9 @@ def test_first_sync_imports_all_trees(db_url, sample_collection, write_collectio
         status, snapshot_key, record_count, created = conn.execute(
             "SELECT status, snapshot_key, record_count, assets_created FROM sync_run").fetchone()
         assert (status, record_count, created) == ("succeeded", 12, 12)
-        assert store.load(snapshot_key) == write_collection(sample_collection).read_bytes()
+        snapshot = store.load(snapshot_key)
+        assert snapshot.content == write_collection(sample_collection).read_bytes()
+        assert set(snapshot.extras) == {"streets", "districts", "quarters"}
 
         assert conn.execute("SELECT count(*) FROM asset_snapshot WHERE change_type = 'created'").fetchone()[0] == 12
         placeholder = conn.execute(
@@ -115,4 +118,35 @@ def test_identical_downloads_share_one_snapshot_file(db_url, sample_collection, 
         sync(conn, path, store)
         keys = [row[0] for row in conn.execute("SELECT snapshot_key FROM sync_run")]
         assert len(keys) == 2 and keys[0] == keys[1]
-        assert len(list(store.root.rglob("*.geojson"))) == 1
+        # trees, streets, districts, quarters and the manifest, each stored once
+        assert len([p for p in store.root.rglob("*") if p.is_file()]) == 5
+
+
+class FakeHeightEnricher:
+    """Sets height_m from latitude, so the test sees which values were applied."""
+
+    attributes = frozenset({"height_m"})
+
+    def enrich(self, assets):
+        from openquest_importer.adapters.base import SnapshotFile
+
+        for asset in assets:
+            asset.attributes["height_m"] = round((asset.lat - 51.9) * 100, 1)
+        return SnapshotFile(content=b'{"fake": true}', extension="json")
+
+
+def test_enrichers_set_attributes_and_are_stored_in_snapshot(db_url, sample_collection, write_collection, store):
+    with psycopg.connect(db_url) as conn:
+        run_sync(conn, source(), MuensterTreesAdapter(sample_options(write_collection(sample_collection))), store,
+                 enrichers=[("fake.height", FakeHeightEnricher())])
+        heights = [r[0] for r in conn.execute("SELECT (attributes->>'height_m')::float FROM asset")]
+        assert len(heights) == 12 and all(h is not None for h in heights)
+        key = conn.execute("SELECT snapshot_key FROM sync_run").fetchone()[0]
+        assert store.load(key).extras["enrichment:fake.height"].content == b'{"fake": true}'
+
+
+def test_migrations_extend_tree_schema(db_url):
+    with psycopg.connect(db_url) as conn:
+        properties = conn.execute(
+            "SELECT attribute_schema->'properties' FROM asset_type WHERE key = 'tree'").fetchone()[0]
+        assert {"height_m", "quarter", "district", "street_name"} <= set(properties)

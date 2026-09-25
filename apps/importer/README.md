@@ -54,6 +54,43 @@ Commands (run in `apps/importer`, or pass `--config`):
 
 `DATABASE_URL` overrides the database URL and `OPENQUEST_SNAPSHOT_DIR` the snapshot directory from `importer.toml`. Locally, snapshots are stored in `data/snapshots/` at the repository root (git-ignored).
 
+## Münster tree adapter
+
+`de_muenster.trees` reads the trees from the city's WFS and cleans them (placeholder genera, typos, species, 5-digit street keys, near-duplicates). It also adds
+
+- `street_name` from the street directory WFS (join over `str_schl`),
+- `district` (Stadtbezirk) and `quarter` (Stadtteil) by point in polygon against the GeoJSON files from the open data portal.
+
+The street list and the district and quarter files are downloaded with every sync and stored in the snapshot, so a sync can be reproduced exactly. If their format changes, the sync fails. Options (in `importer.toml` under `[sources.options]`):
+
+| Option | Default |
+|---|---|
+| `wfs_url`, `layer` | city WFS `odgruen_serv`, `Baeume` |
+| `enrich` | `true`; `false` skips street names, districts and quarters |
+| `streets_url`, `districts_url`, `quarters_url` | city street WFS and portal district / quarter GeoJSON |
+| `file`, `streets_file`, `districts_file`, `quarters_file` | read local files instead (offline development; `tests/fixtures` has samples) |
+| `timeout_s` | `120` |
+
+## Enrichers
+
+Enrichers add attributes that come from other data sets than the source, keyed by location. They are not tied to a city: switch one on for any source it covers.
+
+```toml
+[[sources.enrichers]]
+name = "de_nrw.ndom_height"
+
+[sources.enrichers.options]
+radius_m = 2.5
+```
+
+| Enricher | Sets | Source |
+|---|---|---|
+| `de_nrw.ndom_height` | `height_m` | nDOM50 of Geobasis NRW (WCS, dl-de/zero-2.0): 95th percentile of the object height within `radius_m` of the tree point, one request per 50 m cell. Options: `radius_m`, `cell_m`, `concurrency`, `timeout_s`, `retries`, `max_age_days` |
+
+Enrichers keep data between syncs in the cache directory (`[cache] dir`, `OPENQUEST_CACHE_DIR`; volume `importer-cache` in Docker). For nDOM the first sync of Münster fetches ~10,000 cells, later syncs only the cells of new or moved trees. If cells fail, the sync fails; successful cells are cached, so the next sync resumes. What an enricher used is stored in the snapshot.
+
+Writing one: subclass `Enricher` (`openquest_importer/enrichers/base.py`), set `attributes`, implement `enrich(assets)`, and register it under the entry point group `openquest.enrichers`. Add its attributes to the asset type's schema with a migration.
+
 ## How assets are matched
 
 Adapters declare an identity strategy:

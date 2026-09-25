@@ -11,15 +11,16 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Sequence
 from uuid import UUID, uuid4
 
 import psycopg
 from psycopg.types.json import Jsonb
 from jsonschema import Draft202012Validator
 
-from openquest_importer.adapters.base import DataSourceAdapter, NormalizedAsset
+from openquest_importer.adapters.base import DataSourceAdapter, NormalizedAsset, Snapshot
 from openquest_importer.config import SourceConfig
+from openquest_importer.enrichers.base import Enricher
 from openquest_importer.matching import ExistingAsset, MatchResult, match
 from openquest_importer.snapshots import SnapshotStore
 
@@ -63,9 +64,14 @@ def run_sync(
     adapter: DataSourceAdapter,
     store: SnapshotStore,
     *,
+    enrichers: Sequence[tuple[str, Enricher]] = (),
     force: bool = False,
 ) -> SyncReport:
-    """Sync one data source. ``force`` skips the removal guard."""
+    """Sync one data source.
+
+    ``enrichers`` are ``(name, enricher)`` pairs run after parsing, in order.
+    ``force`` skips the removal guard.
+    """
     source_id = _upsert_data_source(conn, source)
     type_row = conn.execute(
         "SELECT id, attribute_schema FROM asset_type WHERE key = %s", (adapter.asset_type,)
@@ -88,7 +94,7 @@ def run_sync(
         log.info("Sync %s of %s started", run_id, source.key)
         try:
             report = _run(conn, source, adapter, store, run_id, source_id,
-                          asset_type_id, attribute_schema, force)
+                          asset_type_id, attribute_schema, enrichers, force)
         except Exception as exc:
             conn.rollback()
             conn.execute(
@@ -105,7 +111,7 @@ def run_sync(
 
 
 def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
-         attribute_schema, force) -> SyncReport:
+         attribute_schema, enrichers, force) -> SyncReport:
     snapshot = adapter.fetch()
     key = store.save(source.key, snapshot)
     conn.execute("UPDATE sync_run SET snapshot_key = %s WHERE id = %s", (key, run_id))
@@ -125,6 +131,19 @@ def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
             f"Source fields changed (unexpected: {unexpected or 'none'}, missing: {missing or 'none'}). "
             "Check the source and update the adapter."
         )
+
+    if enrichers:
+        # Store what every enricher used next to the download, so the sync
+        # stays reproducible, and point the run to the extended snapshot.
+        extras = dict(snapshot.extras)
+        for name, enricher in enrichers:
+            result = enricher.enrich(parsed.assets)
+            if result is not None:
+                extras[f"enrichment:{name}"] = result
+        key = store.save(source.key, Snapshot(content=snapshot.content, extension=snapshot.extension, extras=extras))
+        conn.execute("UPDATE sync_run SET snapshot_key = %s WHERE id = %s", (key, run_id))
+        conn.commit()
+
     _validate(parsed.assets, attribute_schema)
 
     existing = _load_existing(conn, source_id)

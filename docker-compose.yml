@@ -47,6 +47,7 @@ services:
       SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-86400}
     volumes:
       - snapshots:/app/data/snapshots
+      - importer-cache:/app/data/cache
     depends_on:
       db:
         condition: service_healthy
@@ -56,3 +57,4 @@ volumes:
   db-data:
   minio-data:
   snapshots:
+  importer-cache:
