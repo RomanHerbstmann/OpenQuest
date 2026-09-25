@@ -3,7 +3,6 @@ using Microsoft.Extensions.Options;
 using OpenQuest.Api.Auth;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Data;
-using OpenQuest.Api.Sync;
 using OpenQuest.Core.Domain;
 
 namespace OpenQuest.Api.Startup;
@@ -23,10 +22,10 @@ public sealed class MigrateDatabaseTask(AppDbContext db, IConfiguration config) 
 }
 
 /// <summary>
-/// Keeps the reference tables (task types, asset types, their relations and the data sources of the active adapter)
-/// in sync with the definitions in code. Idempotent.
+/// Keeps the reference tables (task types, asset types and their relations) in sync with the definitions in code.
+/// Idempotent. Data sources are not seeded here: the importer creates them.
 /// </summary>
-public sealed class SeedCatalogTask(AppDbContext db, IAdapterProvider adapters) : IStartupTask
+public sealed class SeedCatalogTask(AppDbContext db) : IStartupTask
 {
     public async Task RunAsync(CancellationToken ct)
     {
@@ -59,20 +58,6 @@ public sealed class SeedCatalogTask(AppDbContext db, IAdapterProvider adapters) 
                 if (!links.Any(l => l.AssetTypeId == a && l.TaskTypeId == t))
                     db.AssetTypeTaskTypes.Add(new AssetTypeTaskType { AssetTypeId = a, TaskTypeId = t });
             }
-
-        var adapter = adapters.Active;
-        var sources = await db.DataSources.ToDictionaryAsync(s => s.Key, ct);
-        foreach (var d in adapter.DataSources)
-        {
-            if (!sources.TryGetValue(d.Key, out var row))
-                db.DataSources.Add(row = new DataSource { Key = d.Key });
-            row.AdapterKey = adapter.Id;
-            row.Name = d.Name;
-            row.City = d.City;
-            row.SourceUrl = d.SourceUrl;
-            row.License = d.License;
-            row.Attribution = d.Attribution;
-        }
         await db.SaveChangesAsync(ct);
     }
 }

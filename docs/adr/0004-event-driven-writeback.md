@@ -28,12 +28,12 @@ The city offers no write API (ADR-0001), so "sending data to open data" means up
    Afterwards the changes are `exported` and an `export_run` (system-triggered, `created_by` null) is recorded.
 5. **Extension without modification.** Reacting to an event means adding one handler registration (for example points and badges on `SubmissionApproved`); a new channel to the city means adding one `IContributionPublisher`.
 
-Not event-driven, on purpose: (a) importing the city's data (`ScheduledSyncWorker`), because the city sends no change notifications, so pulling is the only option; (b) expiring claims by the clock (`ClaimExpiryWorker`), which is time by definition.
+Not event-driven, on purpose: (a) importing the city's data (done by the separate importer, on a schedule), because the city sends no change notifications, so pulling is the only option; (b) expiring claims by the clock (`ClaimExpiryWorker`), which is time by definition.
 
 ## Structure (SOLID)
 
-- Small interfaces per capability (interface segregation): `IAssetSource` (read) vs. `IContributionPublisher` (write-back); `IBlobWriter` / `IBlobReader` / `IBlobDeleter`; `IQuestClaimService`, `IClaimExpiryService`, `ISubmissionService`, `ISubmissionReviewService`, `IQuestCampaignService`; read models `INearbyQuests`, `IModerationQueue`, ...
-- One reason to change per class (single responsibility): claim accounting is `QuestSlotLedger`, photo cleaning `SkiaPhotoProcessor`, de-duplication `DbPhotoDuplicateFinder`, sync orchestration `AssetSyncService` vs. writing assets `AssetBatchUpserter`.
+- Small interfaces per capability (interface segregation): `IContributionPublisher` (write-back); `IBlobWriter` / `IBlobReader` / `IBlobDeleter`; `IQuestClaimService`, `IClaimExpiryService`, `ISubmissionService`, `ISubmissionReviewService`, `IQuestCampaignService`; read models `INearbyQuests`, `IModerationQueue`, ...
+- One reason to change per class (single responsibility): claim accounting is `QuestSlotLedger`, photo cleaning `SkiaPhotoProcessor` and de-duplication `DbPhotoDuplicateFinder`.
 - Dependencies point to abstractions (dependency inversion): endpoints only know interfaces; `Composition/ServiceRegistration.cs` is the only place that names implementations. Start-up work is a list of `IStartupTask`s.
 
 ## Consequences

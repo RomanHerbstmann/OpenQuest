@@ -63,11 +63,11 @@ interface DataSourceAdapter {
 ```
 
 Adapter rules:
-- Normalize everything to the core `Asset` model: WGS84 (EPSG:4326) coordinates, stable `externalId`, typed attributes. Keep the raw source record in a `raw` field for debugging.
+- Normalize everything to the asset model of the ERD: WGS84 (EPSG:4326) coordinates, stable `externalId` if the source has ids, typed attributes. Keep the raw source record in a `raw` field for debugging.
 - Map city-specific field names (e.g. German column names) to core attribute names inside the adapter only.
 - Adapters are selected via configuration (env / config file), never via `if (city === "muenster")` in core code.
 - Every adapter ships with fixture data and tests so it can be developed offline.
-- Assets are **imported/synced into our own database** (scheduled job), not fetched live per request. The open data platform is not a runtime dependency of the game.
+- Assets are **imported/synced into our own database** (scheduled job), not fetched live per request. The open data platform is not a runtime dependency of the game. The import is done by a separate importer app, **not by the .NET API**: the API only reads assets.
 
 The way back to the city is **event-driven**. Accepting a contribution publishes a domain event (transactional outbox); handlers push the change to open data right away, never on a timer ([ADR-0004](docs/adr/0004-event-driven-writeback.md)).
 
@@ -107,11 +107,10 @@ apps/
   web/          # player PWA (frontend team)
   admin/        # admin panel (frontend team)
 packages/
-  core/OpenQuest.Core/                              # C#: domain model, adapter interface, quest/claim/geofence rules (framework-free)
-  adapters/de-muenster/OpenQuest.Adapters.Muenster/ # C#: Münster open data adapter (asset import)
+  core/OpenQuest.Core/                              # C#: domain model, quest/claim/geofence rules, exporters (framework-free)
   adapters/de-muenster/src, test/                   # TypeScript: nearby trees from the WFS for photo verification
   tree-verification/                                # TypeScript: photo verification pipeline
-tests/          # unit tests (core, adapter) and API integration tests
+tests/          # unit tests (core) and API integration tests
 docs/           # ADRs, data model, research notes
 ```
 

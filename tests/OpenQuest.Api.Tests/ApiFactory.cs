@@ -67,16 +67,25 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         Set("Auth__Argon2MemoryKiB", "1024"); // fast hashing in tests
         Set("Auth__Argon2TimeCost", "1");
         Set("Auth__RateLimitPerMinute", "100000");
-        Set("Adapters__SyncIntervalHours", "0");
-        Set("Adapters__SyncOnStartup", "false");
         Set("Outbox__RetryBaseDelayMs", "200");
         Set("Storage__AccessKey", "x");
         Set("Storage__SecretKey", "x");
         _ = Services; // start the host (runs migrations + seeding)
+        await AddDataSourceAsync();
     }
 
-    /// <summary>Hook for factories that need to swap more services (for example the data source adapter).</summary>
-    protected virtual void ConfigureTestServices(IServiceCollection services) { }
+    /// <summary>The importer creates data sources in production; the tests need one to hang assets on.</summary>
+    private Task AddDataSourceAsync() => WithDb(async db =>
+    {
+        db.DataSources.Add(new DataSource
+        {
+            Key = "de-muenster-trees", AdapterKey = "de_muenster.trees", Name = "Trees (test)", City = "Testcity",
+            SourceUrl = "https://example.org", License = "dl-de/by-2.0",
+            Attribution = "Datenquelle: Stadt Münster, Digitales Baumkataster, dl-de/by-2-0 (Testdaten)",
+        });
+        await db.SaveChangesAsync();
+        return 0;
+    });
 
     private static void Set(string key, string value) => Environment.SetEnvironmentVariable(key, value);
 
@@ -95,7 +104,6 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             s.AddSingleton<IBlobReader>(Storage);
             s.AddSingleton<IBlobDeleter>(Storage);
             s.AddSingleton<IContributionPublisher>(Publisher);
-            ConfigureTestServices(s);
         });
     }
 
@@ -121,7 +129,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         return await action(scope.ServiceProvider.GetRequiredService<AppDbContext>());
     }
 
-    /// <summary>Inserts a tree asset at the given position (bypassing the sync) and returns its id.</summary>
+    /// <summary>Inserts a tree asset at the given position (as the importer would) and returns its id.</summary>
     public Task<Guid> AddTreeAsync(double lat, double lon, string? genus = null) => WithDb(async db =>
     {
         var type = await db.AssetTypes.FirstAsync(t => t.Key == "tree");

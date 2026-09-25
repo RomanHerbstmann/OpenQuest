@@ -24,8 +24,8 @@ export function normalizeBaumgruppe(raw: string | null | undefined): { genus: st
 }
 
 /**
- * Stable id for a tree without source id: position rounded to 7 decimals (~1 cm).
- * Must match the importer's `external_id` derivation (see docs/data-model/erd.md).
+ * Local id for a tree without source id (position rounded to 7 decimals, ~1 cm), used to tell trees apart in photo
+ * verification. Not related to the database, which identifies assets by its own ids.
  */
 export function muensterTreeId(pos: LatLon): string {
   return createHash("sha1").update(`${pos.lon.toFixed(7)},${pos.lat.toFixed(7)}`).digest("hex").slice(0, 16);

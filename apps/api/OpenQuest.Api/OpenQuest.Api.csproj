@@ -26,7 +26,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\packages\core\OpenQuest.Core\OpenQuest.Core.csproj" />
-    <ProjectReference Include="..\..\..\packages\adapters\de-muenster\OpenQuest.Adapters.Muenster\OpenQuest.Adapters.Muenster.csproj" />
   </ItemGroup>
 
 </Project>
