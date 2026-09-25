@@ -14,6 +14,8 @@ erDiagram
     %% ───────────── Open data ─────────────
     DATA_SOURCE ||--o{ ASSET : provides
     DATA_SOURCE ||--o{ SYNC_RUN : "is synced by"
+    SYNC_RUN ||--o{ ASSET_SNAPSHOT : records
+    ASSET ||--o{ ASSET_SNAPSHOT : "has history"
     ASSET_TYPE ||--o{ ASSET : classifies
     ASSET_TYPE ||--o{ ASSET_TYPE_TASK_TYPE : allows
     TASK_TYPE ||--o{ ASSET_TYPE_TASK_TYPE : "is allowed for"
@@ -63,13 +65,26 @@ erDiagram
     SYNC_RUN {
         uuid id PK
         uuid data_source_id FK
-        timestamptz started_at
+        timestamptz started_at "= fetched_at of the snapshot"
         timestamptz finished_at
         varchar status "running | succeeded | failed"
+        varchar snapshot_key "full raw download in S3 / MinIO"
+        varchar schema_hash "source fields; a change fails the run"
+        int record_count "records in the download"
         int assets_created
         int assets_updated
         int assets_removed
         text error
+    }
+
+    ASSET_SNAPSHOT {
+        uuid id PK
+        uuid asset_id FK "UK with sync_run_id"
+        uuid sync_run_id FK
+        varchar change_type "created | updated | removed"
+        geography geom "position in this version"
+        jsonb raw "source record in this version"
+        varchar source_hash
     }
 
     ASSET_TYPE {
@@ -256,6 +271,15 @@ Trees are not modeled as their own table. Every open data object is an **`ASSET`
 
 Alternative considered: one table per asset type (`tree`, `bench`, …). Rejected because every new data set would need schema changes in core, which contradicts the adapter idea.
 
+### Snapshots and history
+
+Every import is a `SYNC_RUN` (it is the snapshot in the sense of [ADR-0001](../adr/0001-baumkataster-datenbezug-und-rueckkanal.md): `snapshot_id` = `SYNC_RUN.id`, `fetched_at` = `SYNC_RUN.started_at`). History is kept on two levels:
+
+- **Full download:** the unchanged file from the source is stored in object storage (`SYNC_RUN.snapshot_key`). Every snapshot can be reloaded exactly as it was.
+- **Changes per asset:** `ASSET_SNAPSHOT` gets a row only when an asset was created, changed (`source_hash` differs) or disappeared at the source. A daily sync of 43k unchanged trees therefore adds no rows, and the state of any asset at any sync can still be reconstructed.
+
+`ASSET` itself always holds the current state. `SYNC_RUN.schema_hash` records the source's field list; if it changes unexpectedly, the run fails loudly instead of importing broken data.
+
 ### Where city-specific things live
 
 `DATA_SOURCE` describes one concrete data set of one city and points to the adapter that reads it (`adapter_key`) plus adapter-specific `config`. Core code never branches on city names — see [CLAUDE.md](../../CLAUDE.md).
@@ -292,7 +316,9 @@ An approved `SUBMISSION` produces `ATTRIBUTE_CHANGE` rows (e.g. `genus: "Baum Am
 
 ## Münster tree data (`gruen_opendata.csv`)
 
-Analysis of the CSV provided (43,114 rows):
+Source and access are decided in [ADR-0001](../adr/0001-baumkataster-datenbezug-und-rueckkanal.md): the data comes live from the city's WFS (`geo.stadt-muenster.de/mapserv/odgruen_serv`, layer `Baeume`), not from the portal. License dl-de/by-2.0.
+
+Analysis of the CSV export (43,114 rows):
 
 | Column | Example | Meaning | Mapping |
 |---|---|---|---|
@@ -302,10 +328,12 @@ Analysis of the CSV provided (43,114 rows):
 
 Findings that affect the model:
 
-- **No id column.** The adapter has to derive a stable `external_id`, e.g. a hash of the coordinates rounded to ~7 decimals (all 43,114 points are currently unique). On re-sync, points that moved slightly must be matched to the existing asset by nearest neighbour within a small radius (e.g. 1 m), otherwise quests and photos lose their tree. **Question for Stadt Münster:** is there an internal tree number we could get in the export?
+- **No id column.** The adapter has to derive a stable `external_id`. On re-sync, points that moved slightly must be matched to the existing asset by nearest neighbour within a small radius (e.g. 1 m), otherwise quests and photos lose their tree. **Question for Stadt Münster:** is there an internal tree number we could get in the export?
+  - **Open point, to be settled in ADR-0001:** the ADR hashes coordinate (EPSG:25832, rounded to 0.1 m) + `str_schl` + `baumgruppe`. Including the genus means a tree gets a new id as soon as the city adopts a genus correction made by players, which cuts it off from its quests and photos. Recommendation for OpenQuest: hash the coordinate only.
 - **Only the genus, not the species.** Top genera: Tilia 10,279 · Quercus 8,199 · Acer 5,324 · Carpinus 3,448.
 - **Unknown / placeholder genus:** 2,832 × `Baum Amt62` and 103 empty values. The adapter normalizes these to `genus = null` (raw value stays in `raw`). These ~2,900 trees are ideal targets for first `verify_attribute` quests.
-- Street keys should be resolved to street names via a separate Münster data set later (adapter concern).
+- Street keys are padded to 5 digits and resolved to street names via the WFS `odstrasseserv`; district and quarter come from the portal's GeoJSON (see ADR-0001, adapter concern).
+- The ADR also flags near-duplicates (< 1 m apart) and data quality issues. These go into `attributes.quality_flags`.
 
 Proposed `attribute_schema` for `ASSET_TYPE = tree` (first version):
 
@@ -315,7 +343,10 @@ Proposed `attribute_schema` for `ASSET_TYPE = tree` (first version):
   "properties": {
     "genus":        { "type": ["string", "null"], "description": "Latin genus, e.g. Tilia" },
     "species":      { "type": ["string", "null"], "description": "Latin species, not in Münster data yet" },
-    "street_key":   { "type": ["string", "null"] },
+    "street_key":   { "type": ["string", "null"], "description": "5 digits, zero-padded" },
+    "street_name":  { "type": ["string", "null"] },
+    "district":     { "type": ["string", "null"], "description": "Stadtbezirk" },
+    "quality_flags": { "type": "array", "items": { "enum": ["placeholder_genus", "near_duplicate", "typo_corrected"] } },
     "trunk_circumference_cm": { "type": ["number", "null"] },
     "condition":    { "enum": ["good", "damaged", "dead", "gone", null] },
     "photo_url":    { "type": ["string", "null"] }

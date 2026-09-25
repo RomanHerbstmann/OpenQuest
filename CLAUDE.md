@@ -73,11 +73,14 @@ Adding a new city = add a new adapter package + config. Adding a new asset type 
 
 ## Münster data source
 
-- Platform: https://opendata.stadt-muenster.de (check the platform's API; many German municipal portals are CKAN-based).
-- Dataset: tree inventory (`gruen_opendata.csv`, ~43k trees) with only three columns: `WKT` (point, WGS84), `str_schl` (street key), `baumgruppe` (genus). **It has no id column**, so the adapter must derive a stable `external_id`. Details: [docs/data-model/erd.md](docs/data-model/erd.md#münster-tree-data-gruen_opendatacsv).
-- **TODO: verify dataset id on the portal, update cadence and license** and document them in the adapter's README.
-- Respect the dataset license (typically dl-de/by-2.0 or CC BY) — attribution must be shown in the app.
-- Write-back: the portal is most likely read-only for us. Plan for exporting approved contributions as a dataset/file handed to the city until an official ingestion path exists.
+Decided in [ADR-0001](docs/adr/0001-baumkataster-datenbezug-und-rueckkanal.md), evidence in [Research Note 0001](docs/research/0001-opendata-muenster-baumkataster.md). Read both before working on the Münster adapter.
+
+- **Portal:** https://opendata.stadt-muenster.de runs **DKAN 7 on Drupal 7** (not CKAN). Its API only holds metadata, is slow and has no write access. Don't use it for data.
+- **Source:** the tree data comes live from the city's **MapServer WFS** `https://geo.stadt-muenster.de/mapserv/odgruen_serv`, layer `Baeume` (GeoJSON in WGS84 for the map, `SRSNAME=EPSG:25832` for the database). CORS is open.
+- **Content:** ~43k trees with only three fields: point, `str_schl` (street key), `baumgruppe` (genus). Data as of 2017/2020, about half of the city's trees. **No stable id**, so the adapter derives `external_id` itself. ~8 % placeholders instead of a genus (e.g. `Baum Amt62`). Details: [docs/data-model/erd.md](docs/data-model/erd.md#münster-tree-data-gruen_opendatacsv).
+- **Snapshots:** the adapter loads snapshots (manually or daily) and keeps the history (`SYNC_RUN`, `ASSET_SNAPSHOT`). If the WFS schema changes, the import must fail loudly.
+- **License:** dl-de/by-2.0, attribution required. Use the attribution text from ADR-0001 in the app, README and every published file. No city logos or coat of arms, nothing that looks official.
+- **Write-back:** the portal cannot be written to. Approved contributions go back as a published cleaned dataset (GitHub) plus a message to the city's open data coordination (see ADR-0001).
 
 ## Data model
 
@@ -141,7 +144,7 @@ This is a public, open-source civic project — handle data carefully (GDPR / DS
 - **Language:** code, identifiers, commits, issues and docs in **English** (open source, other cities). UI is localized; German is the first locale — no hard-coded UI strings.
 - Keep domain logic (quest limits, claim expiry, geofence) in `packages/core`, framework-free and unit-tested.
 - Conventional Commits (`feat:`, `fix:`, `docs:`, …). Small, focused PRs.
-- Record significant architecture decisions as short ADRs in `docs/adr/`.
+- Record significant architecture decisions as short ADRs in `docs/adr/` (numbered, e.g. `0001-…md`) and research with sources in `docs/research/`.
 - License: open source — **TODO: choose license** (e.g. MIT, Apache-2.0 or EUPL-1.2, the latter being common for public sector projects) and add `LICENSE`.
 
 ## Commands
@@ -150,7 +153,7 @@ No code exists yet. Add build/test/dev commands here as soon as the project is s
 
 ## Open questions
 
-- Exact Münster tree dataset and its fields/license (see above).
-- How approved contributions get back to the city (file export vs. API vs. manual process) — needs contact with Stadt Münster.
+- Tree id: ADR-0001 includes the genus in the id hash, which breaks quests when a genus gets corrected. OpenQuest needs a coordinate-only id (see [erd.md](docs/data-model/erd.md#münster-tree-data-gruen_opendatacsv)).
+- The city may be working on a new tree dataset (`od-ms/converter-scripts`, see ADR-0001) — check before investing in data cleaning.
 - Moderation model: admin-only review vs. community validation (e.g. "2 of 3 players agree on the species").
 - Hosting for the Münster instance.
