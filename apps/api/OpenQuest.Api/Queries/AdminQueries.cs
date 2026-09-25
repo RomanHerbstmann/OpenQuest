@@ -17,6 +17,13 @@ public interface IQuestOverview
     Task<IReadOnlyList<object>> ListCampaignsAsync(int limit, CancellationToken ct);
 }
 
+/// <summary>The recorded versions of an asset across sync runs (ASSET_SNAPSHOT).</summary>
+public interface IAssetHistory
+{
+    /// <summary>Null if the asset does not exist.</summary>
+    Task<IReadOnlyList<object>?> ListAsync(Guid assetId, CancellationToken ct);
+}
+
 public interface IPublicationOverview
 {
     Task<IReadOnlyList<object>> ListRunsAsync(int limit, CancellationToken ct);
@@ -74,6 +81,22 @@ public sealed class QuestOverview(AppDbContext db) : IQuestOverview
             .ToListAsync(ct)).Cast<object>().ToList();
 }
 
+public sealed class AssetHistory(AppDbContext db) : IAssetHistory
+{
+    public async Task<IReadOnlyList<object>?> ListAsync(Guid assetId, CancellationToken ct)
+    {
+        if (!await db.Assets.AnyAsync(a => a.Id == assetId, ct)) return null;
+        var rows = await db.AssetSnapshots.AsNoTracking().Where(s => s.AssetId == assetId)
+            .Join(db.SyncRuns, s => s.SyncRunId, r => r.Id, (s, r) => new { s, r.StartedAt })
+            .OrderBy(x => x.StartedAt).ToListAsync(ct);
+        return rows.Select(x => (object)new
+        {
+            syncRunId = x.s.SyncRunId, syncedAt = x.StartedAt, changeType = x.s.ChangeType,
+            lat = x.s.Geom.Y, lon = x.s.Geom.X, sourceHash = x.s.SourceHash, raw = JsonNode.Parse(x.s.Raw),
+        }).ToList();
+    }
+}
+
 public sealed class PublicationOverview(AppDbContext db) : IPublicationOverview
 {
     public async Task<IReadOnlyList<object>> ListRunsAsync(int limit, CancellationToken ct)
@@ -94,6 +117,6 @@ public sealed class PublicationOverview(AppDbContext db) : IPublicationOverview
 
     public async Task<IReadOnlyList<object>> SyncRunsAsync(int limit, CancellationToken ct)
         => (await db.SyncRuns.AsNoTracking().OrderByDescending(s => s.StartedAt).Take(limit)
-            .Select(s => new { s.Id, dataSource = s.DataSource.Key, s.StartedAt, s.FinishedAt, s.Status, s.AssetsCreated, s.AssetsUpdated, s.AssetsRemoved, s.Error })
+            .Select(s => new { s.Id, dataSource = s.DataSource.Key, s.StartedAt, s.FinishedAt, s.Status, s.RecordCount, s.SchemaHash, hasSnapshot = s.SnapshotKey != null, s.AssetsCreated, s.AssetsUpdated, s.AssetsRemoved, s.Error })
             .ToListAsync(ct)).Cast<object>().ToList();
 }

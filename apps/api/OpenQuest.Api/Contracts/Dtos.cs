@@ -24,7 +24,7 @@ public record QuestTarget(
     string? AssetType,
     List<Guid>? AssetIds,
     BBoxDto? BBox,
-    /// <summary>JSONB containment against asset attributes, e.g. {"genus":null} or {"quality_flags":["genus_missing"]}.</summary>
+    /// <summary>JSONB containment against asset attributes, e.g. {"genus":null} or {"quality_flags":["placeholder_genus"]}.</summary>
     JsonObject? AttributeFilter,
     bool? WithoutApprovedPhoto,
     int? Limit);

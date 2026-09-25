@@ -75,6 +75,9 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         _ = Services; // start the host (runs migrations + seeding)
     }
 
+    /// <summary>Hook for factories that need to swap more services (for example the data source adapter).</summary>
+    protected virtual void ConfigureTestServices(IServiceCollection services) { }
+
     private static void Set(string key, string value) => Environment.SetEnvironmentVariable(key, value);
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -92,6 +95,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             s.AddSingleton<IBlobReader>(Storage);
             s.AddSingleton<IBlobDeleter>(Storage);
             s.AddSingleton<IContributionPublisher>(Publisher);
+            ConfigureTestServices(s);
         });
     }
 

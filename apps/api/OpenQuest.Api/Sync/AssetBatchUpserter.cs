@@ -19,8 +19,9 @@ public interface IAssetBatchUpserter
 }
 
 /// <summary>State that spans all batches of one sync run.</summary>
-public sealed class UpsertContext(Guid dataSourceId, Guid assetTypeId, DateTimeOffset runStartedAt, bool dataSourceHadAssets)
+public sealed class UpsertContext(Guid syncRunId, Guid dataSourceId, Guid assetTypeId, DateTimeOffset runStartedAt, bool dataSourceHadAssets)
 {
+    public Guid SyncRunId { get; } = syncRunId;
     public Guid DataSourceId { get; } = dataSourceId;
     public Guid AssetTypeId { get; } = assetTypeId;
     public DateTimeOffset RunStartedAt { get; } = runStartedAt;
@@ -54,12 +55,14 @@ public sealed class AssetBatchUpserter(TimeProvider clock) : IAssetBatchUpserter
 
             if (row is null)
             {
-                db.Assets.Add(new AssetEntity
+                var asset = new AssetEntity
                 {
                     AssetTypeId = ctx.AssetTypeId, DataSourceId = ctx.DataSourceId, ExternalId = a.ExternalId, Geom = location,
                     Attributes = sourceAttrs.ToJsonString(), Raw = a.RawJson, SourceHash = hash,
                     Status = AssetStatus.Active, FirstSeenAt = now, LastSeenAt = now, UpdatedAt = now,
-                });
+                };
+                db.Assets.Add(asset);
+                db.AssetSnapshots.Add(Snapshot(ctx, asset.Id, AssetChangeType.Created, location, a.RawJson, hash));
                 created++;
                 continue;
             }
@@ -81,6 +84,7 @@ public sealed class AssetBatchUpserter(TimeProvider clock) : IAssetBatchUpserter
             row.Status = AssetStatus.Active;
             row.LastSeenAt = now;
             row.UpdatedAt = now;
+            db.AssetSnapshots.Add(Snapshot(ctx, row.Id, AssetChangeType.Updated, location, a.RawJson, hash));
             updated++;
         }
 
@@ -92,6 +96,11 @@ public sealed class AssetBatchUpserter(TimeProvider clock) : IAssetBatchUpserter
                 .ExecuteUpdateAsync(s => s.SetProperty(a => a.LastSeenAt, now), ct);
         return new UpsertOutcome(created, updated);
     }
+
+    private static AssetSnapshot Snapshot(UpsertContext ctx, Guid assetId, AssetChangeType type, Point geom, string raw, string hash) => new()
+    {
+        AssetId = assetId, SyncRunId = ctx.SyncRunId, ChangeType = type, Geom = geom, Raw = raw, SourceHash = hash,
+    };
 
     /// <summary>
     /// Finds an existing, not yet seen asset within 1 m: the source has no ids, so a tree whose coordinate changed

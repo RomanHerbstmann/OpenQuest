@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Data;
+using OpenQuest.Api.Storage;
 using OpenQuest.Core.Adapters;
 using OpenQuest.Core.Domain;
 
@@ -24,6 +25,7 @@ public sealed class AssetSyncService(
     IServiceScopeFactory scopes,
     IAdapterProvider adapters,
     IAssetBatchUpserter upserter,
+    IBlobWriter blobs,
     TimeProvider clock,
     ILogger<AssetSyncService> log) : IAssetSynchronizer, ISyncTrigger, ISyncStatus
 {
@@ -35,26 +37,26 @@ public sealed class AssetSyncService(
 
     public bool IsRunning => _running.CurrentCount == 0;
 
-    public bool TryStartInBackground()
+    public bool TryStartInBackground(bool acceptSchemaChange = false)
     {
         if (!_running.Wait(0)) return false;
         _ = Task.Run(async () =>
         {
-            try { await SyncAllAsync(CancellationToken.None); }
+            try { await SyncAllAsync(acceptSchemaChange, CancellationToken.None); }
             catch (Exception e) { log.LogError(e, "Background asset sync failed."); }
             finally { _running.Release(); }
         });
         return true;
     }
 
-    public async Task<IReadOnlyList<SyncRun>?> RunAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<SyncRun>?> RunAsync(bool acceptSchemaChange, CancellationToken ct)
     {
         if (!await _running.WaitAsync(0, ct)) return null;
-        try { return await SyncAllAsync(ct); }
+        try { return await SyncAllAsync(acceptSchemaChange, ct); }
         finally { _running.Release(); }
     }
 
-    private async Task<IReadOnlyList<SyncRun>> SyncAllAsync(CancellationToken ct)
+    private async Task<IReadOnlyList<SyncRun>> SyncAllAsync(bool acceptSchemaChange, CancellationToken ct)
     {
         var adapter = adapters.Active;
         using var scope = scopes.CreateScope();
@@ -63,11 +65,11 @@ public sealed class AssetSyncService(
 
         var runs = new List<SyncRun>();
         foreach (var d in adapter.DataSources.Where(d => activeKeys.Contains(d.Key)))
-            runs.Add(await SyncDataSourceAsync(adapter, d, ct));
+            runs.Add(await SyncDataSourceAsync(adapter, d, acceptSchemaChange, ct));
         return runs;
     }
 
-    private async Task<SyncRun> SyncDataSourceAsync(IDataSourceAdapter adapter, DataSourceDescriptor descriptor, CancellationToken ct)
+    private async Task<SyncRun> SyncDataSourceAsync(IDataSourceAdapter adapter, DataSourceDescriptor descriptor, bool acceptSchemaChange, CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -83,38 +85,38 @@ public sealed class AssetSyncService(
         {
             var previousActive = await db.Assets.CountAsync(a => a.DataSourceId == source.Id && a.Status == AssetStatus.Active, ct);
             var hadAssets = await db.Assets.AnyAsync(a => a.DataSourceId == source.Id, ct);
-            var context = new UpsertContext(source.Id, assetType.Id, run.StartedAt, hadAssets);
-            var seen = 0;
-            var batch = new List<Asset>(BatchSize);
 
-            async Task FlushAsync()
+            var snapshot = await adapter.FetchSnapshotAsync(new AssetQuery(descriptor.AssetType), ct);
+            run.RecordCount = snapshot.RecordCount;
+            run.SchemaHash = snapshot.SchemaHash;
+
+            // Keep the download exactly as delivered, before anything can go wrong, so every snapshot can be reloaded
+            // (also the one of a failed run: that is the evidence for what the source sent).
+            run.SnapshotKey = $"snapshots/{source.Key}/{run.Id}.{snapshot.RawFileExtension}";
+            await blobs.PutAsync(run.SnapshotKey, snapshot.RawContent, snapshot.RawContentType, ct);
+            await db.SaveChangesAsync(ct);
+
+            await EnsureSchemaUnchangedAsync(db, source, snapshot, acceptSchemaChange, ct);
+
+            var context = new UpsertContext(run.Id, source.Id, assetType.Id, run.StartedAt, hadAssets);
+            for (var offset = 0; offset < snapshot.Assets.Count; offset += BatchSize)
             {
-                if (batch.Count == 0) return;
+                var batch = snapshot.Assets.Skip(offset).Take(BatchSize).ToList();
                 var outcome = await upserter.UpsertAsync(db, context, batch, ct);
-                seen += batch.Count;
                 run.AssetsCreated += outcome.Created;
                 run.AssetsUpdated += outcome.Updated;
-                batch.Clear();
             }
 
-            await foreach (var asset in adapter.FetchAssets(new AssetQuery(descriptor.AssetType), ct))
-            {
-                batch.Add(asset);
-                if (batch.Count >= BatchSize) await FlushAsync();
-            }
-            await FlushAsync();
-
+            var seen = snapshot.Assets.Count;
             if (seen == 0)
                 throw new InvalidOperationException("Source returned no assets; refusing to mark existing ones as removed.");
             if (previousActive > 0 && seen < previousActive * MinShareOfPreviousCount)
                 throw new InvalidOperationException(
                     $"Source returned {seen} assets but {previousActive} were active before; refusing to mark the rest as removed. Check the source.");
 
-            // Assets that vanished stay in the DB (quests reference them) but are flagged.
-            run.AssetsRemoved = await db.Assets
-                .Where(a => a.DataSourceId == source.Id && a.Status == AssetStatus.Active && a.LastSeenAt < run.StartedAt)
-                .ExecuteUpdateAsync(s => s.SetProperty(a => a.Status, AssetStatus.RemovedAtSource)
-                                          .SetProperty(a => a.UpdatedAt, clock.GetUtcNow()), ct);
+            // Assets that vanished stay in the DB (quests reference them) but are flagged; their last known version
+            // is recorded as a "removed" snapshot.
+            run.AssetsRemoved = await MarkRemovedAsync(db, source.Id, run, ct);
 
             run.Status = RunStatus.Succeeded;
             log.LogInformation("Sync {Source} done: {Created} created, {Updated} updated, {Removed} removed.",
@@ -132,5 +134,36 @@ public sealed class AssetSyncService(
         db.SyncRuns.Update(run);
         await db.SaveChangesAsync(CancellationToken.None);
         return run;
+    }
+
+    /// <summary>Fails the run if the source now delivers different fields than in the last successful run.</summary>
+    private static async Task EnsureSchemaUnchangedAsync(AppDbContext db, DataSource source, SourceSnapshot snapshot, bool accept, CancellationToken ct)
+    {
+        var previous = await db.SyncRuns.AsNoTracking()
+            .Where(r => r.DataSourceId == source.Id && r.Status == RunStatus.Succeeded && r.SchemaHash != null)
+            .OrderByDescending(r => r.StartedAt).Select(r => r.SchemaHash).FirstOrDefaultAsync(ct);
+        if (previous is null || previous == snapshot.SchemaHash || accept) return;
+        throw new InvalidOperationException(
+            $"The fields delivered by the source changed (now: {string.Join(", ", snapshot.SourceFields)}). " +
+            "Check that the adapter still maps them correctly, then start the sync with acceptSchemaChange=true. " +
+            "The download of this run was kept for inspection.");
+    }
+
+    private async Task<int> MarkRemovedAsync(AppDbContext db, Guid dataSourceId, SyncRun run, CancellationToken ct)
+    {
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var startedAt = run.StartedAt;
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO asset_snapshot (id, asset_id, sync_run_id, change_type, geom, raw, source_hash)
+            SELECT gen_random_uuid(), a.id, {run.Id}, 'removed', a.geom, a.raw, a.source_hash
+            FROM asset a
+            WHERE a.data_source_id = {dataSourceId} AND a.status = 'active' AND a.last_seen_at < {startedAt}
+            """, ct);
+        var removed = await db.Assets
+            .Where(a => a.DataSourceId == dataSourceId && a.Status == AssetStatus.Active && a.LastSeenAt < startedAt)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.Status, AssetStatus.RemovedAtSource)
+                                      .SetProperty(a => a.UpdatedAt, clock.GetUtcNow()), ct);
+        await tx.CommitAsync(ct);
+        return removed;
     }
 }

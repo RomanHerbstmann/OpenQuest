@@ -118,6 +118,7 @@ public static class ServiceRegistration
         s.AddScoped<IModerationQueue, ModerationQueue>();
         s.AddScoped<IQuestOverview, QuestOverview>();
         s.AddScoped<IPublicationOverview, PublicationOverview>();
+        s.AddScoped<IAssetHistory, AssetHistory>();
 
         s.AddHostedService<ClaimExpiryWorker>();
         return s;

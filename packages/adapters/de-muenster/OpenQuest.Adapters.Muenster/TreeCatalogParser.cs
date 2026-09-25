@@ -15,19 +15,20 @@ public static class TreeCatalogParser
     private const string ExpectedCrs = "25832";
     private const double NearDuplicateMeters = 1.0;
 
-    public static List<Asset> Parse(Stream geoJson)
+    /// <summary>The parsed download: assets, the fields the source delivered, and how many records it contained.</summary>
+    public sealed record ParsedCatalog(List<Asset> Assets, IReadOnlyCollection<string> Fields, int RecordCount);
+
+    public static List<Asset> Parse(Stream geoJson) => ParseCatalog(geoJson).Assets;
+
+    public static List<Asset> Parse(string geoJson) => ParseCatalog(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(geoJson))).Assets;
+
+    public static ParsedCatalog ParseCatalog(Stream geoJson)
     {
         using var doc = JsonDocument.Parse(geoJson);
-        return Parse(doc.RootElement);
+        return ParseCatalog(doc.RootElement);
     }
 
-    public static List<Asset> Parse(string geoJson)
-    {
-        using var doc = JsonDocument.Parse(geoJson);
-        return Parse(doc.RootElement);
-    }
-
-    private static List<Asset> Parse(JsonElement root)
+    private static ParsedCatalog ParseCatalog(JsonElement root)
     {
         if (root.ValueKind != JsonValueKind.Object
             || !root.TryGetProperty("features", out var features)
@@ -43,12 +44,14 @@ public static class TreeCatalogParser
         var eastNorth = new List<(double E, double N)>(assets.Capacity);
         var flagLists = new List<List<string>>(assets.Capacity);
         var usedIds = new HashSet<string>();
+        var fields = new SortedSet<string>(StringComparer.Ordinal);
 
         foreach (var f in features.EnumerateArray())
         {
             if (!f.TryGetProperty("properties", out var props) || props.ValueKind != JsonValueKind.Object
                 || !props.TryGetProperty("str_schl", out var strEl) || !props.TryGetProperty("baumgruppe", out var genusEl))
                 throw new InvalidDataException("Feature is missing expected properties 'str_schl'/'baumgruppe'; source schema changed?");
+            foreach (var field in props.EnumerateObject()) fields.Add(field.Name);
 
             if (!f.TryGetProperty("geometry", out var geom) || geom.ValueKind != JsonValueKind.Object
                 || geom.GetProperty("type").GetString() != "Point")
@@ -61,12 +64,9 @@ public static class TreeCatalogParser
             var rawStreet = strEl.ValueKind == JsonValueKind.String ? strEl.GetString() : null;
             var rawGenus = genusEl.ValueKind == JsonValueKind.String ? genusEl.GetString() : null;
 
-            var (streetKey, padded) = TreeNormalizer.NormalizeStreetKey(rawStreet);
+            var streetKey = TreeNormalizer.NormalizeStreetKey(rawStreet);
             var genus = TreeNormalizer.NormalizeGenus(rawGenus);
-
             var flags = new List<string>(genus.Flags);
-            if (streetKey is null) flags.Add(TreeNormalizer.FlagStreetKeyMissing);
-            else if (padded) flags.Add(TreeNormalizer.FlagStreetKeyPadded);
 
             var baseId = TreeIds.Create(e, nrth);
             var id = baseId;
@@ -91,7 +91,7 @@ public static class TreeCatalogParser
         }
 
         FlagNearDuplicates(flagLists, eastNorth);
-        return assets;
+        return new ParsedCatalog(assets, fields, features.GetArrayLength());
     }
 
     /// <summary>Marks trees that have another tree closer than 1 m (grid bucketing, O(n)).</summary>

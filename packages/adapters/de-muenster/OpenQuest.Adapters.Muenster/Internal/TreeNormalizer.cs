@@ -7,11 +7,9 @@ internal sealed record NormalizedGenus(string? Genus, string? Species, IReadOnly
 /// <summary>Cleans the free-text <c>baumgruppe</c> and <c>str_schl</c> fields of the Baumkataster.</summary>
 internal static partial class TreeNormalizer
 {
-    public const string FlagGenusMissing = "genus_missing";
-    public const string FlagGenusCorrected = "genus_corrected";
-    public const string FlagHybrid = "hybrid";
-    public const string FlagStreetKeyMissing = "street_key_missing";
-    public const string FlagStreetKeyPadded = "street_key_padded";
+    // The quality flags are a contract with the data model (ERD: attribute_schema of the tree asset type).
+    public const string FlagPlaceholderGenus = "placeholder_genus";
+    public const string FlagTypoCorrected = "typo_corrected";
     public const string FlagNearDuplicate = "near_duplicate";
 
     /// <summary>Values that occur instead of a genus. Matched case-insensitively.</summary>
@@ -31,14 +29,14 @@ internal static partial class TreeNormalizer
     {
         var value = raw?.Trim() ?? "";
         if (value.Length == 0 || Placeholders.Contains(value) || value.StartsWith("Leerer", StringComparison.OrdinalIgnoreCase))
-            return new NormalizedGenus(null, null, [FlagGenusMissing]);
+            return new NormalizedGenus(null, null, [FlagPlaceholderGenus]);
 
         var flags = new List<string>();
 
         if (HybridSuffix().IsMatch(value))
         {
-            value = HybridSuffix().Replace(value, "");
-            flags.Add(FlagHybrid);
+            value = HybridSuffix().Replace(value, ""); // "Malus-Hybride" -> "Malus": the source value was normalized
+            flags.Add(FlagTypoCorrected);
         }
 
         var parts = value.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -48,19 +46,18 @@ internal static partial class TreeNormalizer
         if (Typos.TryGetValue(genus, out var fixedGenus))
         {
             genus = fixedGenus;
-            flags.Add(FlagGenusCorrected);
+            if (!flags.Contains(FlagTypoCorrected)) flags.Add(FlagTypoCorrected);
         }
 
         return new NormalizedGenus(genus, species, flags);
     }
 
     /// <summary>Street key as 5-digit string (leading zeros), or null when missing.</summary>
-    public static (string? Key, bool Padded) NormalizeStreetKey(string? raw)
+    public static string? NormalizeStreetKey(string? raw)
     {
         var value = raw?.Trim();
-        if (string.IsNullOrEmpty(value)) return (null, false);
-        if (value.Length >= 5) return (value, false);
-        return (value.PadLeft(5, '0'), true);
+        if (string.IsNullOrEmpty(value)) return null;
+        return value.Length >= 5 ? value : value.PadLeft(5, '0');
     }
 
     [GeneratedRegex(@"[-\s]Hybride$", RegexOptions.IgnoreCase)]

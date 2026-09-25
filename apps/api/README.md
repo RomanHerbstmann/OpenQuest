@@ -73,7 +73,7 @@ Approved photos are public at `GET /media/{id}` (only after approval, never befo
 | Role | Calls |
 |---|---|
 | `moderator`, `admin` | `GET /admin/submissions?status=pending`, `GET /admin/media/{id}`, `POST /admin/submissions/{id}/review` `{approved, reason}` (reason required to reject; rejecting frees the slot) |
-| `admin` | `POST /admin/quests` (creates a campaign with one quest per selected asset), `GET /admin/quests`, `POST /admin/quests/{id}/status`, `GET /admin/campaigns`, `POST /admin/sync`, `GET /admin/sync/status`, `POST /admin/export?format=geojson\|csv`, `GET /admin/exports` |
+| `admin` | `POST /admin/quests` (creates a campaign with one quest per selected asset), `GET /admin/quests`, `POST /admin/quests/{id}/status`, `GET /admin/campaigns`, `POST /admin/sync`, `GET /admin/sync/status`, `GET /admin/sync/runs/{id}/snapshot`, `GET /admin/assets/{id}/history`, `GET /admin/publications`, `POST /admin/publications/retry`, `GET /admin/outbox` |
 
 Create quests for trees without a known genus inside a map rectangle:
 
@@ -85,8 +85,16 @@ POST /admin/quests
               "bbox": { "minLon": 7.60, "minLat": 51.95, "maxLon": 7.64, "maxLat": 51.97 }, "limit": 100 } }
 ```
 
-`target` accepts `assetIds`, `bbox`, `attributeFilter` (JSONB containment on asset attributes, for example `{"quality_flags":["genus_missing"]}`) and `withoutApprovedPhoto`.
+`target` accepts `assetIds`, `bbox`, `attributeFilter` (JSONB containment on asset attributes, for example `{"quality_flags":["placeholder_genus"]}`) and `withoutApprovedPhoto`.
 An asset never gets the same quest twice.
+
+## Import, snapshots and history
+
+`POST /admin/sync` (also daily, `Adapters:SyncIntervalHours`) downloads the city's data set and updates our assets. Every run is a snapshot:
+
+- the download is stored unchanged (`GET /admin/sync/runs/{id}/snapshot`), so any snapshot can be reloaded exactly as it was;
+- `asset_snapshot` records only what happened to an asset (`created`, `updated`, `removed`); an unchanged import adds no rows. `GET /admin/assets/{id}/history` shows an asset's versions;
+- the run fails loudly if the source's field list changed (`schema_hash`), the CRS is unexpected, required fields are missing, or the source suddenly delivers less than half of the known assets. Continue after checking the adapter with `POST /admin/sync?acceptSchemaChange=true`.
 
 ## Data flow back to the city (event-driven)
 

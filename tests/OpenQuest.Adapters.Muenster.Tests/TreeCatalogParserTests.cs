@@ -68,7 +68,7 @@ public class TreeCatalogParserTests
     {
         var a = TreeCatalogParser.Parse(Collection(Crs, Feature("02505", raw)))[0];
         Assert.Null(a.Attributes["genus"]);
-        Assert.Contains("genus_missing", a.QualityFlags);
+        Assert.Contains("placeholder_genus", a.QualityFlags);
     }
 
     [Theory]
@@ -82,7 +82,7 @@ public class TreeCatalogParserTests
         Assert.Equal(genus, a.Attributes["genus"]);
         Assert.Equal(species, a.Attributes["species"]);
         Assert.Equal(raw, a.Attributes["genus_raw"]);
-        Assert.DoesNotContain("genus_missing", a.QualityFlags);
+        Assert.DoesNotContain("placeholder_genus", a.QualityFlags);
     }
 
     [Fact]
@@ -90,19 +90,47 @@ public class TreeCatalogParserTests
     {
         var a = TreeCatalogParser.Parse(Collection(Crs, Feature("02505", "Malus-Hybride")))[0];
         Assert.Equal("Malus", a.Attributes["genus"]);
-        Assert.Contains("hybrid", a.QualityFlags);
+        Assert.Equal("Malus-Hybride", a.Attributes["genus_raw"]);
+        Assert.Contains("typo_corrected", a.QualityFlags);
     }
 
     [Theory]
-    [InlineData("1005", "01005", "street_key_padded")]
-    [InlineData("02505", "02505", null)]
-    [InlineData("", null, "street_key_missing")]
-    [InlineData(null, null, "street_key_missing")]
-    public void Street_key_is_padded_to_five_digits(string? raw, string? expected, string? flag)
+    [InlineData("1005", "01005")]
+    [InlineData("02505", "02505")]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void Street_key_is_padded_to_five_digits(string? raw, string? expected)
     {
         var a = TreeCatalogParser.Parse(Collection(Crs, Feature(raw, "Tilia")))[0];
         Assert.Equal(expected, a.Attributes["street_key"]);
-        if (flag is not null) Assert.Contains(flag, a.QualityFlags);
+    }
+
+    [Fact]
+    public void Quality_flags_only_use_the_values_of_the_data_model()
+    {
+        var allowed = new HashSet<string> { "placeholder_genus", "near_duplicate", "typo_corrected" };
+        Assert.All(LoadFixture(), a => Assert.All(a.QualityFlags, f => Assert.Contains(f, allowed)));
+        // and the fixture really exercises all of them
+        var used = LoadFixture().SelectMany(a => a.QualityFlags).ToHashSet();
+        Assert.Equal(allowed, used);
+    }
+
+    [Fact]
+    public void Catalog_reports_source_fields_and_record_count_for_the_snapshot()
+    {
+        var catalog = TreeCatalogParser.ParseCatalog(File.OpenRead(FixturePath));
+        Assert.Equal(["baumgruppe", "str_schl"], catalog.Fields);
+        Assert.Equal(40, catalog.RecordCount);
+    }
+
+    [Fact]
+    public void A_new_source_field_changes_the_schema_hash()
+    {
+        string One(string extra) => "{\"type\":\"Feature\",\"properties\":{\"str_schl\":\"1\",\"baumgruppe\":\"Tilia\"" + extra +
+                                    "},\"geometry\":{\"type\":\"Point\",\"coordinates\":[405000,5757000]}}";
+        var before = TreeCatalogParser.ParseCatalog(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(Collection(Crs, One("")))));
+        var after = TreeCatalogParser.ParseCatalog(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(Collection(Crs, One(",\"hoehe\":12")))));
+        Assert.NotEqual(OpenQuest.Core.Adapters.SourceSnapshot.Hash(before.Fields), OpenQuest.Core.Adapters.SourceSnapshot.Hash(after.Fields));
     }
 
     [Fact]

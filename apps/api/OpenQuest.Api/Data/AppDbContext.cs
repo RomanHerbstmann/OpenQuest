@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<TaskTypeEntity> TaskTypes => Set<TaskTypeEntity>();
     public DbSet<AssetTypeTaskType> AssetTypeTaskTypes => Set<AssetTypeTaskType>();
     public DbSet<AssetEntity> Assets => Set<AssetEntity>();
+    public DbSet<AssetSnapshot> AssetSnapshots => Set<AssetSnapshot>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserRecoveryCode> UserRecoveryCodes => Set<UserRecoveryCode>();
     public DbSet<QuestCampaign> QuestCampaigns => Set<QuestCampaign>();
@@ -31,6 +32,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         c.Properties<SubmissionStatus>().HaveConversion<SnakeEnumConverter<SubmissionStatus>>().HaveMaxLength(24);
         c.Properties<UserRole>().HaveConversion<SnakeEnumConverter<UserRole>>().HaveMaxLength(24);
         c.Properties<QuestStatus>().HaveConversion<SnakeEnumConverter<QuestStatus>>().HaveMaxLength(24);
+        c.Properties<AssetChangeType>().HaveConversion<SnakeEnumConverter<AssetChangeType>>().HaveMaxLength(24);
         c.Properties<AssetStatus>().HaveConversion<SnakeEnumConverter<AssetStatus>>().HaveMaxLength(24);
         c.Properties<OutboxStatus>().HaveConversion<SnakeEnumConverter<OutboxStatus>>().HaveMaxLength(24);
         c.Properties<ChangeStatus>().HaveConversion<SnakeEnumConverter<ChangeStatus>>().HaveMaxLength(24);
@@ -52,6 +54,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.ToTable("sync_run");
             e.HasOne(x => x.DataSource).WithMany().HasForeignKey(x => x.DataSourceId);
             e.HasIndex(x => new { x.DataSourceId, x.StartedAt });
+            e.Property(x => x.SnapshotKey).HasMaxLength(256);
+            e.Property(x => x.SchemaHash).HasMaxLength(64);
+        });
+
+        b.Entity<AssetSnapshot>(e =>
+        {
+            e.ToTable("asset_snapshot");
+            e.HasOne<AssetEntity>().WithMany().HasForeignKey(x => x.AssetId);
+            e.HasOne<SyncRun>().WithMany().HasForeignKey(x => x.SyncRunId);
+            e.HasIndex(x => new { x.AssetId, x.SyncRunId }).IsUnique();
+            e.HasIndex(x => x.SyncRunId);
+            e.Property(x => x.Geom).HasColumnType("geography (point)");
+            e.Property(x => x.Raw).HasColumnType("jsonb");
+            e.Property(x => x.SourceHash).HasMaxLength(64);
         });
 
         b.Entity<AssetTypeEntity>(e =>

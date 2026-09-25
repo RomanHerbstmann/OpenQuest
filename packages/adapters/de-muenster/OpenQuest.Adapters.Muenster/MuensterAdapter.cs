@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Options;
 using OpenQuest.Core.Adapters;
 using OpenQuest.Core.Domain;
@@ -25,35 +24,30 @@ public sealed class MuensterAdapter(HttpClient http, IOptions<MuensterOptions> o
                 "Daten bereinigt und angereichert durch Team OpenQuest."),
     ];
 
-    public async IAsyncEnumerable<Asset> FetchAssets(AssetQuery query, [EnumeratorCancellation] CancellationToken ct = default)
+    public async Task<SourceSnapshot> FetchSnapshotAsync(AssetQuery query, CancellationToken ct = default)
     {
         EnsureSupported(query.AssetType);
 
         // One request for the whole layer (~7 MB): unordered WFS paging could skip or repeat features.
         var url = $"{options.Value.WfsUrl}?SERVICE=WFS&VERSION=1.1.0&REQUEST=GetFeature&TYPENAME=Baeume" +
                   "&OUTPUTFORMAT=geojson&SRSNAME=EPSG:25832";
-        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        using var response = await http.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        var assets = TreeCatalogParser.Parse(stream);
+        var raw = await response.Content.ReadAsByteArrayAsync(ct);
 
-        foreach (var a in assets)
-        {
-            if (query.BBox is { } b
-                && (a.Position.Lon < b.MinLon || a.Position.Lon > b.MaxLon
-                    || a.Position.Lat < b.MinLat || a.Position.Lat > b.MaxLat))
-                continue;
-            yield return a;
-        }
+        var parsed = TreeCatalogParser.ParseCatalog(new MemoryStream(raw));
+        var assets = query.BBox is { } b
+            ? parsed.Assets.Where(a => a.Position.Lon >= b.MinLon && a.Position.Lon <= b.MaxLon
+                                       && a.Position.Lat >= b.MinLat && a.Position.Lat <= b.MaxLat).ToList()
+            : parsed.Assets;
+        return new SourceSnapshot(assets, raw, "application/geo+json", "geojson", parsed.Fields, parsed.RecordCount);
     }
 
     public async Task<Asset?> GetAsset(AssetType assetType, string externalId, CancellationToken ct = default)
     {
-        EnsureSupported(assetType);
-        // The WFS has no id lookup (ids are derived by us), so this scans the layer. Prefer the local DB.
-        await foreach (var a in FetchAssets(new AssetQuery(assetType), ct))
-            if (a.ExternalId == externalId) return a;
-        return null;
+        // The WFS has no id lookup (ids are derived by us), so this downloads the layer. Prefer the local DB.
+        var snapshot = await FetchSnapshotAsync(new AssetQuery(assetType), ct);
+        return snapshot.Assets.FirstOrDefault(a => a.ExternalId == externalId);
     }
 
     private void EnsureSupported(AssetType type)

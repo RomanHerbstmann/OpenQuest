@@ -14,11 +14,13 @@ public sealed record AssetType(
           "genus":{"type":["string","null"],"description":"Latin genus, e.g. Tilia"},
           "species":{"type":["string","null"],"description":"Latin species"},
           "genus_raw":{"type":["string","null"],"description":"Genus exactly as delivered by the source"},
-          "street_key":{"type":["string","null"]},
+          "street_key":{"type":["string","null"],"description":"5 digits, zero-padded"},
+          "street_name":{"type":["string","null"]},
+          "district":{"type":["string","null"],"description":"Stadtbezirk"},
           "trunk_circumference_cm":{"type":["number","null"]},
           "condition":{"enum":["good","damaged","dead","gone",null]},
           "photo_url":{"type":["string","null"]},
-          "quality_flags":{"type":"array","items":{"type":"string"},"description":"Data quality findings from the adapter, e.g. genus_missing"}
+          "quality_flags":{"type":"array","items":{"enum":["placeholder_genus","near_duplicate","typo_corrected"]}}
         }}
         """,
         new HashSet<TaskType> { TaskType.Photo, TaskType.VerifyAttribute, TaskType.Measure, TaskType.ConditionReport });

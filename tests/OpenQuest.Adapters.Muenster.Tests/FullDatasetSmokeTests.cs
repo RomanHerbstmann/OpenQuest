@@ -18,10 +18,10 @@ public class FullDatasetSmokeTests
         Assert.Equal(43_114, assets.Count);
         Assert.Equal(assets.Count, assets.Select(a => a.ExternalId).Distinct().Count());
 
-        var missing = assets.Count(a => a.QualityFlags.Contains("genus_missing"));
+        var missing = assets.Count(a => a.QualityFlags.Contains("placeholder_genus"));
         Assert.InRange(missing, 3_500, 3_650); // ~3,580 (8.3 %)
         Assert.InRange(assets.Count(a => a.QualityFlags.Contains("near_duplicate")), 80, 110); // 48 pairs
-        Assert.InRange(assets.Count(a => a.QualityFlags.Contains("street_key_missing")), 10, 20); // 14
+        Assert.InRange(assets.Count(a => a.Attributes["street_key"] is null), 10, 20); // 14
         Assert.Contains(assets, a => a.Attributes["genus"] == "Catalpa" && a.Attributes["genus_raw"] == "Catalpha");
     }
 }

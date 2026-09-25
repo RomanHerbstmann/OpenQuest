@@ -1,4 +1,7 @@
+using Microsoft.EntityFrameworkCore;
+using OpenQuest.Api.Data;
 using OpenQuest.Api.Publishing;
+using OpenQuest.Api.Storage;
 using OpenQuest.Api.Queries;
 using OpenQuest.Api.Sync;
 
@@ -41,17 +44,31 @@ public static class SyncEndpoints
 {
     public static void MapSync(this IEndpointRouteBuilder app)
     {
-        var admin = app.MapGroup("/admin/sync").RequireAuthorization("Admin").WithTags("Admin");
+        var admin = app.MapGroup("/admin").RequireAuthorization("Admin").WithTags("Admin");
 
-        admin.MapPost("", (ISyncTrigger sync) =>
-                sync.TryStartInBackground()
+        admin.MapPost("/sync", (bool? acceptSchemaChange, ISyncTrigger sync) =>
+                sync.TryStartInBackground(acceptSchemaChange ?? false)
                     ? Results.Accepted("/admin/sync/status", new { started = true })
                     : Results.Json(new { error = "sync_already_running" }, statusCode: 409))
             .WithName("StartSync")
-            .WithSummary("Starts an asset import from the active data source adapter in the background.");
+            .WithSummary("Starts an asset import from the active data source adapter in the background.")
+            .WithDescription("Fails the run if the fields delivered by the source differ from the last successful run, unless acceptSchemaChange=true. The raw download is always kept.");
 
-        admin.MapGet("/status", async (ISyncStatus status, IAdapterProvider adapters, IPublicationOverview overview, CancellationToken ct) =>
+        admin.MapGet("/sync/status", async (ISyncStatus status, IAdapterProvider adapters, IPublicationOverview overview, CancellationToken ct) =>
             Results.Ok(new { running = status.IsRunning, adapter = adapters.Active.Id, runs = await overview.SyncRunsAsync(10, ct) }))
             .WithName("SyncStatus");
+
+        admin.MapGet("/sync/runs/{id:guid}/snapshot", async (Guid id, AppDbContext db, IBlobReader blobs, CancellationToken ct) =>
+        {
+            var key = await db.SyncRuns.AsNoTracking().Where(r => r.Id == id).Select(r => r.SnapshotKey).FirstOrDefaultAsync(ct);
+            if (key is null) return Results.NotFound();
+            var bytes = await blobs.GetAsync(key, ct);
+            return bytes is null ? Results.NotFound() : Results.File(bytes, "application/octet-stream", Path.GetFileName(key));
+        }).WithName("DownloadSnapshot").WithSummary("The full raw download of a sync run, exactly as the source delivered it.");
+
+        admin.MapGet("/assets/{id:guid}/history", async (Guid id, IAssetHistory history, CancellationToken ct) =>
+            await history.ListAsync(id, ct) is { } versions ? Results.Ok(versions) : Results.NotFound())
+            .WithName("AssetHistory")
+            .WithSummary("Versions of an asset over time: created, changed (with position and source record) or removed at the source.");
     }
 }

@@ -36,10 +36,33 @@ public class SyncRun
     public DateTimeOffset StartedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? FinishedAt { get; set; }
     public string Status { get; set; } = RunStatus.Running;
+    /// <summary>Blob key of the full raw download, exactly as delivered by the source.</summary>
+    public string? SnapshotKey { get; set; }
+    /// <summary>Fingerprint of the source's field list; an unexpected change fails the run.</summary>
+    public string? SchemaHash { get; set; }
+    /// <summary>Number of records in the download.</summary>
+    public int RecordCount { get; set; }
     public int AssetsCreated { get; set; }
     public int AssetsUpdated { get; set; }
     public int AssetsRemoved { get; set; }
     public string? Error { get; set; }
+}
+
+/// <summary>
+/// One version of an asset as seen by one sync run. Rows exist only where something happened (created, changed
+/// according to <see cref="SourceHash"/>, or vanished at the source), so an unchanged daily import adds nothing.
+/// </summary>
+public class AssetSnapshot
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid AssetId { get; set; }
+    public Guid SyncRunId { get; set; }
+    public AssetChangeType ChangeType { get; set; }
+    /// <summary>Position in this version.</summary>
+    public Point Geom { get; set; } = null!;
+    /// <summary>Source record in this version (JSON).</summary>
+    public string Raw { get; set; } = "{}";
+    public string SourceHash { get; set; } = "";
 }
 
 public class AssetTypeEntity
