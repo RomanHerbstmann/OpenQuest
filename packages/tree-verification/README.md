@@ -26,7 +26,7 @@ result.assessment;      // vitality, damage, fungi, pests, tree pit, drought, ph
 result.proposedChanges; // [{ kind: "attribute", key: "vitality", value: "slightly_damaged", confidence: 1, requiresReview: false }, ...]
 ```
 
-## What a photo can tell us (ADR-0003)
+## What a photo can tell us (ADR-0005)
 
 The same vision call also assesses the tree; no extra model call.
 
@@ -69,7 +69,7 @@ Soft reasons: `tree_uncertain`, `models_disagree`, `possibly_not_live_photo`, `p
 
 | Default | Value |
 |---|---|
-| Vision | `google/gemini-3.8-flash` + `google/gemini-3.5-flash-lite`, escalation `openai/gpt-6-luna` (ADR-0003) |
+| Vision | `google/gemini-3.8-flash` + `google/gemini-3.5-flash-lite`, escalation `openai/gpt-6-luna` (ADR-0005) |
 | Jev | `typesafe/jev-1.13` via OpenRouter (`/api/v1/systemone`, same key) |
 | Approve / reject tree probability | 0.85 / 0.20 |
 | Jev vetoes | `different_tree` ≥ 0.8, `reject` ≥ 0.9 |
@@ -78,7 +78,7 @@ Do not send `temperature`: reasoning models reject it together with `provider.re
 
 ## Evaluation
 
-See [ADR-0002](../../docs/adr/0002-tree-photo-verification.md) and [ADR-0003](../../docs/adr/0003-tree-assessment-from-player-photos.md) for results.
+See [ADR-0002](../../docs/adr/0002-tree-photo-verification.md) and [ADR-0005](../../docs/adr/0005-tree-assessment-from-player-photos.md) for results.
 
 ```sh
 pnpm eval:fetch   # download the curated Wikimedia Commons samples (eval/samples.json)

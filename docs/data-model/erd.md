@@ -383,7 +383,7 @@ Findings that affect the model:
 
 ### Attributes vs. observations from player photos
 
-`@openquest/tree-verification` returns `proposedChanges` for every photo (see [ADR-0003](../adr/0003-tree-assessment-from-player-photos.md)):
+`@openquest/tree-verification` returns `proposedChanges` for every photo (see [ADR-0005](../adr/0005-tree-assessment-from-player-photos.md)):
 
 - `kind: "attribute"` (condition, vitality, damage, pests, age_class, tree_pit, genus): the **state** of the tree. Becomes an `ATTRIBUTE_CHANGE` with `status = proposed`.
 - `kind: "observation"` (phenology, drought_stress, tree_pit_issue, safety_concern): **time stamped facts** that must not overwrite each other, e.g. "flowering on 2026-05-03". They form a history per asset (useful for phenology time series) and fit `ATTRIBUTE_CHANGE` rows with `attribute_key = "observation:<key>"` for now; a dedicated `ASSET_OBSERVATION` table in the API is the cleaner option.

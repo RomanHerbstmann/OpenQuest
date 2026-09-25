@@ -44,7 +44,7 @@ export interface VerificationConfig {
 
 export const DEFAULT_CONFIG: Omit<VerificationConfig, "openRouterApiKey"> = {
   openRouterBaseUrl: "https://openrouter.ai/api",
-  // ADR-0003: gpt-6-luna as second model often labels real photos as illustrations and misses
+  // ADR-0005: gpt-6-luna as second model often labels real photos as illustrations and misses
   // thin young trees; the Gemini pair was better on every metric. Luna stays as cheap tie breaker.
   visionModels: ["google/gemini-3.8-flash", "google/gemini-3.5-flash-lite"],
   escalationModel: "openai/gpt-6-luna",

@@ -58,7 +58,7 @@ const CONFIGS: Record<string, VerificationConfig> = {
   single: { ...base, visionModels: [base.visionModels[0]!], escalationModel: null, jevModel: null },
   ensemble: { ...base, jevModel: null },
   full: base,
-  // Alternative model pairs, compared in ADR-0003.
+  // Alternative model pairs, compared in ADR-0005.
   "full-luna": { ...base, visionModels: ["google/gemini-3.8-flash", "openai/gpt-6-luna"], escalationModel: "google/gemini-3.5-flash-lite" },
   "full-sonnet": { ...base, visionModels: ["google/gemini-3.8-flash", "anthropic/claude-sonnet-5"], escalationModel: "google/gemini-3.5-flash-lite" },
 };

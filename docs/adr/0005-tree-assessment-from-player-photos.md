@@ -1,4 +1,4 @@
-# ADR-0003: Tree assessment from player photos (condition, tree pit, phenology, inventory)
+# ADR-0005: Tree assessment from player photos (condition, tree pit, phenology, inventory)
 
 | Field | Value |
 |---|---|
