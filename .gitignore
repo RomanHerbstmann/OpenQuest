@@ -491,3 +491,4 @@ eval/out/
 .pytest_cache/
 *.egg-info/
 data/
+apps/dashboard/data/cache/
