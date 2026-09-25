@@ -1,8 +1,14 @@
 node_modules/
+.pnpm-store/
+.next/
+out/
+output/
+*.tsbuildinfo
+*.log
+.env*
+!.env.example
+test-results/
 dist/
-.env
-.env.local
 eval/images/
 eval/out/
-*.log
 .DS_Store

@@ -149,10 +149,23 @@ This is a public, open-source civic project — handle data carefully (GDPR / DS
 
 ## Commands
 
-pnpm workspace (Node >= 20). Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.
+The current frontend prototype lives in `src/` and uses Next.js, React, Tailwind CSS and Leaflet. It runs with fictional tree data and browser-local state. The verification and adapter packages below are not yet connected to the frontend.
+
+Requires Node.js 20.9 or newer:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev        # http://localhost:3000
+pnpm typecheck
+pnpm build
+pnpm start      # serve the production build
+```
+
+For photo verification and evaluation, copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`. The frontend demo does not require an API key.
 
 - `pnpm install`
-- `pnpm test` / `pnpm typecheck`: all packages (unit tests run offline)
+- `pnpm test`: all package tests (unit tests run offline)
+- `pnpm typecheck`: frontend and all packages
 - `LIVE=1 pnpm --filter @openquest/adapter-de-muenster test`: include live WFS smoke test
 - `pnpm eval:fetch && pnpm eval`: tree photo verification evaluation (see ADR-0002)
 - `pnpm verify <image> --lat .. --lon ..`: verify a single photo against the nearest Münster tree
