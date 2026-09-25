@@ -3,7 +3,6 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using OpenQuest.Adapters.Muenster;
 using OpenQuest.Api.Auth;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Data;
@@ -15,7 +14,6 @@ using OpenQuest.Api.Queries;
 using OpenQuest.Api.Services;
 using OpenQuest.Api.Startup;
 using OpenQuest.Api.Storage;
-using OpenQuest.Api.Sync;
 using OpenQuest.Core.Events;
 using OpenQuest.Core.Publishing;
 
@@ -35,7 +33,6 @@ public static class ServiceRegistration
         s.Configure<AdminOptions>(c.GetSection(AdminOptions.Section));
         s.Configure<GameOptions>(c.GetSection(GameOptions.Section));
         s.Configure<StorageOptions>(c.GetSection(StorageOptions.Section));
-        s.Configure<AdapterOptions>(c.GetSection(AdapterOptions.Section));
         s.Configure<OutboxOptions>(c.GetSection(OutboxOptions.Section));
         s.Configure<PublishingOptions>(c.GetSection(PublishingOptions.Section));
         s.AddSingleton(TimeProvider.System);
@@ -121,19 +118,6 @@ public static class ServiceRegistration
         s.AddScoped<IAssetHistory, AssetHistory>();
 
         s.AddHostedService<ClaimExpiryWorker>();
-        return s;
-    }
-
-    public static IServiceCollection AddOpenQuestSync(this IServiceCollection s, IConfiguration c)
-    {
-        s.AddMuensterAdapter(c);
-        s.AddSingleton<IAdapterProvider, ConfiguredAdapterProvider>();
-        s.AddSingleton<IAssetBatchUpserter, AssetBatchUpserter>();
-        s.AddSingleton<AssetSyncService>();
-        s.AddSingleton<IAssetSynchronizer>(sp => sp.GetRequiredService<AssetSyncService>());
-        s.AddSingleton<ISyncTrigger>(sp => sp.GetRequiredService<AssetSyncService>());
-        s.AddSingleton<ISyncStatus>(sp => sp.GetRequiredService<AssetSyncService>());
-        s.AddHostedService<ScheduledSyncWorker>();
         return s;
     }
 

@@ -4,15 +4,10 @@
     <Project Path="apps/api/OpenQuest.Api/OpenQuest.Api.csproj" />
   </Folder>
   <Folder Name="/packages/" />
-  <Folder Name="/packages/adapters/" />
-  <Folder Name="/packages/adapters/de-muenster/">
-    <Project Path="packages/adapters/de-muenster/OpenQuest.Adapters.Muenster/OpenQuest.Adapters.Muenster.csproj" />
-  </Folder>
   <Folder Name="/packages/core/">
     <Project Path="packages/core/OpenQuest.Core/OpenQuest.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/OpenQuest.Adapters.Muenster.Tests/OpenQuest.Adapters.Muenster.Tests.csproj" />
     <Project Path="tests/OpenQuest.Api.Tests/OpenQuest.Api.Tests.csproj" />
     <Project Path="tests/OpenQuest.Core.Tests/OpenQuest.Core.Tests.csproj" />
   </Folder>

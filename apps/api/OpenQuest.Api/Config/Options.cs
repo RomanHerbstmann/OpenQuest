@@ -47,16 +47,6 @@ public class StorageOptions
     public long MaxPhotoBytes { get; set; } = 10 * 1024 * 1024;
 }
 
-public class AdapterOptions
-{
-    public const string Section = "Adapters";
-    /// <summary>Id of the active data source adapter, e.g. "de-muenster".</summary>
-    public string Active { get; set; } = "de-muenster";
-    /// <summary>Run the asset sync on a schedule (hours between runs; 0 disables).</summary>
-    public int SyncIntervalHours { get; set; } = 24;
-    public bool SyncOnStartup { get; set; } = false;
-}
-
 public class OutboxOptions
 {
     public const string Section = "Outbox";

@@ -18,13 +18,7 @@ dotnet run --project apps/api/OpenQuest.Api           # http://localhost:5076, a
   `dotnet user-secrets set Admin:Password "..." --project apps/api/OpenQuest.Api`. Outside Development `Admin__Password` is required.
 - Everything else: see [`.env.example`](../../.env.example).
 
-Load the trees of Münster (about 43,000, takes ~10 s, idempotent):
-
-```bash
-TOKEN=$(curl -s localhost:5076/auth/login -H 'content-type: application/json' \
-  -d '{"username":"admin","password":"<your admin password>"}' | jq -r .token)
-curl -X POST localhost:5076/admin/sync -H "authorization: Bearer $TOKEN"     # then GET /admin/sync/status
-```
+The API does not import data. Assets come from the separate importer, which writes the open data tables; the API only reads them.
 
 ## Tests
 
@@ -35,7 +29,6 @@ dotnet test                                           # unit tests + API integra
 API integration tests need PostGIS. By default they start a Testcontainers container. To reuse a running server instead
 (for example the compose one), set `OPENQUEST_TEST_DB="Host=localhost;Port=5432;Database=postgres;Username=openquest;Password=openquest"`;
 each run then creates and drops its own database.
-`OPENQUEST_FULL_DATASET=/path/to/wfs-dump.json` additionally checks the Münster parser against the full real dataset.
 
 ## Conventions for clients
 
@@ -73,7 +66,7 @@ Approved photos are public at `GET /media/{id}` (only after approval, never befo
 | Role | Calls |
 |---|---|
 | `moderator`, `admin` | `GET /admin/submissions?status=pending`, `GET /admin/media/{id}`, `POST /admin/submissions/{id}/review` `{approved, reason}` (reason required to reject; rejecting frees the slot) |
-| `admin` | `POST /admin/quests` (creates a campaign with one quest per selected asset), `GET /admin/quests`, `POST /admin/quests/{id}/status`, `GET /admin/campaigns`, `POST /admin/sync`, `GET /admin/sync/status`, `GET /admin/sync/runs/{id}/snapshot`, `GET /admin/assets/{id}/history`, `GET /admin/publications`, `POST /admin/publications/retry`, `GET /admin/outbox` |
+| `admin` | `POST /admin/quests` (creates a campaign with one quest per selected asset), `GET /admin/quests`, `POST /admin/quests/{id}/status`, `GET /admin/campaigns`, `GET /admin/sync/runs`, `GET /admin/assets/{id}/history`, `GET /admin/publications`, `POST /admin/publications/retry`, `GET /admin/outbox` |
 
 Create quests for trees without a known genus inside a map rectangle:
 
@@ -90,11 +83,10 @@ An asset never gets the same quest twice.
 
 ## Import, snapshots and history
 
-`POST /admin/sync` (also daily, `Adapters:SyncIntervalHours`) downloads the city's data set and updates our assets. Every run is a snapshot:
+The API does not import anything; a separate importer loads the city's data set and records every run in `sync_run` and every change of an asset in `asset_snapshot`. The API shows the result read-only:
 
-- the download is stored unchanged (`GET /admin/sync/runs/{id}/snapshot`), so any snapshot can be reloaded exactly as it was;
-- `asset_snapshot` records only what happened to an asset (`created`, `updated`, `removed`); an unchanged import adds no rows. `GET /admin/assets/{id}/history` shows an asset's versions;
-- the run fails loudly if the source's field list changed (`schema_hash`), the CRS is unexpected, required fields are missing, or the source suddenly delivers less than half of the known assets. Continue after checking the adapter with `POST /admin/sync?acceptSchemaChange=true`.
+- `GET /admin/sync/runs`: the latest runs with status, counters and error;
+- `GET /admin/assets/{id}/history`: the versions of an asset (`created`, `updated`, `removed`).
 
 ## Data flow back to the city (event-driven)
 
