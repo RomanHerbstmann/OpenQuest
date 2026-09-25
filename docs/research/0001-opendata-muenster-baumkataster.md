@@ -1,4 +1,4 @@
-# RDR-0001: Open-Data-Portal Münster und Baumkataster, Datenbezug und Rückkanal
+# Research Note 0001: Open-Data-Portal Münster und Baumkataster, Datenbezug und Rückkanal
 
 | Feld | Wert |
 |---|---|

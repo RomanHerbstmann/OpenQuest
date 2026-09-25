@@ -5,11 +5,11 @@
 | Status | Vorgeschlagen |
 | Datum | 2026-09-25 |
 | Entscheider | Team OpenQuest (Hackathon) |
-| Grundlage | [RDR-0001](../rdr/0001-opendata-muenster-baumkataster.md) (Recherche mit Belegen) |
+| Grundlage | [Research Note 0001](../research/0001-opendata-muenster-baumkataster.md) (Recherche mit Belegen) |
 
 ## Kontext
 
-Wir wollen das Baumkataster der Stadt Münster auf eine Karte bringen, in einer Datenbank ablegen, aufbereiten und das Ergebnis der Stadt zurückgeben. Die Recherche (RDR-0001) hat ergeben:
+Wir wollen das Baumkataster der Stadt Münster auf eine Karte bringen, in einer Datenbank ablegen, aufbereiten und das Ergebnis der Stadt zurückgeben. Die Recherche (Research Note 0001) hat ergeben:
 
 - opendata.stadt-muenster.de ist **DKAN 7 auf Drupal 7** (kein CKAN), mit eingeschränkter, langsamer Lese-API, **ohne Schreib-API und ohne Selbstregistrierung**. Inhalte pflegt ausschließlich die Redaktion der citeq.
 - Das Baumkataster liegt nicht im Portal, sondern wird **live aus dem MapServer-WFS** `https://geo.stadt-muenster.de/mapserv/odgruen_serv` (Layer `Baeume`) ausgeliefert. CORS ist offen.

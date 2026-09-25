@@ -5,6 +5,6 @@ Hackathon-Projekt: öffentliche Daten der Stadt Münster analysieren, aufbereite
 
 - [ADR-0001: Baumkataster direkt vom WFS beziehen, Rückkanal über GitHub und Open Data Koordination](docs/adr/0001-baumkataster-datenbezug-und-rueckkanal.md)
 
-## Recherche (RDR)
+## Recherche (Research Notes)
 
-- [RDR-0001: Open-Data-Portal Münster und Baumkataster, Datenbezug und Rückkanal](docs/rdr/0001-opendata-muenster-baumkataster.md)
+- [Research Note 0001: Open-Data-Portal Münster und Baumkataster, Datenbezug und Rückkanal](docs/research/0001-opendata-muenster-baumkataster.md)
