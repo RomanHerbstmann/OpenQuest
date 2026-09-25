@@ -99,7 +99,7 @@ erDiagram
         uuid id PK
         uuid asset_type_id FK
         uuid data_source_id FK
-        varchar external_id "UK with data_source_id"
+        varchar external_id "nullable; UK with data_source_id"
         geography geom "PostGIS, WGS84 (4326)"
         jsonb attributes "normalized, validated by attribute_schema"
         jsonb raw "original source record"
@@ -275,10 +275,14 @@ Alternative considered: one table per asset type (`tree`, `bench`, …). Rejecte
 
 Every import is a `SYNC_RUN` (it is the snapshot in the sense of [ADR-0001](../adr/0001-baumkataster-datenbezug-und-rueckkanal.md): `snapshot_id` = `SYNC_RUN.id`, `fetched_at` = `SYNC_RUN.started_at`). History is kept on two levels:
 
-- **Full download:** the unchanged file from the source is stored in object storage (`SYNC_RUN.snapshot_key`). Every snapshot can be reloaded exactly as it was.
+- **Full download:** the unchanged file from the source is stored in object storage (`SYNC_RUN.snapshot_key`). Every snapshot can be reloaded exactly as it was. Keys are content hashes, so identical downloads share one file.
 - **Changes per asset:** `ASSET_SNAPSHOT` gets a row only when an asset was created, changed (`source_hash` differs) or disappeared at the source. A daily sync of 43k unchanged trees therefore adds no rows, and the state of any asset at any sync can still be reconstructed.
 
 `ASSET` itself always holds the current state. `SYNC_RUN.schema_hash` records the source's field list; if it changes unexpectedly, the run fails loudly instead of importing broken data.
+
+### Asset identity
+
+`ASSET.id` is our own id and never changes. Sources with stable ids of their own store them in `external_id` and are matched by it; sources without (Münster) are matched spatially. Each adapter declares its strategy. Details and reasoning: [ADR-0002](../adr/0002-eigene-asset-id-und-raeumliches-matching.md).
 
 ### Where city-specific things live
 
@@ -328,8 +332,7 @@ Analysis of the CSV export (43,114 rows):
 
 Findings that affect the model:
 
-- **No id column.** The adapter has to derive a stable `external_id`. On re-sync, points that moved slightly must be matched to the existing asset by nearest neighbour within a small radius (e.g. 1 m), otherwise quests and photos lose their tree. **Question for Stadt Münster:** is there an internal tree number we could get in the export?
-  - **Open point, to be settled in ADR-0001:** the ADR hashes coordinate (EPSG:25832, rounded to 0.1 m) + `str_schl` + `baumgruppe`. Including the genus means a tree gets a new id as soon as the city adopts a genus correction made by players, which cuts it off from its quests and photos. Recommendation for OpenQuest: hash the coordinate only.
+- **No id column.** Decided in [ADR-0002](../adr/0002-eigene-asset-id-und-raeumliches-matching.md): we assign our own id (`ASSET.id`) and leave `external_id` empty. On re-sync, records are matched to existing assets by identical record first, then by nearest position within 1 m. **Question for Stadt Münster:** is there an internal tree number we could get in the export? With it, the adapter would switch to matching by `external_id`.
 - **Only the genus, not the species.** Top genera: Tilia 10,279 · Quercus 8,199 · Acer 5,324 · Carpinus 3,448.
 - **Unknown / placeholder genus:** 2,832 × `Baum Amt62` and 103 empty values. The adapter normalizes these to `genus = null` (raw value stays in `raw`). These ~2,900 trees are ideal targets for first `verify_attribute` quests.
 - Street keys are padded to 5 digits and resolved to street names via the WFS `odstrasseserv`; district and quarter come from the portal's GeoJSON (see ADR-0001, adapter concern).

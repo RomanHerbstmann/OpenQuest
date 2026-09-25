@@ -68,6 +68,7 @@ Adapter rules:
 - Adapters are selected via configuration (env / config file), never via `if (city === "muenster")` in core code.
 - Every adapter ships with fixture data and tests so it can be developed offline.
 - Assets are **imported/synced into our own database** (scheduled job), not fetched live per request. The open data platform is not a runtime dependency of the game. The import is done by a separate importer app, **not by the .NET API**: the API only reads assets.
+- **Implementation:** the importer is a Python package in `apps/importer` ([README](apps/importer/README.md)). Adapters subclass `DataSourceAdapter` and are registered via the `openquest.adapters` entry point group, so another city can ship its adapter as a separate package. The TypeScript interface sketch above describes the same contract.
 
 The way back to the city is **event-driven**. Accepting a contribution publishes a domain event (transactional outbox); handlers push the change to open data right away, never on a timer ([ADR-0004](docs/adr/0004-event-driven-writeback.md)).
 
@@ -79,7 +80,7 @@ Decided in [ADR-0001](docs/adr/0001-baumkataster-datenbezug-und-rueckkanal.md), 
 
 - **Portal:** https://opendata.stadt-muenster.de runs **DKAN 7 on Drupal 7** (not CKAN). Its API only holds metadata, is slow and has no write access. Don't use it for data.
 - **Source:** the tree data comes live from the city's **MapServer WFS** `https://geo.stadt-muenster.de/mapserv/odgruen_serv`, layer `Baeume` (GeoJSON in WGS84 for the map, `SRSNAME=EPSG:25832` for the database). CORS is open.
-- **Content:** ~43k trees with only three fields: point, `str_schl` (street key), `baumgruppe` (genus). Data as of 2017/2020, about half of the city's trees. **No stable id**, so the adapter derives `external_id` itself. ~8 % placeholders instead of a genus (e.g. `Baum Amt62`). Details: [docs/data-model/erd.md](docs/data-model/erd.md#münster-tree-data-gruen_opendatacsv).
+- **Content:** ~43k trees with only three fields: point, `str_schl` (street key), `baumgruppe` (genus). Data as of 2017/2020, about half of the city's trees. **No stable id**: we assign our own asset id and match records spatially on re-sync ([ADR-0006](docs/adr/0006-eigene-asset-id-und-raeumliches-matching.md)). ~8 % placeholders instead of a genus (e.g. `Baum Amt62`). Details: [docs/data-model/erd.md](docs/data-model/erd.md#münster-tree-data-gruen_opendatacsv).
 - **Snapshots:** the adapter loads snapshots (manually or daily) and keeps the history (`SYNC_RUN`, `ASSET_SNAPSHOT`). If the WFS schema changes, the import must fail loudly.
 - **License:** dl-de/by-2.0, attribution required. Use the attribution text from ADR-0001 in the app, README and every published file. No city logos or coat of arms, nothing that looks official.
 - **Write-back:** the portal cannot be written to. Approved contributions go back as a published cleaned dataset (GitHub) plus a message to the city's open data coordination (see ADR-0001).
@@ -96,7 +97,8 @@ Decided for the backend (see [ADR-0003](docs/adr/0003-backend-dotnet.md)); the f
 - **Database:** PostgreSQL + **PostGIS** ([data model](docs/data-model/erd.md)).
 - **File storage:** S3-compatible (MinIO locally) for photos and export files.
 - **Auth:** username + password (argon2id), JWT, recovery codes, roles `player | moderator | admin`.
-- **Local dev:** Docker Compose (PostGIS, MinIO).
+- **Importer:** Python (`apps/importer`): reads the cities' open data and writes the open data tables; the API only reads them.
+- **Local dev:** Docker Compose (PostGIS, MinIO, importer). The whole stack must stay startable with `docker compose up`; add new services there.
 - **Web app / admin panel:** mobile-first PWA with MapLibre GL + OpenStreetMap tiles (proposal, owned by the frontend team).
 
 Layout:
@@ -106,11 +108,13 @@ apps/
   api/          # ASP.NET Core API, persistence, auth, background jobs
   web/          # player PWA (frontend team)
   admin/        # admin panel (frontend team)
+  importer/     # Python: adapters, enrichers, sync jobs (open data import)
 packages/
   core/OpenQuest.Core/                              # C#: domain model, quest/claim/geofence rules, exporters (framework-free)
   adapters/de-muenster/src, test/                   # TypeScript: nearby trees from the WFS for photo verification
   tree-verification/                                # TypeScript: photo verification pipeline
 tests/          # unit tests (core) and API integration tests
+db/migrations/  # SQL migrations of the importer (see open question on schema ownership)
 docs/           # ADRs, data model, research notes
 ```
 
@@ -173,9 +177,32 @@ pnpm workspace (Node >= 20). Copy `.env.example` to `.env` and set `OPENROUTER_A
 
 Packages so far: `packages/tree-verification` (photo verification, framework free), `packages/adapters/de-muenster` (Münster tree WFS as `NearbyTreeProvider`, TypeScript). The .NET projects live in the same folders under `OpenQuest.*` subfolders.
 
+### Importer (Python)
+
+In Docker (the importer syncs on start and then daily):
+
+```bash
+docker compose up -d --build
+docker compose logs -f importer
+docker compose run --rm importer sync de-muenster-trees --force   # one-off importer command
+```
+
+Local development:
+
+```bash
+docker compose up -d db                                   # PostGIS on localhost:5432
+cd apps/importer && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
+.venv/bin/openquest-importer migrate                      # apply db/migrations
+.venv/bin/openquest-importer sync de-muenster-trees       # import Münster trees from the WFS
+.venv/bin/pytest                                          # unit tests
+OPENQUEST_TEST_DATABASE_URL=postgresql://openquest:openquest@localhost:5432/postgres .venv/bin/pytest   # + database tests
+```
+
+The official `postgis/postgis` image is amd64 only; `docker-compose.yml` pins `platform: linux/amd64` so it runs on Apple Silicon through emulation.
+
 ## Open questions
 
-- Tree id: ADR-0001 includes the genus in the id hash, which breaks quests when a genus gets corrected. OpenQuest needs a coordinate-only id (see [erd.md](docs/data-model/erd.md#münster-tree-data-gruen_opendatacsv)).
 - The city may be working on a new tree dataset (`od-ms/converter-scripts`, see ADR-0001) — check before investing in data cleaning.
 - Moderation model: admin-only review vs. community validation (e.g. "2 of 3 players agree on the species").
 - Hosting for the Münster instance.
+- **Schema ownership between API and importer:** the EF Core migrations of the API and `db/migrations` of the importer both create the open data tables. Only one of them can own the schema (see PR #8).

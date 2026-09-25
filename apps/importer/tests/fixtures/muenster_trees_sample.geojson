@@ -1,0 +1,19 @@
+{
+"type": "FeatureCollection",
+"name": "Baeume",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "str_schl": "02505", "baumgruppe": "Tilia" }, "geometry": { "type": "Point", "coordinates": [ 7.612346614095637, 51.974634186495123 ] } },
+{ "type": "Feature", "properties": { "str_schl": "02505", "baumgruppe": "Tilia" }, "geometry": { "type": "Point", "coordinates": [ 7.61253784216682, 51.974672640232157 ] } },
+{ "type": "Feature", "properties": { "str_schl": "02505", "baumgruppe": "Carpinus" }, "geometry": { "type": "Point", "coordinates": [ 7.612417021179078, 51.976006932135995 ] } },
+{ "type": "Feature", "properties": { "str_schl": "02505", "baumgruppe": "Carpinus" }, "geometry": { "type": "Point", "coordinates": [ 7.61241295040492, 51.9760995698766 ] } },
+{ "type": "Feature", "properties": { "str_schl": "01234", "baumgruppe": "Baum Amt62" }, "geometry": { "type": "Point", "coordinates": [ 7.6201, 51.9612 ] } },
+{ "type": "Feature", "properties": { "str_schl": "01234", "baumgruppe": "Baumgruppe" }, "geometry": { "type": "Point", "coordinates": [ 7.6205, 51.9614 ] } },
+{ "type": "Feature", "properties": { "str_schl": "01234", "baumgruppe": "Leerer Standort" }, "geometry": { "type": "Point", "coordinates": [ 7.6209, 51.9616 ] } },
+{ "type": "Feature", "properties": { "str_schl": "", "baumgruppe": "" }, "geometry": { "type": "Point", "coordinates": [ 7.6301, 51.9501 ] } },
+{ "type": "Feature", "properties": { "str_schl": "3120", "baumgruppe": "Catalpha" }, "geometry": { "type": "Point", "coordinates": [ 7.6401, 51.9701 ] } },
+{ "type": "Feature", "properties": { "str_schl": "03120", "baumgruppe": "Metasequoia glyptostroboides" }, "geometry": { "type": "Point", "coordinates": [ 7.6405, 51.9703 ] } },
+{ "type": "Feature", "properties": { "str_schl": "04400", "baumgruppe": "Quercus" }, "geometry": { "type": "Point", "coordinates": [ 7.6501, 51.9801 ] } },
+{ "type": "Feature", "properties": { "str_schl": "04400", "baumgruppe": "Quercus" }, "geometry": { "type": "Point", "coordinates": [ 7.6501, 51.9801045 ] } }
+]
+}

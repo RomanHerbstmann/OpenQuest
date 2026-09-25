@@ -1,6 +1,13 @@
+# Start everything:   docker compose up -d --build
+# Importer logs:      docker compose logs -f importer
+# One-off command:    docker compose run --rm importer sync de-muenster-trees --force
+# The API runs outside Docker for now: dotnet run --project apps/api/OpenQuest.Api
+
 services:
   db:
     image: postgis/postgis:17-3.5
+    # The official image is amd64 only; Apple Silicon runs it through emulation.
+    platform: linux/amd64
     environment:
       POSTGRES_USER: openquest
       POSTGRES_PASSWORD: openquest
@@ -10,10 +17,10 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U openquest"]
+      test: ["CMD-SHELL", "pg_isready -U openquest -d openquest"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
 
   # The official minio/minio image is no longer published on Docker Hub; the frozen Bitnami legacy
   # image is fine for local development. Any S3-compatible server works (see Storage__* settings).
@@ -29,6 +36,23 @@ services:
     volumes:
       - minio-data:/bitnami/minio/data
 
+  importer:
+    build:
+      context: .
+      dockerfile: apps/importer/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://openquest:openquest@db:5432/openquest
+      # Sync all sources on start and then every interval (default: daily).
+      # 0 = sync once and exit.
+      SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-86400}
+    volumes:
+      - snapshots:/app/data/snapshots
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   db-data:
   minio-data:
+  snapshots:

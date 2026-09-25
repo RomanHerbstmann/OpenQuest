@@ -1,0 +1,27 @@
+# OpenQuest importer configuration.
+# DATABASE_URL in the environment overrides [database] url.
+
+[database]
+url = "postgresql://openquest:openquest@localhost:5433/openquest"
+
+[snapshots]
+# Relative paths are resolved against this file's directory.
+dir = "../../data/snapshots"
+
+[[sources]]
+key = "de-muenster-trees"
+adapter = "de_muenster.trees"
+name = "Digitales Baumkataster Münster"
+city = "Münster"
+source_url = "https://opendata.stadt-muenster.de/dataset/digitales-baumkataster-m%C3%BCnster"
+license = "dl-de/by-2.0"
+attribution = "Datenquelle: Stadt Münster, Digitales Baumkataster, dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0), https://opendata.stadt-muenster.de/dataset/digitales-baumkataster-m%C3%BCnster. Daten bereinigt und angereichert durch Team OpenQuest."
+
+[sources.options]
+wfs_url = "https://geo.stadt-muenster.de/mapserv/odgruen_serv"
+layer = "Baeume"
+# file = "tests/fixtures/muenster_trees_sample.geojson"   # offline instead of the WFS
+
+[sources.sync]
+match_radius_m = 1.0
+max_removal_ratio = 0.2
