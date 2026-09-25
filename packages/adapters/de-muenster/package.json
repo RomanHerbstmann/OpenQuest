@@ -1,0 +1,17 @@
+{
+  "name": "@openquest/adapter-de-muenster",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@openquest/tree-verification": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.0"
+  }
+}

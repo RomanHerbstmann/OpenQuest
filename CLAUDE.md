@@ -149,7 +149,15 @@ This is a public, open-source civic project — handle data carefully (GDPR / DS
 
 ## Commands
 
-No code exists yet. Add build/test/dev commands here as soon as the project is scaffolded (e.g. `pnpm install`, `pnpm dev`, `pnpm test`, `docker compose up`).
+pnpm workspace (Node >= 20). Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.
+
+- `pnpm install`
+- `pnpm test` / `pnpm typecheck`: all packages (unit tests run offline)
+- `LIVE=1 pnpm --filter @openquest/adapter-de-muenster test`: include live WFS smoke test
+- `pnpm eval:fetch && pnpm eval`: tree photo verification evaluation (see ADR-0002)
+- `pnpm verify <image> --lat .. --lon ..`: verify a single photo against the nearest Münster tree
+
+Packages so far: `packages/tree-verification` (photo verification, framework free), `packages/adapters/de-muenster` (Münster tree WFS as `NearbyTreeProvider`).
 
 ## Open questions
 
