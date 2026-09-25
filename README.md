@@ -29,6 +29,11 @@ Alle Bäume auf einer Karte, Suche per Jev: [apps/dashboard](apps/dashboard/READ
 
 - [apps/importer/README.md](apps/importer/README.md): Open-Data-Import (Python), Adapter und Enricher
 
+## Daten
+
+- [Data sources: Herkunft, Lizenzen, Attribution aller Daten](docs/data-model/data-sources.md)
+- [Data model (ERD)](docs/data-model/erd.md)
+
 ## Recherche (Research Notes)
 
 - [Research Note 0001: Open-Data-Portal Münster und Baumkataster, Datenbezug und Rückkanal](docs/research/0001-opendata-muenster-baumkataster.md)
