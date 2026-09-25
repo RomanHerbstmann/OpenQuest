@@ -6,6 +6,7 @@ Domain: [openquest.fun](https://openquest.fun)
 ## Entscheidungen
 
 - [ADR-0001: Baumkataster direkt vom WFS beziehen, Rückkanal über GitHub und Open Data Koordination](docs/adr/0001-baumkataster-datenbezug-und-rueckkanal.md)
+- [ADR-0002: Tree photo verification with a vision ensemble, Jev and geo context](docs/adr/0002-tree-photo-verification.md)
 
 ## Recherche (Research Notes)
 

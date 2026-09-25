@@ -1,0 +1,21 @@
+{
+  "name": "openquest",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.5",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "verify": "tsx --env-file=.env eval/verify.ts",
+    "eval:fetch": "tsx eval/fetch-samples.ts",
+    "eval": "tsx --env-file=.env eval/run.ts"
+  },
+  "devDependencies": {
+    "@openquest/adapter-de-muenster": "workspace:*",
+    "@openquest/tree-verification": "workspace:*",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.local
+eval/images/
+eval/out/
+*.log
+.DS_Store
