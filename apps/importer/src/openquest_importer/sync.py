@@ -1,5 +1,8 @@
 """Runs one sync of a data source: download, check, match, write.
 
+The tables belong to the API (EF Core migrations) and have no database
+defaults, so every insert sets ids, timestamps and counters explicitly.
+
 Every sync is recorded in ``sync_run``, also when it fails. Changes to assets
 are written in a single transaction, so a failed sync leaves the assets as
 they were.
@@ -77,7 +80,7 @@ def run_sync(
         "SELECT id, attribute_schema FROM asset_type WHERE key = %s", (adapter.asset_type,)
     ).fetchone()
     if type_row is None:
-        raise SyncError(f"Asset type '{adapter.asset_type}' does not exist; run the migrations first")
+        raise SyncError(f"Asset type '{adapter.asset_type}' does not exist; the API seeds asset types on start")
     asset_type_id, attribute_schema = type_row
     conn.commit()
 
@@ -88,7 +91,10 @@ def run_sync(
 
     try:
         run_id = conn.execute(
-            "INSERT INTO sync_run (data_source_id) VALUES (%s) RETURNING id", (source_id,)
+            "INSERT INTO sync_run (id, data_source_id, started_at, status, record_count,"
+            " assets_created, assets_updated, assets_removed)"
+            " VALUES (gen_random_uuid(), %s, now(), 'running', 0, 0, 0, 0) RETURNING id",
+            (source_id,),
         ).fetchone()[0]
         conn.commit()
         log.info("Sync %s of %s started", run_id, source.key)
@@ -188,16 +194,17 @@ def _upsert_data_source(conn: psycopg.Connection, source: SourceConfig) -> UUID:
     }
     row = conn.execute(
         """
-        INSERT INTO data_source (key, adapter_key, name, city, source_url, license, attribution, config)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO data_source (id, key, adapter_key, name, city, source_url, license, attribution, config,
+                                 is_active, created_at)
+        VALUES (gen_random_uuid(), %s, %s, %s, %s, %s, %s, %s, %s, true, now())
         ON CONFLICT (key) DO UPDATE SET
             adapter_key = EXCLUDED.adapter_key, name = EXCLUDED.name, city = EXCLUDED.city,
             source_url = EXCLUDED.source_url, license = EXCLUDED.license,
             attribution = EXCLUDED.attribution, config = EXCLUDED.config
         RETURNING id
         """,
-        (source.key, source.adapter, source.name, source.city, source.source_url,
-         source.license, source.attribution, Jsonb(config)),
+        (source.key, source.adapter, source.name, source.city or "", source.source_url or "",
+         source.license or "", source.attribution or "", Jsonb(config)),
     ).fetchone()
     return row[0]
 
@@ -240,14 +247,19 @@ def _apply(conn: psycopg.Connection, run_id: UUID, source_id: UUID, asset_type_i
         ) ON COMMIT DROP
         """
     )
-    rows: list[tuple[UUID, str, NormalizedAsset]] = [(uuid4(), "created", a) for a in result.created]
-    rows += [(old.id, "updated", new) for old, new in result.updated]
+    # external_id is required and unique per source. Sources without ids of
+    # their own get the asset's own id (ADR-0006), which is stable as well.
+    rows: list[tuple[UUID, str, str, NormalizedAsset]] = []
+    for asset in result.created:
+        asset_id = uuid4()
+        rows.append((asset_id, "created", asset.external_id or str(asset_id), asset))
+    rows += [(old.id, "updated", new.external_id or old.external_id, new) for old, new in result.updated]
     with conn.cursor().copy(
         "COPY incoming (asset_id, change_type, external_id, lon, lat, attributes, raw, source_hash) FROM STDIN"
     ) as copy:
-        for asset_id, change_type, a in rows:
+        for asset_id, change_type, external_id, a in rows:
             copy.write_row((
-                str(asset_id), change_type, a.external_id, a.lon, a.lat,
+                str(asset_id), change_type, external_id, a.lon, a.lat,
                 json.dumps(a.attributes, ensure_ascii=False), json.dumps(a.raw, ensure_ascii=False),
                 a.source_hash,
             ))
@@ -255,8 +267,10 @@ def _apply(conn: psycopg.Connection, run_id: UUID, source_id: UUID, asset_type_i
     point = "ST_SetSRID(ST_MakePoint(i.lon, i.lat), 4326)::geography"
     conn.execute(
         f"""
-        INSERT INTO asset (id, asset_type_id, data_source_id, external_id, geom, attributes, raw, source_hash)
-        SELECT i.asset_id, %s, %s, i.external_id, {point}, i.attributes, i.raw, i.source_hash
+        INSERT INTO asset (id, asset_type_id, data_source_id, external_id, geom, attributes, raw, source_hash,
+                           status, first_seen_at, last_seen_at, updated_at)
+        SELECT i.asset_id, %s, %s, i.external_id, {point}, i.attributes, i.raw, i.source_hash,
+               'active', now(), now(), now()
         FROM incoming i WHERE i.change_type = 'created'
         """,
         (asset_type_id, source_id),
@@ -281,15 +295,15 @@ def _apply(conn: psycopg.Connection, run_id: UUID, source_id: UUID, asset_type_i
 
     conn.execute(
         f"""
-        INSERT INTO asset_snapshot (asset_id, sync_run_id, change_type, geom, raw, source_hash)
-        SELECT i.asset_id, %s, i.change_type, {point}, i.raw, i.source_hash FROM incoming i
+        INSERT INTO asset_snapshot (id, asset_id, sync_run_id, change_type, geom, raw, source_hash)
+        SELECT gen_random_uuid(), i.asset_id, %s, i.change_type, {point}, i.raw, i.source_hash FROM incoming i
         """,
         (run_id,),
     )
     conn.execute(
         """
-        INSERT INTO asset_snapshot (asset_id, sync_run_id, change_type, geom, raw, source_hash)
-        SELECT id, %s, 'removed', geom, raw, source_hash FROM asset WHERE id = ANY(%s)
+        INSERT INTO asset_snapshot (id, asset_id, sync_run_id, change_type, geom, raw, source_hash)
+        SELECT gen_random_uuid(), id, %s, 'removed', geom, raw, source_hash FROM asset WHERE id = ANY(%s)
         """,
         (run_id, removed_ids),
     )

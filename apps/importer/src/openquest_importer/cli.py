@@ -1,4 +1,4 @@
-"""Command line interface: ``openquest-importer migrate | sync | adapters``."""
+"""Command line interface: ``openquest-importer check | sync | adapters``."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from pathlib import Path
 
 from openquest_importer.adapters import available_adapters, create_adapter
 from openquest_importer.config import ConfigError, load_config
-from openquest_importer.db import connect, migrate
+from openquest_importer.db import SchemaNotReadyError, connect, wait_for_schema
 from openquest_importer.enrichers import available_enrichers, create_enricher
 from openquest_importer.snapshots import LocalSnapshotStore
 from openquest_importer.sync import run_sync
@@ -29,7 +29,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-v", "--verbose", action="store_true", help="debug logging")
     commands = parser.add_subparsers(dest="command", required=True)
 
-    commands.add_parser("migrate", help="apply database migrations")
+    check = commands.add_parser("check", help="check that the API has set up the database schema")
+    check.add_argument("--wait", type=float, default=0, metavar="SECONDS",
+                       help="keep checking for up to SECONDS (e.g. while the API starts)")
 
     sync = commands.add_parser("sync", help="import data sources")
     sync.add_argument("sources", nargs="*", metavar="SOURCE", help="source keys from the config")
@@ -64,11 +66,22 @@ def main(argv: list[str] | None = None) -> int:
         log.error("No database configured. Set DATABASE_URL or [database] url in %s", args.config)
         return 2
 
+    if args.command == "check":
+        try:
+            wait_for_schema(config.database_url, args.wait)
+        except SchemaNotReadyError as exc:
+            log.error("%s", exc)
+            return 1
+        print("Database schema ready")
+        return 0
+
+    try:
+        wait_for_schema(config.database_url, 0)
+    except SchemaNotReadyError as exc:
+        log.error("%s", exc)
+        return 2
+
     with connect(config.database_url) as conn:
-        if args.command == "migrate":
-            applied = migrate(conn)
-            print(f"Applied {len(applied)} migration(s)" + (f": {', '.join(applied)}" if applied else ""))
-            return 0
 
         keys = list(config.sources) if args.all else args.sources
         if not keys:

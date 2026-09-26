@@ -30,16 +30,22 @@ docker compose run --rm importer sync de-muenster-trees --force
 docker compose run --rm importer adapters
 ```
 
+## Database schema
+
+The schema belongs to the **API**: its EF Core migrations create the tables when the API starts, and it seeds the asset types (the tree attribute schema is `AssetType.Tree` in `packages/core/OpenQuest.Core/Domain/AssetType.cs`). The importer has no migrations of its own. It writes `data_source`, `sync_run`, `asset` and `asset_snapshot`, reads `asset_type`, and refuses to run until the API has set up the database (`openquest-importer check`). In Docker it waits for the API on start.
+
+New attributes an adapter or enricher writes must be added to the asset type in C#; `tests/test_ef_schema.py` fails otherwise.
+
 ## Local setup (development)
 
 Requires Python ≥ 3.11 and Docker.
 
 ```bash
-docker compose up -d db                      # from the repository root; PostGIS on localhost:5432
+docker compose up -d db minio api            # from the repository root; the API sets up the schema
 cd apps/importer
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
-.venv/bin/openquest-importer migrate
+.venv/bin/openquest-importer check --wait 120
 .venv/bin/openquest-importer sync de-muenster-trees
 ```
 
@@ -47,10 +53,10 @@ Commands (run in `apps/importer`, or pass `--config`):
 
 | Command | What it does |
 |---|---|
-| `openquest-importer migrate` | Applies the SQL migrations in `db/migrations/` |
+| `openquest-importer check [--wait SECONDS]` | Checks that the API has set up the database schema |
 | `openquest-importer sync SOURCE…` / `sync --all` | Syncs the given sources from `importer.toml` |
 | `openquest-importer sync SOURCE --force` | Applies a sync even if it removes more than `max_removal_ratio` of the assets |
-| `openquest-importer adapters` | Lists installed adapters |
+| `openquest-importer adapters` | Lists installed adapters and enrichers |
 
 `DATABASE_URL` overrides the database URL and `OPENQUEST_SNAPSHOT_DIR` the snapshot directory from `importer.toml`. Locally, snapshots are stored in `data/snapshots/` at the repository root (git-ignored).
 
@@ -123,4 +129,4 @@ Keep everything city-specific inside the adapter. The core never branches on cit
 .venv/bin/pytest
 ```
 
-Unit tests need nothing else. The database tests run when `OPENQUEST_TEST_DATABASE_URL` points to a Postgres/PostGIS server (e.g. `postgresql://openquest:openquest@localhost:5432/postgres` with docker compose). They create and drop their own temporary database.
+Unit tests need nothing else. The database tests run when `OPENQUEST_TEST_DATABASE_URL` points to a Postgres/PostGIS server (e.g. `postgresql://openquest:openquest@localhost:5432/postgres` with docker compose). They create and drop their own temporary database, build the API's schema from `tests/fixtures/ef_schema.sql` and seed the tree asset type from `AssetType.cs`. After adding an EF migration, regenerate the schema file with `scripts/update-ef-schema.sh` (needs the .NET SDK); `tests/test_ef_schema.py` fails while it is outdated.

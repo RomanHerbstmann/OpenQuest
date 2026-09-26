@@ -97,7 +97,7 @@ Decided for the backend (see [ADR-0003](docs/adr/0003-backend-dotnet.md)); the f
 - **Database:** PostgreSQL + **PostGIS** ([data model](docs/data-model/erd.md)).
 - **File storage:** S3-compatible (MinIO locally) for photos and export files.
 - **Auth:** username + password (argon2id), JWT, recovery codes, roles `player | moderator | admin`.
-- **Importer:** Python (`apps/importer`): reads the cities' open data and writes the open data tables; the API only reads them.
+- **Importer:** Python (`apps/importer`): reads the cities' open data and writes the open data tables; the API only reads them. The **schema belongs to the API** (EF Core migrations, asset types seeded from `AssetType.cs`); the importer has no migrations. New asset attributes go into `AssetType.cs`, and `apps/importer/scripts/update-ef-schema.sh` refreshes the importer's test schema after an EF migration.
 - **Local dev:** Docker Compose (PostGIS, MinIO, importer). The whole stack must stay startable with `docker compose up`; add new services there.
 - **Web app / admin panel:** mobile-first PWA with MapLibre GL + OpenStreetMap tiles (proposal, owned by the frontend team).
 
@@ -114,7 +114,6 @@ packages/
   adapters/de-muenster/src, test/                   # TypeScript: nearby trees from the WFS for photo verification
   tree-verification/                                # TypeScript: photo verification pipeline
 tests/          # unit tests (core) and API integration tests
-db/migrations/  # SQL migrations of the importer (see open question on schema ownership)
 docs/           # ADRs, data model, research notes
 ```
 
@@ -190,9 +189,9 @@ docker compose run --rm importer sync de-muenster-trees --force   # one-off impo
 Local development:
 
 ```bash
-docker compose up -d db                                   # PostGIS on localhost:5432
+docker compose up -d db minio api                         # the API creates the schema on start
 cd apps/importer && python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/openquest-importer migrate                      # apply db/migrations
+.venv/bin/openquest-importer check --wait 120            # wait until the API has set up the schema
 .venv/bin/openquest-importer sync de-muenster-trees       # import Münster trees from the WFS
 .venv/bin/pytest                                          # unit tests
 OPENQUEST_TEST_DATABASE_URL=postgresql://openquest:openquest@localhost:5432/postgres .venv/bin/pytest   # + database tests
@@ -205,4 +204,3 @@ The official `postgis/postgis` image is amd64 only; `docker-compose.yml` pins `p
 - The city may be working on a new tree dataset (`od-ms/converter-scripts`, see ADR-0001) — check before investing in data cleaning.
 - Moderation model: admin-only review vs. community validation (e.g. "2 of 3 players agree on the species").
 - Hosting for the Münster instance.
-- **Schema ownership between API and importer:** the EF Core migrations of the API and `db/migrations` of the importer both create the open data tables. Only one of them can own the schema (see PR #8).

@@ -99,7 +99,7 @@ erDiagram
         uuid id PK
         uuid asset_type_id FK
         uuid data_source_id FK
-        varchar external_id "nullable; UK with data_source_id"
+        varchar external_id "UK with data_source_id; own id if the source has none"
         geography geom "PostGIS, WGS84 (4326)"
         jsonb attributes "normalized, validated by attribute_schema"
         jsonb raw "original source record"
@@ -336,7 +336,7 @@ Analysis of the CSV export (43,114 rows):
 
 Findings that affect the model:
 
-- **No id column.** Decided in [ADR-0006](../adr/0006-eigene-asset-id-und-raeumliches-matching.md): we assign our own id (`ASSET.id`) and leave `external_id` empty. On re-sync, records are matched to existing assets by identical record first, then by nearest position within 1 m. **Question for Stadt Münster:** is there an internal tree number we could get in the export? With it, the adapter would switch to matching by `external_id`.
+- **No id column.** Decided in [ADR-0006](../adr/0006-eigene-asset-id-und-raeumliches-matching.md): we assign our own id (`ASSET.id`) and store it in `external_id` as well (required and unique per source in the API's schema; exports reference assets by it). On re-sync, records are matched to existing assets by identical record first, then by nearest position within 1 m. **Question for Stadt Münster:** is there an internal tree number we could get in the export? With it, the adapter would switch to matching by `external_id`.
 - **Only the genus, not the species.** Top genera: Tilia 10,279 · Quercus 8,199 · Acer 5,324 · Carpinus 3,448.
 - **Unknown / placeholder genus:** 2,832 × `Baum Amt62` and 103 empty values. The adapter normalizes these to `genus = null` (raw value stays in `raw`). These ~2,900 trees are ideal targets for first `verify_attribute` quests.
 - **Enrichment** (done in the adapter, reference files are part of the snapshot):
@@ -346,13 +346,14 @@ Findings that affect the model:
   - `height_m`: object height above ground from the **nDOM50 surface model of Geobasis NRW** (WCS, 0.5 m grid, dl-de/zero-2.0), 95th percentile within 2.5 m of the tree point; same method as `packages/adapters/de-nrw` in PR #7. Added by the enricher `de_nrw.ndom_height`, which is not tied to Münster and can be switched on for any data source in NRW. It is the height *at the inventory point*, not a measured tree height: trees next to buildings can pick up the building, values below 2 m usually mean a young, pruned or missing tree.
 - The ADR also flags near-duplicates (< 1 m apart) and data quality issues. These go into `attributes.quality_flags`.
 
-`attribute_schema` for `ASSET_TYPE = tree` (migrations `0001` and `0002`):
+`attribute_schema` for `ASSET_TYPE = tree` (defined in `AssetType.Tree`, `packages/core/OpenQuest.Core/Domain/AssetType.cs`, seeded by the API; abridged):
 
 ```json
 {
   "type": "object",
   "properties": {
     "genus":        { "type": ["string", "null"], "description": "Latin genus, e.g. Tilia" },
+    "genus_raw":    { "type": ["string", "null"], "description": "Genus exactly as delivered by the source" },
     "species":      { "type": ["string", "null"], "description": "Latin species, not in Münster data yet" },
     "street_key":   { "type": ["string", "null"], "description": "5 digits, zero-padded" },
     "street_name":  { "type": ["string", "null"] },

@@ -145,8 +145,20 @@ def test_enrichers_set_attributes_and_are_stored_in_snapshot(db_url, sample_coll
         assert store.load(key).extras["enrichment:fake.height"].content == b'{"fake": true}'
 
 
-def test_migrations_extend_tree_schema(db_url):
+def test_assets_get_own_id_as_external_id(db_url, sample_collection, write_collection, store):
+    """Münster has no ids; external_id (required and unique in the API's schema) is the asset's own id."""
     with psycopg.connect(db_url) as conn:
-        properties = conn.execute(
-            "SELECT attribute_schema->'properties' FROM asset_type WHERE key = 'tree'").fetchone()[0]
-        assert {"height_m", "quarter", "district", "street_name"} <= set(properties)
+        sync(conn, write_collection(sample_collection), store)
+        rows = conn.execute("SELECT id::text, external_id FROM asset").fetchall()
+        assert rows and all(asset_id == external_id for asset_id, external_id in rows)
+
+        sample_collection["features"][0]["properties"]["baumgruppe"] = "Acer"  # changed record keeps its id
+        sync(conn, write_collection(sample_collection, "v2.geojson"), store)
+        assert sorted(conn.execute("SELECT id::text, external_id FROM asset").fetchall()) == sorted(rows)
+
+
+def test_database_prepared_by_api_is_accepted(db_url):
+    from openquest_importer.db import schema_problems
+
+    with psycopg.connect(db_url) as conn:
+        assert schema_problems(conn) == []

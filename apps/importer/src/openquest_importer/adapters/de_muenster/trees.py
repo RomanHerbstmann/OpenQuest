@@ -180,6 +180,7 @@ class MuensterTreesAdapter(DataSourceAdapter):
                 lat=lat,
                 attributes={
                     "genus": genus,
+                    "genus_raw": properties.get("baumgruppe"),
                     "species": species,
                     "street_key": street_key,
                     "street_name": streets.get(street_key) if street_key else None,

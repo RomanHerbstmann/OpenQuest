@@ -1,7 +1,11 @@
 # Start everything:   docker compose up -d --build
+# API:                http://localhost:5076 (admin password: docker compose logs api | grep "admin")
 # Importer logs:      docker compose logs -f importer
 # One-off command:    docker compose run --rm importer sync de-muenster-trees --force
-# The API runs outside Docker for now: dotnet run --project apps/api/OpenQuest.Api
+#
+# The API owns the database schema: it applies the EF Core migrations and seeds the
+# asset types on start. The importer waits for that, then imports the open data.
+# To run the API with `dotnet run` instead: docker compose up -d db minio importer
 
 services:
   db:
@@ -36,6 +40,25 @@ services:
     volumes:
       - minio-data:/bitnami/minio/data
 
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      # Development: non-secret defaults from appsettings.Development.json, a random JWT key per start
+      # and a generated admin password printed once in the log. Don't use this setup in production.
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Host=db;Port=5432;Database=openquest;Username=openquest;Password=openquest
+      Storage__ServiceUrl: http://minio:9000
+    ports:
+      - "5076:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    restart: unless-stopped
+
   importer:
     build:
       context: .
@@ -51,6 +74,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      # The importer waits until the API has created the schema (see docker-entrypoint.sh).
+      api:
+        condition: service_started
     restart: unless-stopped
 
 volumes:

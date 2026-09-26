@@ -58,6 +58,7 @@ def test_parse_sample():
     assert (first.lon, first.lat) == (7.612346614095637, 51.974634186495123)
     assert first.attributes == {
         "genus": "Tilia",
+        "genus_raw": "Tilia",
         "species": None,
         "street_key": "02505",
         "street_name": "Grevener Straße",

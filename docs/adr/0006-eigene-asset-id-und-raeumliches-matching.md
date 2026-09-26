@@ -20,7 +20,7 @@ Für OpenQuest reicht das nicht. Quests, Fotos und Änderungsvorschläge hängen
    1. Ein identischer Datensatz (gleicher `source_hash` aus Geometrie und Eigenschaften) behält sein Asset.
    2. Übrige Datensätze werden dem nächstgelegenen noch freien Asset im Umkreis von `match_radius_m` zugeordnet (Standard 1 m). Die nächsten Paare werden zuerst vergeben, jedes Asset und jeder Datensatz höchstens einmal.
    3. Übrig gebliebene Datensätze werden neue Assets. Übrig gebliebene Assets werden als `removed_at_source` markiert, nicht gelöscht.
-3. **Quellen mit eigenen stabilen IDs** werden über `asset.external_id` zugeordnet. Jeder Adapter legt fest, welche Strategie gilt (`Identity.SPATIAL` oder `Identity.EXTERNAL_ID`). Für Münster ist `external_id` leer.
+3. **Quellen mit eigenen stabilen IDs** werden über `asset.external_id` zugeordnet. Jeder Adapter legt fest, welche Strategie gilt (`Identity.SPATIAL` oder `Identity.EXTERNAL_ID`). Quellen ohne eigene IDs (Münster) bekommen unsere eigene ID auch als `external_id`: Die Spalte ist im Schema der API Pflicht und pro Datenquelle eindeutig, und Exporte an die Stadt referenzieren Bäume darüber. Der Wert ist genauso stabil wie `asset.id`.
 4. **Schutz vor fehlerhaften Downloads:** Würde ein Import mehr als `max_removal_ratio` (Standard 20 %) der aktiven Assets entfernen, bricht er ab. Mit `--force` lässt er sich bewusst durchführen.
 
 Umgesetzt im Importer unter `apps/importer` (`matching.py`), beschrieben in [docs/data-model/erd.md](../data-model/erd.md).
@@ -41,6 +41,6 @@ Umgesetzt im Importer unter `apps/importer` (`matching.py`), beschrieben in [doc
 - Entfernte Bäume bleiben mit Verlauf erhalten (`asset_snapshot`).
 
 **Negativ**
-- Die ID ist nur innerhalb unserer Datenbank stabil. Wer Daten mit uns austauscht, braucht unsere ID (z. B. in exportierten Dateien).
+- Die ID ist nur innerhalb unserer Datenbank stabil. Wer Daten mit uns austauscht, braucht unsere ID; Exporte enthalten sie als `external_id`.
 - Wird ein Baum mehr als 1 m verschoben, gilt er als entfernt und neu angelegt. Der Radius ist pro Datenquelle einstellbar.
 - Stehen zwei Bäume dicht beieinander und ändern sich beide gleichzeitig, kann die Zuordnung vertauschen. Die Research Note zählt 48 solcher Paare unter 1 m; sie tragen das Flag `near_duplicate`.

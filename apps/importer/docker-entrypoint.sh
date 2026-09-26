@@ -1,7 +1,8 @@
 #!/bin/sh
 # Container entrypoint.
 #
-# Without arguments: apply migrations, then sync all configured sources.
+# Without arguments: wait until the API has set up the database schema (it runs
+# the EF Core migrations on start), then sync all configured sources.
 # If SYNC_INTERVAL_SECONDS > 0, keep running and sync again at that interval.
 #
 # With arguments: run that importer command instead, e.g.
@@ -12,7 +13,7 @@ if [ "$#" -gt 0 ]; then
     exec openquest-importer "$@"
 fi
 
-openquest-importer migrate
+openquest-importer check --wait "${SCHEMA_WAIT_SECONDS:-600}"
 
 interval="${SYNC_INTERVAL_SECONDS:-0}"
 if [ "$interval" -le 0 ]; then
