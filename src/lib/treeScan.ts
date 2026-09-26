@@ -20,6 +20,8 @@ export type ScanResult =
       expectedGenus: string | null;
       position: ScanPosition | null;
       verification: TreeVerificationResult;
+      /** The downscaled JPEG that was verified; a live quest submits exactly this photo. */
+      photo: Blob;
     };
 
 export type ScanOptions = {
@@ -53,7 +55,14 @@ export async function recognizeTreeForPrototype(image: Blob, expectedSpecies?: s
     form.set('lon', String(position.lng));
     if (position.accuracyMeters !== null) form.set('accuracy', String(Math.round(position.accuracyMeters)));
   }
-  if (tree) form.set('treeId', tree.id);
+  if (tree?.quest) {
+    // Live quest: the expected tree is the quest asset. A placeholder genus is sent as "unknown".
+    form.set('expectedLat', String(tree.lat));
+    form.set('expectedLon', String(tree.lng));
+    if (tree.quest.genus) form.set('expectedGenus', tree.quest.genus);
+  } else if (tree) {
+    form.set('treeId', tree.id);
+  }
   if (options.capturedAt) form.set('capturedAt', options.capturedAt.toISOString());
 
   let response: Response;
@@ -84,6 +93,7 @@ export async function recognizeTreeForPrototype(image: Blob, expectedSpecies?: s
     expectedGenus: expected?.genus ?? null,
     position,
     verification: result,
+    photo: jpeg,
   };
 }
 

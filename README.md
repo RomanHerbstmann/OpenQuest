@@ -50,9 +50,20 @@ curl -F image=@eval/images/platanus-2.jpg -F lat=51.964258 -F lon=7.627308 -F ac
 
 The admin area is a local demo without authentication or a backend. Review decisions only update browser `localStorage`; they never change official city data. Public deployment requires access control, server-side persistence and review rules.
 
+### Live mode against the OpenQuest API
+
+Without an account the app stays in demo mode with the 24 sample trees and says **DEMO** in the map header. Tapping the tag (or the account card in the profile) opens login and sign up (username and password, no e-mail; the recovery codes are shown once after sign up). Signed in, the header says **LIVE** and the map shows real quests from the API instead of the sample trees; the density layer and the Jev search stay.
+
+- **Proxy:** the browser only calls `/backend/...` on its own origin. `next.config.ts` rewrites that to `OPENQUEST_API_URL` (default `https://openquest-api.onrender.com`), so there is no CORS setup. Rewrites are resolved at build time: set `OPENQUEST_API_URL` before `pnpm build`. The proxy timeout is 90 s because the free Render instance needs up to a minute to wake up; after 4 s the app shows "Server startet ...".
+- **Client:** `src/lib/api.ts` (typed calls, token in `localStorage`, German error texts per API error code, timeout). UI texts of the live game live in `src/i18n/liveGame.ts`.
+- **Map:** `GET /quests/nearby` around the map center (the map flies to the player position once it is known), radius 600 m, reloaded on `moveend` with debounce and a 60 s cache. Because the API returns at most 200 quests and the photo campaign is dense, `verify_attribute` quests are requested separately and merged. Quests are mapped onto the existing tree type (`src/lib/quests.ts`): German genus name, camera marker for photo quests, magnifier marker for "Art bestimmen", reward as badge, active claims in gold.
+- **Flow:** bottom sheet with the real quest, **Quest annehmen** (`POST /quests/{id}/claim`), then the scan dialog. The photo goes to `/api/verify` with the quest asset as expected tree. On `approve` and `review` the app calls `POST /claims/{id}/submit` right away with the same downscaled JPEG, the position and the payload (`{}` for photo quests, `{ value: <detected genus> }` for `verify_attribute`). On `reject` nothing is submitted; the claim stays and the player can take a new photo or cancel the claim.
+- **Points:** they are only paid when a moderator approves. The app says "eingereicht, wird geprüft"; **Missionen** lists "Meine Quests" from `GET /me/claims` with status, rejection reason, confirmed and pending XP. With the gamification release the header also reads `totalPoints` and `level` from `GET /me`.
+
 ### Validation
 
 ```bash
+pnpm test        # app unit tests (src/lib/*.test.ts) and all workspace packages
 pnpm typecheck
 pnpm build
 ```

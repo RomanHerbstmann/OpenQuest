@@ -2,10 +2,13 @@
 
 import Image from 'next/image';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import { AlertTriangle, Camera, Check, CircleCheck, CircleX, Clock3, ImagePlus, RotateCcw, ScanLine, X } from 'lucide-react';
+import Link from 'next/link';
+import { AlertTriangle, Camera, Check, CircleCheck, CircleX, Clock3, ImagePlus, ListTodo, Loader2, RotateCcw, ScanLine, Send, X } from 'lucide-react';
 import { usePlayer } from '@/context/PlayerContext';
 import { cardArtBySpecies } from '@/data/cardArt';
 import { species } from '@/data/species';
+import { liveText } from '@/i18n/liveGame';
+import { api, ApiError, type SubmitResult } from '@/lib/api';
 import { recordScanObservation } from '@/lib/observations';
 import { recognizeTreeForPrototype, type ScanResult } from '@/lib/treeScan';
 import { formatPercent, genusLabel, reasonMessage, verdictText, type SpeciesName } from '@/lib/verificationText';
@@ -13,8 +16,27 @@ import type { Tree } from '@/types/tree';
 
 type Stage = 'camera' | 'scanning' | 'revealing' | 'result' | 'saved';
 type VerifiedScan = Extract<ScanResult, { source: 'verified' }>;
+/** Submission of a live quest to the API after the photo check. */
+type Submission =
+  | { state: 'idle' }
+  | { state: 'sending' }
+  | { state: 'done'; result: SubmitResult }
+  | { state: 'error'; message: string; canRetry: boolean };
+const lt = liveText.de;
+// Errors after which submitting the same claim again cannot succeed.
+const FINAL_SUBMIT_ERRORS = new Set(['claim_expired', 'claim_not_active', 'already_submitted', 'claim_not_found', 'session_expired']);
 
-export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () => void }) {
+export function ScanModal({ tree, onClose, onSubmitted, onCancelClaim }: {
+  tree?: Tree | null;
+  onClose: () => void;
+  /** Live quest: called after the API accepted the submission. */
+  onSubmitted?: () => void;
+  /** Live quest: cancels the claim (offered after a rejected photo). */
+  onCancelClaim?: () => Promise<void>;
+}) {
+  const quest = tree?.quest ?? null;
+  const [submission, setSubmission] = useState<Submission>({ state: 'idle' });
+  const [cancelling, setCancelling] = useState(false);
   const { progress, ready, addScannedCard, recordDiscovery } = usePlayer();
   const [stage, setStage] = useState<Stage>('camera');
   const [cameraReady, setCameraReady] = useState(false);
@@ -115,14 +137,17 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
     setScanResult(null);
     setStage('scanning');
     try {
-      const result = await recognizeTreeForPrototype(image, tree?.species, { tree, capturedAt });
+      const result = await recognizeTreeForPrototype(image, tree?.lexiconSpecies ?? tree?.species, { tree, capturedAt });
       if (scanRunRef.current !== run) return;
       setScanResult(result);
+      setSubmission({ state: 'idle' });
+      // Live quest: approve and review go to the API right away; reject submits nothing and keeps the claim.
+      if (quest && result.source === 'verified' && result.verification.verdict !== 'reject') void submitQuest(result);
       const matched = species.find((item) => item.name === result.species);
       const fallback = species.find((item) => item.name === tree?.species)?.name ?? 'Birke';
       setSelectedSpecies(matched?.name ?? fallback);
-      // Nothing to reveal for a rejected photo or a genus without card: show the verdict right away.
-      if (result.source === 'verified' && (result.verification.verdict === 'reject' || (!result.species && !tree))) {
+      // Nothing to reveal for a live quest (XP come after moderation), a rejected photo or a genus without card: show the verdict right away.
+      if (quest || (result.source === 'verified' && (result.verification.verdict === 'reject' || (!result.species && !tree)))) {
         setStage('result');
         return;
       }
@@ -137,6 +162,36 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
       setScanError(error instanceof Error ? error.message : 'Der Scan konnte nicht abgeschlossen werden.');
       setStage('camera');
     }
+  };
+
+  const submitQuest = async (scan: VerifiedScan) => {
+    if (!quest?.claim) return;
+    if (!scan.position) { setSubmission({ state: 'error', message: lt.scan.noPosition, canRetry: false }); return; }
+    const value = scan.genus;
+    if (quest.kind === 'verify' && !value) { setSubmission({ state: 'error', message: lt.scan.noGenus, canRetry: false }); return; }
+    setSubmission({ state: 'sending' });
+    try {
+      const result = await api.submitClaim(quest.claim.id, {
+        lat: scan.position.lat,
+        lon: scan.position.lng,
+        payload: quest.kind === 'verify' ? { value: value!, note: `photo check ${scan.verification.verdict}` } : {},
+        photo: scan.photo,
+      });
+      setSubmission({ state: 'done', result });
+      // Only a local card for the collection; XP come from the moderation.
+      if (scan.verification.verdict === 'approve' && scan.species && ready) addScannedCard(scan.species, 0);
+      setStage('saved');
+      onSubmitted?.();
+    } catch (error) {
+      const code = error instanceof ApiError ? error.code : '';
+      setSubmission({ state: 'error', message: error instanceof ApiError ? error.message : lt.errors.fallback, canRetry: !FINAL_SUBMIT_ERRORS.has(code) });
+    }
+  };
+
+  const cancelClaim = async () => {
+    if (!onCancelClaim) return;
+    setCancelling(true);
+    try { await onCancelClaim(); onClose(); } catch (error) { setSubmission({ state: 'error', message: error instanceof ApiError ? error.message : lt.errors.fallback, canRetry: false }); } finally { setCancelling(false); }
   };
 
   const capturePhoto = () => {
@@ -171,6 +226,7 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
     setPhotoUrl(null);
     setScanError('');
     setScanResult(null);
+    setSubmission({ state: 'idle' });
     setStage('camera');
   };
 
@@ -217,9 +273,9 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
   const alreadyCollected = progress.discoveredSpecies.includes(selectedSpecies);
   const verified = scanResult?.source === 'verified' ? scanResult : null;
   const verdict = verified?.verification.verdict ?? null;
-  const photoOnly = verified !== null && (verdict === 'reject' || (!verified.species && !tree));
+  const photoOnly = Boolean(quest) || (verified !== null && (verdict === 'reject' || (!verified.species && !tree)));
   const demoOnly = Boolean(tree?.presentation);
-  const title = stage === 'saved'
+  const title = quest && stage === 'saved' ? lt.scan.submittedTitle : quest && submission.state === 'error' ? lt.scan.submitFailed : stage === 'saved'
     ? (verdict === 'review' ? 'Fund vorgemerkt' : 'Karte gesammelt!')
     : stage === 'result'
       ? (verdict === 'reject' ? 'Foto abgelehnt' : verdict === 'review' ? 'Fund wird geprüft' : 'Deine Sammelkarte')
@@ -237,7 +293,7 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
           <span className="scan-viewfinder-caption" aria-hidden="true"><ScanLine size={15} /> BAUM IM RAHMEN POSITIONIEREN</span>
           {!cameraReady && <div className="scan-camera-message"><Camera size={28} /><span>{cameraError || 'Kamera wird geöffnet …'}</span></div>}
         </div>
-        <p className="scan-help">{tree ? `Fotografiere den Baum bei ${tree.area}.` : 'Richte die Kamera auf einen Baum oder wähle ein vorhandenes Foto.'}</p>
+        <p className="scan-help">{quest ? `${quest.title}: ${quest.kind === 'photo' ? lt.quest.photoGoal : lt.quest.verifyGoal}` : tree ? `Fotografiere den Baum bei ${tree.area}.` : 'Richte die Kamera auf einen Baum oder wähle ein vorhandenes Foto.'}</p>
         {scanError && <p className="scan-error" role="alert">{scanError}</p>}
         <button type="button" className="scan-primary" onClick={capturePhoto} disabled={!cameraReady}><Camera size={19} /> Foto aufnehmen</button>
         {cameraError && <button type="button" className="scan-secondary" onClick={() => captureInputRef.current?.click()}><Camera size={18} /> Handykamera öffnen</button>}
@@ -266,7 +322,20 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
         </>}
       </>}
 
-      {verified && (stage === 'result' || stage === 'saved') && <VerifiedResult
+      {quest && (stage === 'result' || stage === 'saved') && <QuestResult
+        scan={verified}
+        demoNotice={scanResult?.source === 'demo'}
+        stage={stage}
+        rewardPoints={quest.rewardPoints}
+        submission={submission}
+        cancelling={cancelling}
+        onResubmit={() => { if (verified) void submitQuest(verified); }}
+        onRetry={retry}
+        onCancelClaim={onCancelClaim ? cancelClaim : undefined}
+        onClose={onClose}
+      />}
+
+      {!quest && verified && (stage === 'result' || stage === 'saved') && <VerifiedResult
         scan={verified}
         stage={stage}
         tree={tree}
@@ -279,7 +348,7 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
         onClose={onClose}
       />}
 
-      {!verified && (stage === 'result' || stage === 'saved') && <>
+      {!quest && !verified && (stage === 'result' || stage === 'saved') && <>
         {stage === 'result' ? <>
           {scanResult?.source === 'demo' && scanResult.notice && <p className="scan-demo-note">{scanResult.notice}</p>}
           <p className="scan-demo-note">Testantwort: {tree ? `Für diesen Baum wird ${tree.species} vorgeschlagen.` : 'Die Demo schlägt Birke vor.'} Das Foto wurde nicht durch eine Bilderkennung geprüft.</p>
@@ -311,20 +380,8 @@ function VerifiedResult({ scan, stage, tree, ready, earnedXp, cardSpecies, onCon
   onRetry: () => void;
   onClose: () => void;
 }) {
-  const { verification: result, genus, expectedGenus } = scan;
+  const { verification: result } = scan;
   const verdict = result.verdict;
-  const VerdictIcon = verdict === 'approve' ? CircleCheck : verdict === 'review' ? Clock3 : CircleX;
-  const mismatch = Boolean(expectedGenus && genus && genus !== expectedGenus);
-  // One line per distinct message, problems first; info reasons only confirm a good result.
-  const order = { hard: 0, soft: 1, info: 2 } as const;
-  // A hard precheck failure skips the models on purpose, so "vision unavailable" would only confuse.
-  const skippedModels = result.reasons.some((reason) => reason.severity === 'hard' && reason.code !== 'no_tree' && reason.code !== 'not_a_live_photo');
-  const reasons = [...result.reasons]
-    .filter((reason) => verdict === 'approve' || reason.severity !== 'info')
-    .filter((reason) => !(skippedModels && reason.code === 'vision_unavailable'))
-    .sort((a, b) => order[a.severity] - order[b.severity])
-    .map((reason) => ({ severity: reason.severity, text: reasonMessage(reason, result) }))
-    .filter((reason, index, all) => all.findIndex((other) => other.text === reason.text) === index);
 
   if (stage === 'saved') {
     return verdict === 'review' ? <>
@@ -340,10 +397,7 @@ function VerifiedResult({ scan, stage, tree, ready, earnedXp, cardSpecies, onCon
   }
 
   return <>
-    <div className={`scan-verdict ${verdict}`} role="status"><VerdictIcon size={20} /><div><strong>{verdictText[verdict].label}</strong>{verdictText[verdict].summary}</div></div>
-    <p className="scan-genus"><small>ERKANNT</small><span>{genus ? genusLabel(genus) : 'Keine Gattung sicher erkannt'}</span>{genus && <strong>{formatPercent(scan.genusProbability)}</strong>}</p>
-    {mismatch && <p className="scan-mismatch">Im Kataster steht hier {genusLabel(expectedGenus!)}. Das Foto sieht nach {genusLabel(genus!)} aus. Prüfe, ob du den richtigen Baum fotografiert hast.</p>}
-    {reasons.length > 0 && <ul className="scan-reasons">{reasons.map((reason) => <li key={reason.text} className={reason.severity}>{reason.severity === 'hard' ? <CircleX size={14} /> : reason.severity === 'soft' ? <AlertTriangle size={14} /> : <Check size={14} />}<span>{reason.text}</span></li>)}</ul>}
+    <VerdictDetails scan={scan} />
     {verdict === 'approve' && <>
       {!cardSpecies && <p className="scan-existing">Für diese Gattung gibt es noch keine Sammelkarte.</p>}
       <button type="button" className="scan-primary" onClick={cardSpecies || tree ? onConfirm : onClose} disabled={!ready}>{cardSpecies || tree ? 'Karte zum Baumbuch hinzufügen' : 'Fertig'}</button>
@@ -352,5 +406,70 @@ function VerifiedResult({ scan, stage, tree, ready, earnedXp, cardSpecies, onCon
     <button type="button" className={verdict === 'reject' ? 'scan-primary' : 'scan-secondary'} onClick={onRetry}><RotateCcw size={17} /> Neues Foto aufnehmen</button>
     {verdict === 'reject' && <button type="button" className="scan-secondary" onClick={onClose}>Schließen</button>}
     <p className="scan-verify-meta">FOTO-PRÜFUNG · {(result.latencyMs / 1000).toFixed(1).replace('.', ',')} S</p>
+  </>;
+}
+
+/** Verdict, detected genus, catalog mismatch and the reasons of a photo check. */
+function VerdictDetails({ scan }: { scan: VerifiedScan }) {
+  const { verification: result, genus, expectedGenus } = scan;
+  const verdict = result.verdict;
+  const VerdictIcon = verdict === 'approve' ? CircleCheck : verdict === 'review' ? Clock3 : CircleX;
+  const mismatch = Boolean(expectedGenus && genus && genus !== expectedGenus);
+  // One line per distinct message, problems first; info reasons only confirm a good result.
+  const order = { hard: 0, soft: 1, info: 2 } as const;
+  // A hard precheck failure skips the models on purpose, so "vision unavailable" would only confuse.
+  const skippedModels = result.reasons.some((reason) => reason.severity === 'hard' && reason.code !== 'no_tree' && reason.code !== 'not_a_live_photo');
+  const reasons = [...result.reasons]
+    .filter((reason) => verdict === 'approve' || reason.severity !== 'info')
+    .filter((reason) => !(skippedModels && reason.code === 'vision_unavailable'))
+    .sort((a, b) => order[a.severity] - order[b.severity])
+    .map((reason) => ({ severity: reason.severity, text: reasonMessage(reason, result) }))
+    .filter((reason, index, all) => all.findIndex((other) => other.text === reason.text) === index);
+  return <>
+    <div className={`scan-verdict ${verdict}`} role="status"><VerdictIcon size={20} /><div><strong>{verdictText[verdict].label}</strong>{verdictText[verdict].summary}</div></div>
+    <p className="scan-genus"><small>ERKANNT</small><span>{genus ? genusLabel(genus) : 'Keine Gattung sicher erkannt'}</span>{genus && <strong>{formatPercent(scan.genusProbability)}</strong>}</p>
+    {mismatch && <p className="scan-mismatch">Im Kataster steht hier {genusLabel(expectedGenus!)}. Das Foto sieht nach {genusLabel(genus!)} aus. Prüfe, ob du den richtigen Baum fotografiert hast.</p>}
+    {reasons.length > 0 && <ul className="scan-reasons">{reasons.map((reason) => <li key={reason.text} className={reason.severity}>{reason.severity === 'hard' ? <CircleX size={14} /> : reason.severity === 'soft' ? <AlertTriangle size={14} /> : <Check size={14} />}<span>{reason.text}</span></li>)}</ul>}
+  </>;
+}
+
+/** Result of a live quest scan: photo check, then the submission to the API. XP only come after moderation. */
+function QuestResult({ scan, demoNotice, stage, rewardPoints, submission, cancelling, onResubmit, onRetry, onCancelClaim, onClose }: {
+  scan: VerifiedScan | null;
+  demoNotice: boolean;
+  stage: 'result' | 'saved';
+  rewardPoints: number;
+  submission: Submission;
+  cancelling: boolean;
+  onResubmit: () => void;
+  onRetry: () => void;
+  onCancelClaim?: () => void;
+  onClose: () => void;
+}) {
+  if (stage === 'saved' && submission.state === 'done') {
+    return <>
+      <p className="scan-success"><Send size={19} /> {lt.scan.submitted}</p>
+      <p className="scan-disclaimer">{lt.scan.submittedDetail(rewardPoints)}</p>
+      {scan?.genus && <p className="scan-genus"><small>ERKANNT</small><span>{genusLabel(scan.genus)}</span><strong>{formatPercent(scan.genusProbability)}</strong></p>}
+      <Link href="/missions" className="scan-secondary quest-link" onClick={onClose}><ListTodo size={17} /> {lt.scan.myQuests}</Link>
+      <button type="button" className="scan-primary quest-done" onClick={onClose}>Fertig</button>
+      <p className="scan-verify-meta">EINREICHUNG {submission.result.submissionId.slice(0, 8).toUpperCase()} · {Math.round(submission.result.distanceMeters)} M VOM BAUM</p>
+    </>;
+  }
+
+  const rejected = scan?.verification.verdict === 'reject';
+  const cancelButton = onCancelClaim && <button type="button" className="scan-secondary" onClick={onCancelClaim} disabled={cancelling}>{cancelling ? <Loader2 size={17} className="spin" /> : <X size={17} />} {cancelling ? lt.quest.cancelling : lt.quest.cancel}</button>;
+  return <>
+    {scan ? <VerdictDetails scan={scan} /> : demoNotice && <p className="scan-demo-note">{lt.scan.noVerification}</p>}
+    {submission.state === 'sending' && <p className="scan-processing-label" role="status"><Loader2 size={18} className="spin" /> {lt.scan.submitting}</p>}
+    {submission.state === 'error' && <p className="scan-error" role="alert">{submission.message}</p>}
+    {rejected && <p className="scan-disclaimer quest-keeps-claim">{lt.scan.rejectedKeepsClaim}</p>}
+    {submission.state === 'error' && submission.canRetry && <button type="button" className="scan-primary" onClick={onResubmit}><Send size={17} /> {lt.scan.retrySubmit}</button>}
+    {submission.state !== 'sending' && <>
+      <button type="button" className={rejected || !scan ? 'scan-primary' : 'scan-secondary'} onClick={onRetry}><RotateCcw size={17} /> Neues Foto aufnehmen</button>
+      {(rejected || submission.state === 'error' || !scan) && cancelButton}
+      <button type="button" className="scan-secondary" onClick={onClose}>{lt.scan.later}</button>
+    </>}
+    {scan && <p className="scan-verify-meta">FOTO-PRÜFUNG · {(scan.verification.latencyMs / 1000).toFixed(1).replace('.', ',')} S</p>}
   </>;
 }

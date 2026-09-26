@@ -1,0 +1,89 @@
+/* Live game against the OpenQuest API: account dialog, real quest markers, claim and submission states.
+   Follows design 2.0: dark green dialogs and sheets, lime accents, light cards on the pages. */
+
+@keyframes live-spin { to { transform: rotate(360deg); } }
+.spin { animation: live-spin 1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s; } }
+
+/* Cold start hint of the free API instance */
+.server-wake-banner { position: fixed; z-index: 1600; top: max(10px, env(safe-area-inset-top)); left: 50%; display: flex; align-items: center; gap: 8px; width: max-content; max-width: calc(100% - 32px); padding: 9px 14px; border: 1px solid #d9ffad40; border-radius: 999px; color: #eaffd8; background: #0a3529f2; box-shadow: 0 10px 25px #0b362f50; font-size: 11px; font-weight: 800; transform: translateX(-50%); }
+
+/* Header mode tag */
+.map-header .demo-tag.demo-login { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; font: inherit; font-size: 9px; font-weight: 850; }
+.map-header .demo-tag.demo-login:hover { background: #ffffff33; }
+.map-header .demo-tag.live-tag { color: #0c3828; background: linear-gradient(125deg, #e7ff99, #9be8b1); border-color: transparent; }
+
+/* Account dialog */
+.auth-modal { width: min(100%, 430px); }
+.auth-tabs { display: flex; gap: 6px; margin: 15px 0 12px; padding: 5px; border-radius: 13px; background: #ffffff10; }
+.auth-tabs button { display: flex; flex: 1; align-items: center; justify-content: center; gap: 6px; min-height: 38px; border: 0; border-radius: 9px; color: #b9d8c1; background: transparent; font-size: 12px; font-weight: 800; cursor: pointer; }
+.auth-tabs button.active { color: #0c3828; background: linear-gradient(125deg, #e7ff99, #9be8b1); }
+.auth-intro { display: flex; gap: 8px; margin: 0 0 14px; color: #c5dfca; font-size: 12px; line-height: 1.5; }
+.auth-intro svg { flex: 0 0 auto; margin-top: 2px; color: #d8fc92; }
+.auth-form { display: grid; gap: 6px; }
+.auth-form label { margin-top: 6px; color: #d8fc92; font-size: 10px; font-weight: 900; letter-spacing: .8px; text-transform: uppercase; }
+.auth-form small { color: #9fc4ab; font-size: 10px; }
+.auth-input { width: 100%; min-height: 46px; padding: 0 13px; border: 1px solid #c6efc343; border-radius: 12px; outline: 0; color: #f4fff1; background: #ffffff12; font: inherit; font-size: 15px; }
+.auth-input:focus { border-color: #d8fc92; box-shadow: 0 0 0 3px #d8fc9233; }
+.auth-form .scan-error { margin: 6px 0 0; color: #ffb4a1; }
+.auth-form .scan-primary { margin-top: 12px; }
+.auth-codes { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin: 0 0 12px; padding: 12px; border: 1px dashed #d8fc9266; border-radius: 13px; background: #ffffff0c; list-style: none; counter-reset: code; }
+.auth-codes li { display: flex; align-items: center; gap: 6px; color: #9fc4ab; font-size: 10px; counter-increment: code; }
+.auth-codes li::before { content: counter(code); width: 12px; text-align: right; font-variant-numeric: tabular-nums; }
+.auth-codes code { color: #f4fff1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; letter-spacing: .5px; }
+.auth-done { margin-top: 9px; }
+
+/* Quest markers: camera for photo quests, magnifier for "which tree is this", reward as badge */
+.tree-marker.quest-marker .marker-face { background: linear-gradient(145deg, #0f6646, #1ca874); }
+.tree-marker.quest-marker.verify .marker-face { background: linear-gradient(145deg, #7b4fb8, #b37ae0); box-shadow: 0 3px 12px #5b3a8f80, 0 0 0 3px #d7b9ff55; }
+.tree-marker.quest-marker.claimed .marker-face { background: linear-gradient(145deg, #c98a1d, #efc25a); box-shadow: 0 3px 12px #8a5a0e80, 0 0 0 4px #ffe08c66; }
+.tree-marker.quest-marker.selected .marker-face { background: #0b533a; }
+.tree-marker.quest-marker.verify.selected .marker-face { background: #5b3a8f; }
+.tree-marker.quest-marker .marker-tree svg { width: 16px; height: 16px; }
+.marker-xp { position: absolute; right: -9px; bottom: -6px; display: grid; place-items: center; min-width: 19px; height: 15px; padding: 0 3px; border: 2px solid #fff; border-radius: 8px; color: #173d2e; background: #e7ff99; font-size: 8px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+.tree-marker.quest-marker.verify .marker-xp { background: #f2e3ff; color: #4b2b7a; }
+
+/* Map count with reload on errors */
+.map-count { pointer-events: auto; }
+.map-count.has-error div > span { color: #ffd0c2; }
+.map-count-retry { display: grid; place-items: center; width: 32px; height: 32px; margin-left: 4px; border: 1px solid #ffffff30; border-radius: 10px; color: #f3ffdc; background: #ffffff18; cursor: pointer; }
+
+/* Quest details in the bottom sheet */
+.tree-sheet .quest-preview .tree-scan-button { position: static; }
+.quest-error { margin: 10px 0 0; padding: 9px 11px; border: 1px solid #ff9c8466; border-radius: 11px; color: #ffe1d9; background: #a8402a33; font-size: 11px; font-weight: 700; line-height: 1.45; }
+.quest-secondary { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 42px; margin-top: 9px; border: 1px solid #c6efc343; border-radius: 13px; color: #e2f9d9; background: #ffffff17; font-size: 12px; font-weight: 800; cursor: pointer; }
+.quest-secondary:disabled { opacity: .6; }
+
+/* Scan dialog, live quest */
+.scan-modal .quest-link { text-decoration: none; }
+.scan-modal .quest-done { margin-top: 9px; }
+.scan-modal .scan-error { color: #ffb4a1; }
+.quest-keeps-claim { margin: 0 0 12px; }
+
+/* Missions: "Meine Quests" */
+.missions-page .live-login-banner { width: 100%; max-width: 520px; border: 0; color: #fff; background: linear-gradient(120deg, #0a3429, #12553b); text-align: left; cursor: pointer; }
+.missions-page .live-login-banner > svg { flex: 0 0 auto; color: #dafa8f; }
+.my-quests-points { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: -4px 0 12px; color: #4b6d58; font-size: 12px; font-weight: 750; }
+.my-quests-points button { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid #cfe3cd; border-radius: 10px; color: #276b4b; background: #fbfff7; cursor: pointer; }
+.missions-page .quest-error, .profile-page .quest-error { color: #8e2f1d; background: #fde9e3; border-color: #f2b8a8; }
+.my-quest .mission-list-icon svg { width: 20px; height: 20px; }
+.my-quest.approved .mission-list-icon { color: #1c7a52; background: #d9f3de; }
+.my-quest.rejected, .my-quest.expired, .my-quest.cancelled { opacity: .78; }
+.my-quest-side { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; }
+.my-quest-cancel { display: inline-flex; align-items: center; gap: 4px; padding: 5px 8px; border: 1px solid #d5e3d4; border-radius: 9px; color: #7a3b2c; background: #fff7f3; font-size: 10px; font-weight: 800; cursor: pointer; }
+.missions-page .mission-list-card .my-quest-reason { margin-top: 4px; color: #8e2f1d; }
+.my-quests-map-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; color: #276b4b; font-size: 12px; font-weight: 800; }
+
+/* Profile account card */
+.account-card { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; padding: 16px; border-radius: 20px; }
+.account-card > div:not(.account-actions) { flex: 1; min-width: 180px; }
+.account-card strong, .account-card span, .account-card small { display: block; }
+.account-card strong { color: var(--text); font-size: 15px; }
+.account-card span { margin-top: 3px; color: var(--text-muted); font-size: 11px; line-height: 1.45; }
+.account-card small { margin-top: 6px; color: #276b4b; font-size: 11px; font-weight: 800; }
+.account-icon { display: grid; place-items: center; width: 46px; height: 46px; flex: 0 0 46px; border-radius: 14px; color: #276b4b; background: #e6f3e5; }
+.account-card.live .account-icon { color: #0c3828; background: linear-gradient(125deg, #e7ff99, #9be8b1); }
+.account-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.account-button { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 14px; border: 1px solid #cfe3cd; border-radius: 12px; color: #276b4b; background: #fbfff7; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.account-button.primary { border: 0; color: #fff; background: var(--primary); }
+.account-card.live .account-button { flex: 0 0 auto; }

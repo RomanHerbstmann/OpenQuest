@@ -30,6 +30,9 @@ const reasonText: Record<string, string> = {
   jev_disagrees: 'Eine zweite, unabhängige Prüfung hat Bedenken.',
   tree_confirmed: 'Baum eindeutig erkannt.',
   genus_confirmed: 'Die Gattung passt zum Baum im Kataster.',
+  tree_missing: 'An der Stelle aus dem Kataster scheint kein Baum mehr zu stehen.',
+  new_tree_candidate: 'Das könnte ein Baum sein, der noch nicht im Kataster steht.',
+  safety_concern: 'Auf dem Foto sind mögliche Schäden zu sehen, zum Beispiel Risse oder Höhlen. Das prüft ein Mensch.',
 };
 
 export function reasonMessage(reason: Reason, result?: TreeVerificationResult): string {
@@ -49,6 +52,9 @@ const genusNames: Record<string, string> = {
   Robinia: 'Robinie', Salix: 'Weide', Sophora: 'Schnurbaum', Sorbus: 'Eberesche', Taxus: 'Eibe', Tilia: 'Linde',
   Ulmus: 'Ulme', Zelkova: 'Zelkove',
 };
+
+/** German genus name, or the Latin name if there is none in the list. */
+export const genusName = (genus: string): string => genusNames[genus] ?? genus;
 
 export function genusLabel(genus: string): string {
   const german = genusNames[genus];

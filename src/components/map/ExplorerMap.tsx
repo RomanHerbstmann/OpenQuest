@@ -9,7 +9,7 @@ import type { District, TerritoryContribution } from '@/types/district';
 import type { Tree } from '@/types/tree';
 import type { ResultItem, TreeSearchResponse } from '@/types/treeSearch';
 
-type Props = { trees: Tree[]; densityTrees: Tree[]; selectedId: string | null; onSelect: (tree: Tree) => void; userPosition: { lat: number; lng: number } | null; locateTick: number; focusTree: Tree | null; focusTick: number; contributions: TerritoryContribution[]; selectedDistrictId: string | null; onSelectDistrict: (district: District) => void; onInventoryChange: (count: number, live: boolean) => void; search: TreeSearchResponse | null; searchFocus: SearchFocus | null };
+type Props = { trees: Tree[]; densityTrees: Tree[]; selectedId: string | null; onSelect: (tree: Tree) => void; userPosition: { lat: number; lng: number } | null; locateTick: number; focusTree: Tree | null; focusTick: number; contributions: TerritoryContribution[]; selectedDistrictId: string | null; onSelectDistrict: (district: District) => void; onInventoryChange: (count: number, live: boolean) => void; search: TreeSearchResponse | null; searchFocus: SearchFocus | null; onViewChange?: (center: { lat: number; lng: number }) => void };
 export type SearchFocus = { item: ResultItem; tick: number };
 
 type InventoryPoint = [number, number]; // GeoJSON coordinates: longitude, latitude
@@ -67,9 +67,25 @@ function densityImage(points: InventoryPoint[]) {
   return { url: canvas.toDataURL('image/png'), bounds };
 }
 
+const treeGlyph = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-6 8h3l-4 6h14l-4-6h3l-6-8Z"/><path d="M12 17v4"/></svg>';
+// Lucide "camera" and "search" paths: photo quest and "which tree is this" quest.
+const cameraGlyph = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>';
+const identifyGlyph = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/><path d="M9.5 9a1.6 1.6 0 1 1 2 1.6c-.5.2-.5.6-.5 1.1"/><path d="M11 14h.01"/></svg>';
+
+function questIcon(tree: Tree, selected: boolean) {
+  const quest = tree.quest!;
+  const classes = ['tree-marker', 'quest-marker', quest.kind, quest.claim ? 'claimed' : '', selected ? 'selected' : ''].filter(Boolean).join(' ');
+  return L.divIcon({
+    className: classes,
+    html: `<span class="marker-face"><span class="marker-tree" aria-hidden="true">${quest.kind === 'photo' ? cameraGlyph : identifyGlyph}</span><span class="marker-xp">${quest.claim ? '✓' : quest.rewardPoints}</span></span>`,
+    iconSize: [34, 36],
+    iconAnchor: [17, 18],
+  });
+}
+
 function markerIcon(tree: Tree, selected: boolean) {
+  if (tree.quest) return questIcon(tree, selected);
   const status = tree.status;
-  const treeGlyph = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-6 8h3l-4 6h14l-4-6h3l-6-8Z"/><path d="M12 17v4"/></svg>';
   return L.divIcon({
     className: `tree-marker ${tree.presentation ? 'presentation' : status} ${selected ? 'selected' : ''}`,
     html: `<span class="marker-face"><span class="marker-tree" aria-hidden="true">${tree.presentation ? '★' : status === 'missing' ? '?' : treeGlyph}</span>${tree.presentation ? '<span class="marker-badge">MS</span>' : status === 'verified' ? '<span class="marker-badge">✓</span>' : ''}</span>`,
@@ -99,7 +115,7 @@ function freeMapArea(map: L.Map) {
   return { top, bottom: Math.max(top + 80, height - SEARCH_BOTTOM_CLEARANCE) };
 }
 
-export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect, userPosition, locateTick, focusTree, focusTick, contributions, selectedDistrictId, onSelectDistrict, onInventoryChange, search, searchFocus }: Props) {
+export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect, userPosition, locateTick, focusTree, focusTick, contributions, selectedDistrictId, onSelectDistrict, onInventoryChange, search, searchFocus, onViewChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -239,12 +255,22 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
     });
   }, [contributions, selectedDistrictId, onSelectDistrict]);
 
+  // Reports the map center after every move; the live mode reloads nearby quests from it (debounced by the caller).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !onViewChange) return;
+    const report = () => { const center = map.getCenter(); onViewChange({ lat: center.lat, lng: center.lng }); };
+    map.on('moveend', report);
+    report();
+    return () => { map.off('moveend', report); };
+  }, [onViewChange]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = trees.map((tree) => {
-      const marker = L.marker([tree.lat, tree.lng], { icon: markerIcon(tree, tree.id === selectedId), title: `${tree.species}, ${tree.area}`, keyboard: true, zIndexOffset: tree.presentation ? 1000 : 0 });
+      const marker = L.marker([tree.lat, tree.lng], { icon: markerIcon(tree, tree.id === selectedId), title: tree.quest ? `${tree.quest.title}, ${tree.species}` : `${tree.species}, ${tree.area}`, keyboard: true, zIndexOffset: tree.presentation ? 1000 : tree.quest?.claim ? 900 : tree.quest?.kind === 'verify' ? 500 : 0 });
       marker.on('click', () => onSelect(tree));
       marker.addTo(map);
       return marker;
