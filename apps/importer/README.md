@@ -35,7 +35,7 @@ docker compose up -d --build          # PostGIS + importer
 docker compose logs -f importer
 ```
 
-The importer container applies the migrations, syncs all sources from `importer.toml` and then syncs again every `SYNC_INTERVAL_SECONDS` (default 86400 = daily; `0` = sync once and exit). Snapshots are kept in the `snapshots` volume.
+The importer container waits for the schema, syncs all sources from `importer.toml` and then syncs again every `SYNC_INTERVAL_SECONDS` (default 86400 = daily; `0` = sync once and exit). It also answers **sync requests** from the admin (`SYNC_ON_REQUEST`, on by default while it keeps running, see below). Snapshots go to MinIO in the compose setup (see "Snapshots") or, without that, to the `snapshots` volume.
 
 Run a single command in the container (arguments are passed to `openquest-importer`):
 
@@ -71,12 +71,28 @@ Commands (run in `apps/importer`, or pass `--config`):
 | `openquest-importer sync SOURCE…` / `sync --all` | Syncs the given sources from `importer.toml` |
 | `openquest-importer sync SOURCE --force` | Applies a sync even if it removes more than `max_removal_ratio` of the assets |
 | `openquest-importer sync SOURCE --accept-schema-change` | Imports even if the source's fields changed (a sync normally fails then); the run records the new `schema_hash`. Afterwards update `expected_fields` in the adapter |
+| `openquest-importer serve [--interval SECONDS]` | Keeps running: syncs all enabled sources every interval (default 86400; `0` = only on request) and whenever an admin asks for a sync (`POST /admin/sync` in the API) |
 | `openquest-importer adapters` | Lists installed adapters and enrichers |
 
 After every successful run (assets, reports and readings alike) the importer sends `pg_notify('sync_finished', <sync_run id>)` in the same transaction as the run's result
 (`mark_succeeded` in `sync.py`). The API listens and turns it into an event; failed runs send nothing.
 
 `DATABASE_URL` overrides the database URL and `OPENQUEST_SNAPSHOT_DIR` the snapshot directory from `importer.toml`. Locally, snapshots are stored in `data/snapshots/` at the repository root (git-ignored).
+
+### Sync on request
+
+An admin can ask for a sync (`POST /admin/sync`, optionally with `sources`, `force` and `acceptSchemaChange`). The API records the wish in `sync_request` and sends `pg_notify('sync_requested', id)`;
+`openquest-importer serve` listens, claims the request (`FOR UPDATE SKIP LOCKED`), runs the sync of the named sources (or of all enabled ones) and writes the result back: `status`
+(`pending`, `running`, `succeeded`, `failed`), the run it made (`sync_run_id`, when it was one source) and the error. A failed guard or a changed source schema shows up as the error, and the
+admin can ask again with `force` or `acceptSchemaChange`. Requests that were running when the importer stopped are marked failed at start. The wait for a notification is also the timer for the
+scheduled syncs, and it is capped at five minutes, so a lost notification only delays a request.
+
+### Snapshots
+
+Raw downloads are content-addressed files (`source/sha256.ext`, plus a `.manifest.json` when a run has reference files). Two stores keep them with the same keys: the local directory and an
+S3-compatible bucket (`[snapshots] backend = "s3"` or `OPENQUEST_SNAPSHOT_BACKEND=s3` with `OPENQUEST_SNAPSHOT_S3_URL`, `_BUCKET`, `_PREFIX`, `_ACCESS_KEY`, `_SECRET_KEY`; needs boto3,
+`pip install ".[s3]"`, which the Docker image has). The API reads the bucket (`Storage:SnapshotBucket`) to let admins download a run's raw data
+(`GET /admin/sync/runs/{id}/snapshot`); with the local directory there is nothing for it to read.
 
 ## Münster tree adapter
 

@@ -15,7 +15,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+dev = ["pytest>=8", "moto[s3]>=5"]
+# Snapshots in an S3-compatible bucket (MinIO), see [snapshots] in importer.toml
+s3 = ["boto3>=1.35"]
 
 [project.scripts]
 openquest-importer = "openquest_importer.cli:main"

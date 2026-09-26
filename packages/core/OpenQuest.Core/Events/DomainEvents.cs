@@ -14,6 +14,9 @@ public sealed record AttributeChangeAccepted(ApprovedContribution Contribution) 
 /// </summary>
 public sealed record SubmissionSubmitted(Guid SubmissionId, Guid UserId, Guid QuestId, string TaskType, bool HasPhoto) : IDomainEvent;
 
+/// <summary>A player earned a badge (and its bonus points, if the badge has any). Extension point for notifications.</summary>
+public sealed record BadgeAwarded(Guid UserId, Guid BadgeId, string BadgeKey, int RewardPoints) : IDomainEvent;
+
 /// <summary>A submission was approved. Extension point for rewards (points, badges).</summary>
 public sealed record SubmissionApproved(Guid SubmissionId, Guid UserId, Guid QuestId, int RewardPoints) : IDomainEvent;
 

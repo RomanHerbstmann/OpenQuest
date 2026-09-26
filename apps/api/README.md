@@ -80,7 +80,7 @@ Approved photos are public at `GET /media/{id}` (only after approval, never befo
 | Role | Calls |
 |---|---|
 | `moderator`, `admin` | `GET /admin/submissions?status=pending`, `GET /admin/media/{id}`, `POST /admin/submissions/{id}/review` `{approved, reason}` (reason required to reject; rejecting frees the slot) |
-| `admin` | `POST /admin/quests` (creates a campaign with one quest per selected asset), `GET /admin/quests`, `POST /admin/quests/{id}/status`, `GET /admin/campaigns`, `GET /admin/sync/runs`, `GET /admin/assets/{id}/history`, `GET /admin/reports`, `GET /admin/readings`, `GET /admin/publications`, `POST /admin/publications/retry`, `GET /admin/outbox` |
+| `admin` | `POST /admin/quests` (creates a campaign with one quest per selected asset), `GET /admin/quests`, `POST /admin/quests/{id}/status`, `GET /admin/campaigns`, `GET /admin/sync/runs`, `GET /admin/sync/runs/{id}/snapshot`, `POST /admin/sync`, `GET /admin/sync/requests`, `GET /admin/assets/{id}/history`, `GET /admin/reports`, `GET /admin/readings`, `GET /admin/publications`, `POST /admin/publications/retry`, `GET /admin/outbox` |
 
 Create quests for trees without a known genus inside a map rectangle:
 
@@ -278,6 +278,9 @@ Problem codes: `self_intersection`, `overlaps_district`, `too_few_points`, `too_
 The API does not import anything; a separate importer loads the city's data set and records every run in `sync_run` and every change of an asset in `asset_snapshot`. The API shows the result read-only:
 
 - `GET /admin/sync/runs`: the latest runs with status, counters and error;
+- `GET /admin/sync/runs/{id}/snapshot`: the raw download of a run, unchanged as the source delivered it (a zip with the main file and the reference files if the run has any). Needs the importer's
+  snapshots in S3 (`OPENQUEST_SNAPSHOT_BACKEND=s3`, the compose setup does that); the API reads the bucket `Storage:SnapshotBucket` (`openquest-snapshots`, prefix `Storage:SnapshotPrefix`). 404 `snapshot_unavailable` otherwise;
+- `POST /admin/sync`: asks the importer to sync now (below);
 - `GET /admin/reports?status=open&category=tree_damage`: reports from external feeds (e.g. the city's "Mängelmelder"), with the linked asset;
 - `GET /admin/readings?metric=soil_moisture_grass_sand_0_60cm&days=14`: environment readings such as daily soil moisture;
 - `GET /admin/assets/{id}/history`: the versions of an asset (`created`, `updated`, `removed`).
@@ -298,6 +301,51 @@ approve  ->  transaction: change = accepted + outbox event (same commit)  ->  NO
   `POST /admin/publications/retry` re-emits events for accepted-but-unpublished changes.
 - Rejected submissions publish nothing. Other parts of the system can react to `SubmissionApproved` / `SubmissionRejected` (rewards later) by registering a handler.
 
+### Sync on request
+
+`POST /admin/sync` asks the importer to sync now; the API records the wish and the importer runs it ([ADR-0013](../../docs/adr/0013-sync-on-request-and-snapshots-in-s3.md)).
+
+```json
+POST /admin/sync
+{ "sources": ["de-muenster-trees"], "force": false, "acceptSchemaChange": false }     // leave "sources" out for all enabled sources
+```
+
+Answer `202` with one request per source (`id`, `dataSource`, `status`, `requestedBy`, ...). Follow it with `GET /admin/sync/requests`: `status` goes `pending` → `running` → `succeeded` or `failed`; `syncRunId`
+points to the run (see `GET /admin/sync/runs`, and `.../snapshot` for the raw data) and `error` says why it failed. `409 already_requested` while a request for the source is waiting or running.
+Use `force` (apply a sync that would remove more assets than allowed) and `acceptSchemaChange` (import although the source's fields changed) only after looking at the failed run. The importer has to run in
+`serve` mode to answer (the Docker image does, `SYNC_ON_REQUEST`); without it requests stay `pending`.
+
+## Badges
+
+Badges are earned by what a player did ([ADR-0012](../../docs/adr/0012-badges.md)). A badge has a `key`, a `name` and `description` (translation keys for the ten default badges, plain text for badges an admin makes up),
+an `icon`, a bonus of `rewardPoints` (0 by default) and **criteria**: `{ "type": ..., "count": n }` with
+
+| `type` | Counts | Extra field |
+|---|---|---|
+| `approved_submissions` | approved submissions, all task types | |
+| `task_type` | approved submissions of one task type | `taskType` (e.g. `condition_report`) |
+| `points` | total points | |
+| `cards` | cards collected | |
+| `distinct_genera` | different genera among the cards | |
+| `rarity_cards` | cards of at least a rarity (a legendary counts as rare) | `rarity` (`common`, `uncommon`, `rare`, `legendary`) |
+| `new_trees` | approved reports of trees that were missing in the data | |
+
+Default badges: `first_steps` (1 approval), `regular` (10), `veteran` (50), `tree_doctor` (5 condition reports), `collector` (10 cards), `genus_hunter` (5 genera), `rare_find`, `legend`, `pioneer` (1 new tree),
+`high_score` (500 points). They pay no bonus, so leaderboards and levels are not skewed.
+
+| Who | Call | Notes |
+|---|---|---|
+| player | `GET /me/badges` | Every active badge: `earned`, `awardedAt`, `progress` (`current`, `required`, `percent`). Earned ones first, then the closest |
+| player | `GET /badges` | The catalog of active badges |
+| player | `GET /me` | has `badgeCount` |
+| admin | `GET /admin/badges` | All badges, inactive ones included, with `holders` |
+| admin | `POST /admin/badges` | `{ key?, name, description?, icon?, criteria, rewardPoints?, isActive? }`; the key defaults to a slug of the name |
+| admin | `PUT /admin/badges/{id}` | Change name, description, icon, criteria, bonus or `isActive`; the key never changes |
+
+After every approval the player is evaluated (an event handler, after points and cards); a new badge, a changed criteria or a switched-on badge is given at once to everyone who has already reached it. A badge is awarded once
+(primary key of `user_badge`); its bonus points are booked in the ledger (`reason = badge_reward`, no district) in the same transaction, and can lift the player over the next badge. Every award publishes a
+`BadgeAwarded` event (register an `IEventHandler<BadgeAwarded>` to notify players). An inactive badge is hidden and not awarded; what players earned stays.
+
 ## Code structure
 
 `Composition/ServiceRegistration.cs` is the only place that names implementations; everything else depends on small interfaces
@@ -306,5 +354,5 @@ approve  ->  transaction: change = accepted + outbox event (same commit)  ->  NO
 
 ## Not built yet
 
-Gamification beyond points, levels, the district leaderboard, cards, weekly quests and new-tree reports (badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
+Statistics, `media.captured_at` (EXIF time is dropped, not stored),
 account deletion (`user.deleted_at` is honored on login but there is no endpoint), street name enrichment, admin-created moderators (set `user.role` in the database for now).

@@ -105,6 +105,9 @@ public class StorageOptions
     public string AccessKey { get; set; } = "";
     public string SecretKey { get; set; } = "";
     public string Bucket { get; set; } = "openquest-photos";
+    /// <summary>Where the importer keeps its raw downloads when it uses S3 (<c>[snapshots] backend = "s3"</c>); read only here.</summary>
+    public string SnapshotBucket { get; set; } = "openquest-snapshots";
+    public string SnapshotPrefix { get; set; } = "";
     public long MaxPhotoBytes { get; set; } = 10 * 1024 * 1024;
 }
 

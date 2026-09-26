@@ -118,7 +118,7 @@ public record GenusStatDto(string Genus, int TreeCount, double Share, Frequency 
 public record GenusStatsDto(Guid DistrictId, int KnownGenusTrees, int GenusCount, DateTimeOffset? CalculatedAt, IReadOnlyList<GenusStatDto> Genera);
 
 public record LevelDto(int Level, int Current, int Required, int Percent, bool IsMaxLevel);
-public record PlayerProgressDto(int TotalPoints, LevelDto Level, int CardCount);
+public record PlayerProgressDto(int TotalPoints, LevelDto Level, int CardCount, int BadgeCount = 0);
 public record PointTransactionDto(Guid Id, int Amount, PointReason Reason, Guid? SubmissionId, string? QuestTitle, DateTimeOffset CreatedAt);
 
 public record Credentials(string? Username, string? Password);
@@ -128,6 +128,31 @@ public record AuthResponse(string Token, DateTimeOffset ExpiresAt, string Userna
 public record RegisterResponse(string Token, DateTimeOffset ExpiresAt, string Username, string Role, IReadOnlyList<string> RecoveryCodes);
 public record RecoverResponse(string Token, DateTimeOffset ExpiresAt, string Username, string Role, int RemainingRecoveryCodes);
 public record RecoveryCodesResponse(IReadOnlyList<string> RecoveryCodes);
+
+// ---- badges -------------------------------------------------------------------------------------------------------------
+
+public record BadgeProgressDto(int Current, int Required, int Percent);
+
+/// <summary>A badge as a player sees it: earned (with the date) or not (with the progress towards it). <c>Name</c> and <c>Description</c> are translation keys for the default badges.</summary>
+public record PlayerBadgeDto(
+    Guid Id, string Key, string Name, string Description, string Icon, BadgeCriteria Criteria, int RewardPoints,
+    bool Earned, DateTimeOffset? AwardedAt, BadgeProgressDto Progress);
+
+public record BadgeDto(
+    Guid Id, string Key, string Name, string Description, string Icon, BadgeCriteria Criteria, int RewardPoints, bool IsActive, int Holders);
+
+/// <summary><c>Key</c> defaults to a slug of <c>Name</c> and never changes. <c>Criteria</c>: <c>{ "type": "approved_submissions", "count": 10 }</c>, see <see cref="BadgeCriteriaTypes"/>.</summary>
+public record BadgeRequest(string? Key, string? Name, string? Description, string? Icon, BadgeCriteria? Criteria, int? RewardPoints, bool? IsActive);
+
+// ---- sync on request ---------------------------------------------------------------------------------------------------
+
+/// <summary><c>Sources</c>: data source keys of the importer's configuration; leave it out to sync all enabled sources.</summary>
+public record SyncRequestBody(List<string>? Sources, bool? Force, bool? AcceptSchemaChange);
+
+/// <summary><c>DataSource</c> is null for "all enabled sources". <c>Status</c>: pending, running, succeeded, failed.</summary>
+public record SyncRequestDto(
+    Guid Id, string? DataSource, bool Force, bool AcceptSchemaChange, string Status, string? RequestedBy,
+    DateTimeOffset RequestedAt, DateTimeOffset? StartedAt, DateTimeOffset? FinishedAt, Guid? SyncRunId, string? Error);
 
 // ---- recurring quests -------------------------------------------------------------------------------------------------
 

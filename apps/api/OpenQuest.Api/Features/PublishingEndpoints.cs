@@ -3,6 +3,11 @@ using OpenQuest.Api.Data;
 using OpenQuest.Api.Publishing;
 using OpenQuest.Api.Storage;
 using OpenQuest.Api.Queries;
+using System.Security.Claims;
+using OpenQuest.Api.Auth;
+using OpenQuest.Api.Contracts;
+using OpenQuest.Api.Services;
+using OpenQuest.Api.Sync;
 
 namespace OpenQuest.Api.Features;
 
@@ -50,6 +55,29 @@ public static class SyncEndpoints
             .WithName("ListSyncRuns")
             .WithSummary("Recent import runs, including failed ones with their error.")
             .WithDescription("Read only: the API does not import data itself; imports are run by the importer.");
+
+        admin.MapPost("/sync", async (SyncRequestBody? body, ClaimsPrincipal user, ISyncRequests requests, CancellationToken ct) =>
+            (await requests.RequestAsync(user.GetUserId(), body ?? new SyncRequestBody(null, null, null), ct))
+                .ToHttp(list => Results.Accepted("/admin/sync/requests", list)))
+            .WithName("RequestSync")
+            .WithSummary("Asks the importer to sync now. Body: { \"sources\": [\"de-muenster-trees\"], \"force\": false, \"acceptSchemaChange\": false }; leave sources out for all enabled sources.")
+            .WithDescription("The API does not import anything itself: the request is recorded and the importer (`serve`) picks it up, runs the sync and writes the outcome back. Poll GET /admin/sync/requests for the status. force applies a sync that would remove more assets than allowed, acceptSchemaChange imports although the source's fields changed; use both only after looking at the failed run. 409 already_requested while a request for the source is waiting or running.");
+
+        admin.MapGet("/sync/requests", async (int? limit, ISyncRequests requests, CancellationToken ct) =>
+            Results.Ok(await requests.ListAsync(Math.Clamp(limit ?? 20, 1, 100), ct)))
+            .WithName("ListSyncRequests")
+            .WithSummary("Recent sync requests with their status (pending, running, succeeded, failed), the run they made and the error.");
+
+        admin.MapGet("/sync/runs/{id:guid}/snapshot", async (Guid id, ISyncSnapshots snapshots, HttpContext http, CancellationToken ct) =>
+        {
+            var result = await snapshots.OpenAsync(id, ct);
+            if (result.Error is { } e) return Results.Json(new { error = e.Code, message = e.Message }, statusCode: e.Status);
+            var download = result.Value;
+            return Results.Stream(async stream => await download.WriteAsync(stream, ct), download.ContentType, download.FileName);
+        })
+            .WithName("DownloadSyncSnapshot")
+            .WithSummary("The raw download of a run, unchanged as the source delivered it (a zip with the main file and the reference files if the run has any).")
+            .WithDescription("Only available when the importer keeps its snapshots in S3 (`[snapshots] backend = \"s3\"`); 404 snapshot_unavailable otherwise.");
 
         admin.MapGet("/assets/{id:guid}/history", async (Guid id, IAssetHistory history, CancellationToken ct) =>
             await history.ListAsync(id, ct) is { } versions ? Results.Ok(versions) : Results.NotFound())

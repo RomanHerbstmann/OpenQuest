@@ -1297,3 +1297,120 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE TABLE badge (
+        id uuid NOT NULL,
+        key character varying(64) NOT NULL,
+        name character varying(200) NOT NULL,
+        description character varying(500) NOT NULL,
+        icon character varying(64) NOT NULL,
+        criteria jsonb NOT NULL,
+        reward_points integer NOT NULL,
+        is_active boolean NOT NULL,
+        created_at timestamp with time zone NOT NULL,
+        updated_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_badge PRIMARY KEY (id),
+        CONSTRAINT ck_badge_reward CHECK (reward_points >= 0)
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE TABLE sync_request (
+        id uuid NOT NULL,
+        data_source_key character varying(64) NOT NULL,
+        force boolean NOT NULL,
+        accept_schema_change boolean NOT NULL,
+        requested_by uuid NOT NULL,
+        requested_at timestamp with time zone NOT NULL,
+        started_at timestamp with time zone,
+        finished_at timestamp with time zone,
+        status character varying(24) NOT NULL,
+        sync_run_id uuid,
+        error character varying(2000),
+        CONSTRAINT pk_sync_request PRIMARY KEY (id),
+        CONSTRAINT ck_sync_request_status CHECK (status IN ('pending','running','succeeded','failed')),
+        CONSTRAINT fk_sync_request_sync_run_sync_run_id FOREIGN KEY (sync_run_id) REFERENCES sync_run (id) ON DELETE SET NULL,
+        CONSTRAINT fk_sync_request_user_requested_by FOREIGN KEY (requested_by) REFERENCES "user" (id) ON DELETE RESTRICT
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE TABLE user_badge (
+        user_id uuid NOT NULL,
+        badge_id uuid NOT NULL,
+        awarded_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_user_badge PRIMARY KEY (user_id, badge_id),
+        CONSTRAINT fk_user_badge_badge_badge_id FOREIGN KEY (badge_id) REFERENCES badge (id) ON DELETE CASCADE,
+        CONSTRAINT fk_user_badge_user_user_id FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE UNIQUE INDEX ix_badge_key ON badge (key);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE UNIQUE INDEX ix_sync_request_data_source_key ON sync_request (data_source_key) WHERE status IN ('pending','running');
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE INDEX ix_sync_request_requested_by ON sync_request (requested_by);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE INDEX ix_sync_request_status_requested_at ON sync_request (status, requested_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE INDEX ix_sync_request_sync_run_id ON sync_request (sync_run_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE INDEX ix_user_badge_badge_id ON user_badge (badge_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    CREATE INDEX ix_user_badge_user_id_awarded_at ON user_badge (user_id, awarded_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926122102_AddBadgesAndSyncRequests') THEN
+    INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
+    VALUES ('20260926122102_AddBadgesAndSyncRequests', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+

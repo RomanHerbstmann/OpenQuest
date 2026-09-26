@@ -7,6 +7,15 @@ url = "postgresql://openquest:openquest@localhost:5432/openquest"
 [snapshots]
 # Relative paths are resolved against this file's directory.
 dir = "../../data/snapshots"
+# Keep the raw downloads in an S3-compatible bucket (MinIO) instead, so that the API can offer them to admins
+# (GET /admin/sync/runs/{id}/snapshot). Needs boto3: pip install "openquest-importer[s3]". Environment variables
+# OPENQUEST_SNAPSHOT_BACKEND=s3 and OPENQUEST_SNAPSHOT_S3_URL / _BUCKET / _PREFIX / _ACCESS_KEY / _SECRET_KEY override this.
+# backend = "s3"
+# [snapshots.s3]
+# url = "http://localhost:9000"
+# bucket = "openquest-snapshots"
+# access_key = "openquest"
+# secret_key = "openquest-secret"
 
 [cache]
 # Data kept between syncs by enrichers (e.g. nDOM heights). Safe to delete.

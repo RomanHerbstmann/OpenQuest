@@ -1,4 +1,4 @@
-"""Importer configuration (TOML file; DATABASE_URL, OPENQUEST_SNAPSHOT_DIR and OPENQUEST_CACHE_DIR override it)."""
+"""Importer configuration (TOML file; DATABASE_URL, OPENQUEST_SNAPSHOT_DIR, OPENQUEST_SNAPSHOT_BACKEND / _S3_* and OPENQUEST_CACHE_DIR override it)."""
 
 from __future__ import annotations
 
@@ -45,11 +45,25 @@ class SourceConfig:
 
 
 @dataclass(frozen=True)
+class S3SnapshotConfig:
+    """Snapshots in an S3-compatible bucket (MinIO locally). The API reads the same bucket to let admins download a run's raw data."""
+
+    bucket: str
+    endpoint_url: str | None = None
+    prefix: str = ""
+    access_key: str | None = None
+    secret_key: str | None = None
+    region: str = "us-east-1"
+
+
+@dataclass(frozen=True)
 class Config:
     database_url: str | None
     snapshot_dir: Path
     sources: dict[str, SourceConfig]
     cache_dir: Path | None = None
+    #: Set when snapshots go to S3 instead of ``snapshot_dir``.
+    snapshot_s3: S3SnapshotConfig | None = None
 
 
 def load_config(path: Path) -> Config:
@@ -64,6 +78,7 @@ def load_config(path: Path) -> Config:
     database_url = os.environ.get("DATABASE_URL") or data.get("database", {}).get("url")
     snapshot_dir = _dir(base, os.environ.get("OPENQUEST_SNAPSHOT_DIR") or data.get("snapshots", {}).get("dir", "data/snapshots"))
     cache_dir = _dir(base, os.environ.get("OPENQUEST_CACHE_DIR") or data.get("cache", {}).get("dir", "data/cache"))
+    snapshot_s3 = _snapshot_s3(data.get("snapshots", {}))
 
     sources: dict[str, SourceConfig] = {}
     for entry in data.get("sources", []):
@@ -92,7 +107,28 @@ def load_config(path: Path) -> Config:
             raise ConfigError(f"Duplicate source key: {source.key}")
         sources[source.key] = source
 
-    return Config(database_url=database_url, snapshot_dir=snapshot_dir, sources=sources, cache_dir=cache_dir)
+    return Config(database_url=database_url, snapshot_dir=snapshot_dir, sources=sources, cache_dir=cache_dir, snapshot_s3=snapshot_s3)
+
+
+def _snapshot_s3(section: dict[str, Any]) -> S3SnapshotConfig | None:
+    """``[snapshots] backend = "s3"`` (or OPENQUEST_SNAPSHOT_BACKEND=s3) with the settings from ``[snapshots.s3]`` or OPENQUEST_SNAPSHOT_S3_*."""
+    backend = (os.environ.get("OPENQUEST_SNAPSHOT_BACKEND") or section.get("backend", "local")).lower()
+    if backend == "local":
+        return None
+    if backend != "s3":
+        raise ConfigError(f"Unknown snapshot backend '{backend}' (local or s3)")
+    s3 = section.get("s3", {})
+    bucket = os.environ.get("OPENQUEST_SNAPSHOT_S3_BUCKET") or s3.get("bucket")
+    if not bucket:
+        raise ConfigError("Snapshot backend s3 needs a bucket: [snapshots.s3] bucket or OPENQUEST_SNAPSHOT_S3_BUCKET")
+    return S3SnapshotConfig(
+        bucket=bucket,
+        endpoint_url=os.environ.get("OPENQUEST_SNAPSHOT_S3_URL") or s3.get("url"),
+        prefix=os.environ.get("OPENQUEST_SNAPSHOT_S3_PREFIX") or s3.get("prefix", ""),
+        access_key=os.environ.get("OPENQUEST_SNAPSHOT_S3_ACCESS_KEY") or s3.get("access_key"),
+        secret_key=os.environ.get("OPENQUEST_SNAPSHOT_S3_SECRET_KEY") or s3.get("secret_key"),
+        region=os.environ.get("OPENQUEST_SNAPSHOT_S3_REGION") or s3.get("region", "us-east-1"),
+    )
 
 
 def _dir(base: Path, value: str) -> Path:
