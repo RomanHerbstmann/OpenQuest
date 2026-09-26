@@ -94,6 +94,14 @@ POST /admin/quests
 `target` accepts `assetIds`, `bbox`, `attributeFilter` (JSONB containment on asset attributes, for example `{"quality_flags":["placeholder_genus"]}`) and `withoutApprovedPhoto`.
 An asset never gets the same quest twice.
 
+## Phone app (CORS and photos)
+
+The phone app (Android/iOS, a Capacitor shell around the web frontend) runs its web view under `https://localhost` (Android) and `capacitor://localhost` (iOS).
+Both are in `Cors:Origins` of the Development settings and in `.env.example`; a deployment has to list them in `Cors__Origins` as well.
+Photos come straight from the phone camera: `POST /claims/{id}/submit` takes a JPEG up to `Storage:MaxPhotoBytes` (10 MB, a 2048 px JPEG is about 1 to 2 MB);
+EXIF is stripped and the orientation applied on the server, so the app does not have to. To reach the API from a phone on the same network, start it with
+`--urls http://0.0.0.0:5076` and use the computer's address as API URL in the app.
+
 ## Admin panel
 
 The API serves a small admin panel at **`/panel/`** (static files in `apps/api/OpenQuest.Api/wwwroot/panel`, no build step, plain JavaScript modules,

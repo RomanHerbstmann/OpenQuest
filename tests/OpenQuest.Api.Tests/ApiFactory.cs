@@ -68,6 +68,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         Set("Auth__Argon2TimeCost", "1");
         Set("Auth__RateLimitPerMinute", "100000");
         Set("Outbox__RetryBaseDelayMs", "200");
+        Set("Cors__Origins", "http://localhost:3000,https://localhost,capacitor://localhost"); // web frontend and the phone app
         Set("Storage__AccessKey", "x");
         Set("Storage__SecretKey", "x");
         _ = Services; // start the host (runs migrations + seeding)
