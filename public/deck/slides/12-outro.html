@@ -1,32 +1,10 @@
 <section class="slide s09" data-seconds="10">
   <h2 class="display display-sm rise">
-    <span lang="de">Jetzt ausprobieren, wir sind live.</span>
-    <span lang="en">Try it now, we're live.</span>
+    <span lang="de">Jetzt ausprobieren.</span>
+    <span lang="en">Try it now.</span>
   </h2>
 
   <div class="s09-grid">
-    <figure class="s09-loop rise" style="--d: 1">
-      <figcaption class="eyebrow"><span lang="de">Zurück an die Stadt</span><span lang="en">The loop</span></figcaption>
-      <div class="s09-ring">
-        <svg viewBox="0 0 400 400" aria-hidden="true">
-          <defs>
-            <marker id="s09-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M1 1 L8 5 L1 9" fill="none" stroke="var(--ink-3)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-            </marker>
-          </defs>
-          <circle cx="200" cy="200" r="150" fill="none" stroke="var(--line)" stroke-width="1"/>
-          <path class="flow" marker-end="url(#s09-arrow)" d="M322.9 114.0 A150 150 0 0 1 346.2 166.3"/>
-          <path class="flow" marker-end="url(#s09-arrow)" d="M346.2 233.7 A150 150 0 0 1 261.0 337.0"/>
-          <path class="flow" marker-end="url(#s09-arrow)" d="M139.0 337.0 A150 150 0 0 1 53.8 233.7"/>
-          <path class="flow" marker-end="url(#s09-arrow)" d="M53.8 166.3 A150 150 0 0 1 78.6 111.8"/>
-        </svg>
-        <div class="s09-center mono small muted">Open Data</div>
-        <div class="s09-node s09-n1 pop" style="--d: 2"><b class="pixel">1</b><span lang="de">Spieler prüfen Bäume vor Ort</span><span lang="en">Players check trees on site</span></div>
-        <div class="s09-node s09-n2 pop" style="--d: 3"><b class="pixel">2</b><span lang="de">Foto und Daten</span><span lang="en">Photos and data</span></div>
-        <div class="s09-node s09-n3 pop" style="--d: 4"><b class="pixel">3</b><span>Review</span></div>
-        <div class="s09-node s09-n4 pop" style="--d: 5"><b class="pixel">4</b><span lang="de">Export an die Stadt</span><span lang="en">Back to the city</span></div>
-      </div>
-    </figure>
 
     <div class="s09-try rise" style="--d: 2">
       <div class="s09-qr">
@@ -46,23 +24,10 @@
 </section>
 <style>
   .s09 { gap: clamp(20px, 4vh, 48px); }
-  .s09 .s09-grid { display: grid; grid-template-columns: auto auto; align-items: center; justify-content: center; gap: clamp(40px, 8vw, 150px); width: 100%; max-width: 1400px; }
-  .s09 .s09-loop { margin: 0; display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.6vh, 18px); }
-  .s09 .s09-ring { position: relative; width: clamp(280px, 44vh, 470px); aspect-ratio: 1; margin: 0 clamp(60px, 5vw, 90px); }
-  .s09 .s09-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-  .s09 .s09-center { position: absolute; inset: 0; display: grid; place-items: center; letter-spacing: .06em; }
-  .s09 .s09-node { position: absolute; display: flex; align-items: center; gap: 10px; width: max-content; max-width: clamp(150px, 13vw, 210px); padding: 10px 14px; transform: translate(-50%, -50%); border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font: 500 clamp(14px, 1.15vw, 17px)/1.25 var(--sans); }
-  .s09.is-entering .s09-node.pop { animation-name: s09-pop; }
-  @keyframes s09-pop { from { opacity: 0; transform: translate(-50%, -50%) scale(.85); } to { opacity: 1; transform: translate(-50%, -50%); } }
-  .s09 .s09-node b { flex: 0 0 auto; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; background: var(--parchment); color: var(--bark); font-size: 10px; font-weight: 400; }
-  .s09 .s09-n1 { left: 50%; top: 12.5%; }
-  .s09 .s09-n2 { left: 87.5%; top: 50%; }
-  .s09 .s09-n3 { left: 50%; top: 87.5%; }
-  .s09 .s09-n4 { left: 12.5%; top: 50%; background: var(--tree); border-color: var(--tree); color: #fff; }
-  .s09 .s09-n4 b { background: var(--gold); color: var(--tree-dark); }
+  .s09 .s09-grid { display: grid; grid-template-columns: auto; align-items: center; justify-content: center; gap: clamp(40px, 8vw, 150px); width: 100%; max-width: 1400px; }
   .s09 .s09-try { display: flex; flex-direction: column; align-items: center; gap: clamp(14px, 2.4vh, 26px); }
   .s09 .s09-qr { padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; box-shadow: 0 1px 0 #00000005, 0 12px 32px -18px #1b1c1a33; }
-  .s09 .s09-qr svg { display: block; width: clamp(180px, 30vh, 300px); height: auto; }
+  .s09 .s09-qr svg { display: block; width: clamp(220px, 42vh, 420px); height: auto; }
   .s09 .s09-links { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
   .s09 .s09-links li { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
   .s09 .s09-links a { color: var(--ink); font: 600 clamp(17px, 1.5vw, 22px)/1.2 var(--sans); text-decoration: none; }
@@ -70,6 +35,5 @@
   .s09 .s09-links .muted { font-size: clamp(13px, 1vw, 15px); }
   @media (max-width: 900px) {
     .s09 .s09-grid { grid-template-columns: 1fr; justify-items: center; }
-    .s09 .s09-ring { width: 64vw; }
-  }
+    }
 </style>
