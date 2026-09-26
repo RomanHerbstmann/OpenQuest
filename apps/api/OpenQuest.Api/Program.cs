@@ -35,6 +35,29 @@ var app = builder.Build();
 
 app.UseCors();
 app.UseRateLimiter();
+
+// The built-in admin panel (static files in wwwroot/panel) is served under /panel/. Its scripts, styles and Leaflet are local;
+// only the map tiles come from OpenStreetMap.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/panel")
+    {
+        context.Response.Redirect("/panel/"); // a middleware, not an endpoint: an endpoint for /panel would also match /panel/
+        return;
+    }
+    if (context.Request.Path.StartsWithSegments("/panel"))
+    {
+        var headers = context.Response.Headers;
+        headers.ContentSecurityPolicy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+            + "img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+        headers.XContentTypeOptions = "nosniff";
+        headers["Referrer-Policy"] = "no-referrer";
+        headers.CacheControl = "no-cache";
+    }
+    await next();
+});
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapOpenApi();

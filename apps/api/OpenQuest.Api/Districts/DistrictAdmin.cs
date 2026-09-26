@@ -108,6 +108,9 @@ public sealed partial class DistrictAdmin(AppDbContext db, IDistrictShapeChecker
 {
     private const int MaxImportFeatures = 500;
 
+    /// <summary>Map colours handed out when the admin does not pick one, so that new districts are told apart.</summary>
+    private static readonly string[] Palette = ["#2C8054", "#D49B38", "#3B6EA8", "#A8483B", "#7A5FA8", "#2F9AA3", "#8A8F2A", "#B5588C"];
+
     [GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$")] private static partial Regex KeyPattern();
     [GeneratedRegex("^#[0-9A-Fa-f]{6}$")] private static partial Regex ColorPattern();
 
@@ -128,7 +131,8 @@ public sealed partial class DistrictAdmin(AppDbContext db, IDistrictShapeChecker
         var now = clock.GetUtcNow();
         var district = new District
         {
-            CityId = cityId, Key = key, Name = name, Description = Clean(req.Description), Color = Clean(req.Color)?.ToUpperInvariant(),
+            CityId = cityId, Key = key, Name = name, Description = Clean(req.Description),
+            Color = Clean(req.Color)?.ToUpperInvariant() ?? Palette[await db.Districts.CountAsync(d => d.CityId == cityId, ct) % Palette.Length],
             IsActive = req.IsActive ?? true, CreatedBy = adminId, CreatedAt = now, UpdatedAt = now,
         };
         SetShape(district, check);
@@ -222,6 +226,7 @@ public sealed partial class DistrictAdmin(AppDbContext db, IDistrictShapeChecker
         var keys = existing.Select(d => d.Key).ToHashSet();
 
         var now = clock.GetUtcNow();
+        var colorOffset = existing.Count;
         var pending = new List<PendingShape>();
         var created = new List<(District District, ShapeCheck Check)>();
         var failures = new List<object>();
@@ -255,7 +260,7 @@ public sealed partial class DistrictAdmin(AppDbContext db, IDistrictShapeChecker
             var district = new District
             {
                 CityId = cityId, Key = key, Name = name!.Trim(), Description = Clean(PropertyText(props, req.DescriptionProperty)),
-                CreatedBy = adminId, CreatedAt = now, UpdatedAt = now,
+                Color = Palette[(colorOffset + created.Count) % Palette.Length], CreatedBy = adminId, CreatedAt = now, UpdatedAt = now,
             };
             SetShape(district, check);
             created.Add((district, check));

@@ -248,6 +248,25 @@ public class DistrictTests(ApiFactory api)
     }
 
     [Fact]
+    public async Task Districts_without_a_colour_get_different_map_colours()
+    {
+        var (admin, cityId) = await NewCityAsync();
+        var first = await Body(await admin.PostAsJsonAsync($"/admin/cities/{cityId}/districts", new { name = "Eins", geometry = Rect(62.0, 7.0) }, Web));
+        var second = await Body(await admin.PostAsJsonAsync($"/admin/cities/{cityId}/districts", new { name = "Zwei", geometry = Rect(62.0, 7.02) }, Web));
+        Assert.Matches("^#[0-9A-F]{6}$", first.GetProperty("color").GetString());
+        Assert.NotEqual(first.GetProperty("color").GetString(), second.GetProperty("color").GetString());
+
+        // imported districts are coloured too, and go on with the next colours
+        var imported = await Body(await admin.PostAsJsonAsync($"/admin/cities/{cityId}/districts/import", new
+        {
+            geoJson = Collection(Feature("Drei", Rect(62.0, 7.04)), Feature("Vier", Rect(62.0, 7.06))), nameProperty = "NAME",
+        }, Web));
+        var colours = imported.GetProperty("districts").EnumerateArray().Select(d => d.GetProperty("color").GetString()).ToList();
+        Assert.Equal(2, colours.Distinct().Count());
+        Assert.DoesNotContain(first.GetProperty("color").GetString(), colours);
+    }
+
+    [Fact]
     public async Task Names_are_unique_within_a_city_ignoring_case()
     {
         var (admin, cityId) = await NewCityAsync();

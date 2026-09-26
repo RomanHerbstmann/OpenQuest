@@ -31,6 +31,9 @@ but these are raw source data and tied to what the city publishes.
   cache like `user.total_points`.
 - Reading (cities, districts, leaderboard) needs a login, writing needs the `admin` role. Admins are global for now, not per city.
 
+- **A built-in admin panel** (`/panel/`, static files served by the API, no build step) lets admins draw the districts and review submissions
+  now; it only uses the public REST endpoints, so the frontend team can build their own admin UI on the same API at any time.
+
 ## Consequences
 
 - No dependence on the importer or on a city's open data for the game's districts; every city can be set up through the API.

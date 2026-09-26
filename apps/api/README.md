@@ -94,6 +94,19 @@ POST /admin/quests
 `target` accepts `assetIds`, `bbox`, `attributeFilter` (JSONB containment on asset attributes, for example `{"quality_flags":["placeholder_genus"]}`) and `withoutApprovedPhoto`.
 An asset never gets the same quest twice.
 
+## Admin panel
+
+The API serves a small admin panel at **`/panel/`** (static files in `apps/api/OpenQuest.Api/wwwroot/panel`, no build step, plain JavaScript modules,
+Leaflet is vendored; only the map tiles come from OpenStreetMap). Log in with an `admin` (or `moderator`) account. It uses the REST endpoints below, so it
+doubles as a reference for the frontend team.
+
+- **Cities & districts** (admin): pick or create a city, **draw districts on the map** (click the corners in order, drag to move, right-click to delete a point;
+  the numbers show the order), live check while drawing (crossing edges are marked, overlaps with other districts are highlighted, saving is blocked until the
+  shape is valid), edit, deactivate, delete, **import GeoJSON**, and see the district leaderboard (all time / this week).
+- **Moderation** (moderator, admin): the review queue with photo, answer and distance; approve (pays the points) or reject with a reason.
+
+The panel sends a Content-Security-Policy (scripts only from itself); the token is kept in `sessionStorage` and is gone when the tab closes.
+
 ## Cities and districts (drawn in the admin panel)
 
 Admins split a city into districts ("Stadtviertel") in the admin panel; players see them on the map and compete in a district leaderboard
