@@ -2,9 +2,8 @@
    ?auto=1 plays the deck with the per-slide durations (data-seconds on each <section class="slide">). */
 (() => {
   const SLIDES = [
-    '01-title', '02-problem', '03-sources', '04-analysis', '05-jev',
-    '06-karte', '07-game', '08-mechanics', '09-video', '10-architecture',
-    '11-team', '12-outro',
+    '01-title', '02-problem', '03-sources', '04-architecture', '05-analysis',
+    '06-jev', '07-karte', '08-game', '09-mechanics', '10-video', '11-outro',
   ];
   const deck = document.getElementById('deck');
   const $ = (id) => document.getElementById(id);
