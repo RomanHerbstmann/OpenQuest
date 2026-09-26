@@ -29,7 +29,12 @@ const nextConfig: NextConfig = {
   // The static export has no server to proxy; the phone app calls the API directly (src/lib/api.ts, NEXT_PUBLIC_OPENQUEST_API_URL).
   async rewrites() {
     if (mobile) return [];
-    return [{ source: '/backend/:path*', destination: `${apiUrl}/:path*` }];
+    return [
+      { source: '/backend/:path*', destination: `${apiUrl}/:path*` },
+      // Pitch deck: static files in public/deck, served at /deck and /deck/.
+      { source: '/deck', destination: '/deck/index.html' },
+      { source: '/deck/', destination: '/deck/index.html' },
+    ];
   },
   // The phone app (origin https://localhost or capacitor://localhost) calls the two /api routes on the deployed site.
   // No cookies are involved, so any origin may read the answer; the routes rate-limit themselves.

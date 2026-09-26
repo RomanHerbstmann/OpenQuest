@@ -1,0 +1,21 @@
+<section class="slide s08" data-seconds="0">
+  <p class="eyebrow rise"><span lang="de">Live in Münster</span><span lang="en">Live in Münster</span></p>
+  <div class="video-frame pop" style="--d:1">
+    <video id="deck-video" src="assets/video.mp4" poster="assets/video-poster.png" preload="metadata" playsinline controls></video>
+    <div class="video-placeholder" hidden>
+      <img src="assets/logo-cards.png" alt="" style="width:120px;image-rendering:pixelated" />
+      <p class="pixel" style="font-size:14px;margin:0"><span lang="de">Video folgt</span><span lang="en">Video coming</span></p>
+    </div>
+  </div>
+  <p class="muted small rise" style="--d:2"><span lang="de">Leertaste startet und pausiert das Video.</span><span lang="en">Space plays and pauses the video.</span></p>
+</section>
+<script>
+  // Show a clean placeholder until assets/video.mp4 exists.
+  document.addEventListener('deck:ready', () => {
+    const v = document.getElementById('deck-video');
+    if (!v) return;
+    const showPlaceholder = () => { v.hidden = true; v.parentElement.querySelector('.video-placeholder').hidden = false; };
+    v.addEventListener('error', showPlaceholder, { once: true });
+    fetch(v.getAttribute('src'), { method: 'HEAD' }).then((r) => { if (!r.ok) showPlaceholder(); }).catch(showPlaceholder);
+  });
+</script>

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <base href="/deck/" />
+  <title>OpenQuest · Pitch Deck</title>
+  <meta name="description" content="OpenQuest macht Münsters offene Baumdaten zum Spiel: Spieler prüfen Bäume vor Ort, die Daten wachsen und fließen zurück an die Stadt." />
+  <meta property="og:title" content="OpenQuest · Die Stadt spielt. Die Daten wachsen." />
+  <meta property="og:image" content="/deck/assets/logo-wordmark.png" />
+  <meta name="theme-color" content="#faf9f5" />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="assets/logo-cards.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="deck.css" />
+</head>
+<body>
+  <div class="lang-pill" role="group" aria-label="Sprache / Language">
+    <button type="button" data-set-lang="de" aria-pressed="true">DE</button>
+    <button type="button" data-set-lang="en" aria-pressed="false">EN</button>
+  </div>
+
+  <main id="deck" aria-live="polite"></main>
+
+  <footer class="deck-bar">
+    <span class="deck-count"><span id="deck-current">1</span> / <span id="deck-total">1</span></span>
+    <div class="deck-progress" aria-hidden="true"><span id="deck-progress-fill"></span></div>
+    <div class="deck-controls">
+      <button type="button" id="deck-prev" aria-label="Vorherige Folie"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" id="deck-next" aria-label="Nächste Folie"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" id="deck-full" aria-label="Vollbild"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </div>
+  </footer>
+
+  <script src="deck.js"></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<section class="slide s05" data-seconds="12">
+  <p class="eyebrow rise">Jev · TypeSafe AI</p>
+  <h2 class="display display-sm rise" style="--d: 1">
+    <span lang="de"><em class="gradient-text">Jev</em> denkt mit.</span>
+    <span lang="en"><em class="gradient-text">Jev</em> decides.</span>
+  </h2>
+  <p class="lead rise" style="--d: 2">
+    <span lang="de">Ein System-1-Modell: typisierte Entscheidungen mit kalibrierter Wahrscheinlichkeit statt Text.</span>
+    <span lang="en">A System 1 model: typed decisions with calibrated probability instead of text.</span>
+  </p>
+
+  <div class="grid-2 s05-grid">
+    <!-- Left: search -->
+    <div class="card s05-card rise" style="--d: 3">
+      <p class="s05-tag"><span lang="de">Suche</span><span lang="en">Search</span></p>
+      <div class="s05-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg>
+        <span class="s05-type" lang="de" style="--n: 29">die größten Birken in Hiltrup</span>
+        <span class="s05-type" lang="en" style="--n: 26">tallest birches in Hiltrup</span>
+        <span class="s05-caret" aria-hidden="true"></span>
+      </div>
+      <div class="s05-chips">
+        <span class="chip chip-jev pop" style="--d: 19">Jev</span>
+        <svg class="s05-fan pop" style="--d: 20" viewBox="0 0 40 120" preserveAspectRatio="none" aria-hidden="true"><path class="flow" d="M0 60 C20 60 20 18 40 18" /><path class="flow" d="M0 60 H40" /><path class="flow" d="M0 60 C20 60 20 102 40 102" /></svg>
+        <div class="s05-dec">
+        <span class="chip pop" style="--d: 21"><span lang="de">Sortierung: höchste zuerst</span><span lang="en">Order: tallest first</span> <b class="s05-pct">100 %</b></span>
+        <span class="chip pop" style="--d: 23"><span lang="de">Gattung:</span><span lang="en">Genus:</span> <i>Betula</i> <b class="s05-pct">98 %</b></span>
+        <span class="chip pop" style="--d: 25"><span lang="de">Gebiet:</span><span lang="en">Area:</span> Hiltrup <b class="s05-pct">94 %</b></span>
+        </div>
+      </div>
+      <div class="s05-result rise" style="--d: 28">
+        <svg class="s05-trees" viewBox="0 0 150 60" aria-hidden="true">
+          <g><rect x="4" y="4" width="18" height="56" rx="3" /><rect x="28" y="12" width="18" height="48" rx="3" /><rect x="52" y="20" width="18" height="40" rx="3" /><rect x="76" y="27" width="18" height="33" rx="3" /><rect x="100" y="34" width="18" height="26" rx="3" /><rect x="124" y="40" width="18" height="20" rx="3" /></g>
+        </svg>
+        <div>
+          <b><span lang="de">116 Bäume</span><span lang="en">116 trees</span></b>
+          <span class="muted"><span lang="de">höchste zuerst</span><span lang="en">tallest first</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: photo check -->
+    <div class="card s05-card rise" style="--d: 4">
+      <p class="s05-tag"><span lang="de">Foto-Prüfung</span><span lang="en">Photo check</span></p>
+      <div class="s05-inputs">
+        <div class="s05-in">
+        <span class="chip pop" style="--d: 8"><span lang="de">Beobachtungen der Bildmodelle</span><span lang="en">vision model observations</span></span>
+                <span class="chip pop" style="--d: 10"><span lang="de">erwartete Gattung (Kataster)</span><span lang="en">expected genus (inventory)</span></span>
+        </div>
+        <svg class="s05-arrow pop" style="--d: 11" viewBox="0 0 40 16" aria-hidden="true"><path class="flow" d="M2 8 H30" /><path d="M28 3 l7 5 -7 5" /></svg>
+        <span class="chip chip-jev pop" style="--d: 12">Jev</span>
+      </div>
+      <div class="s05-q rise" style="--d: 13">
+        <b><span lang="de">Richtiger Baum?</span><span lang="en">Right tree?</span></b> <code>target_match</code>
+      </div>
+      <div class="s05-bars">
+        <div class="s05-bar is-top" style="--v: .96; --k: 0"><span><span lang="de">erwarteter Baum</span><span lang="en">expected tree</span></span><i><em></em></i><b class="mono"><span lang="de">0,96</span><span lang="en">0.96</span></b></div>
+        <div class="s05-bar" style="--v: .03; --k: 1"><span><span lang="de">anderer Baum</span><span lang="en">other tree</span></span><i><em></em></i><b class="mono"><span lang="de">0,03</span><span lang="en">0.03</span></b></div>
+        <div class="s05-bar" style="--v: .01; --k: 2"><span><span lang="de">unsicher</span><span lang="en">unsure</span></span><i><em></em></i><b class="mono"><span lang="de">0,01</span><span lang="en">0.01</span></b></div>
+      </div>
+      <div class="s05-more">
+        <span class="chip pop" style="--d: 26"><span lang="de">Gefahr?</span><span lang="en">Hazard?</span> <code>safety_concern</code></span>
+        <span class="chip pop" style="--d: 27"><span lang="de">Vitalität</span><span lang="en">Vitality</span> <code>vitality</code></span>
+      </div>
+    </div>
+  </div>
+
+  <p class="s05-foot mono rise" style="--d: 30">
+    <span lang="de">~350 ms · ~0,00002 $ pro Entscheidung · über OpenRouter</span>
+    <span lang="en">~350 ms · ~$0.00002 per decision · via OpenRouter</span>
+  </p>
+</section>
+<style>
+  .s05 { gap: clamp(12px, 2.4vh, 30px); }
+  .s05 .lead { max-width: 1150px; font-size: clamp(17px, 1.6vw, 24px); }
+  .s05 .s05-grid { align-items: stretch; max-width: 1360px; }
+  .s05 .s05-card { display: flex; flex-direction: column; gap: clamp(12px, 2vh, 20px); padding: clamp(18px, 2.2vw, 30px); }
+  .s05 .s05-tag { margin: 0; font: 600 12px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+  .s05 code { font: 500 .85em var(--mono); color: var(--ink-3); }
+
+  /* Search field with typing */
+  .s05 .s05-search {
+    display: flex; align-items: center; gap: 12px; height: clamp(52px, 7vh, 64px); padding: 0 18px;
+    border: 2px solid var(--search); border-radius: 999px; background: var(--surface);
+    font: 500 clamp(17px, 1.45vw, 22px)/1 var(--mono); color: var(--ink);
+  }
+  .s05 .s05-search svg { flex: 0 0 auto; width: 22px; height: 22px; fill: none; stroke: var(--search); stroke-width: 2.2; stroke-linecap: round; }
+  .s05 .s05-type { display: inline-block; overflow: hidden; white-space: nowrap; width: calc(var(--n) * 1ch); }
+  .s05.is-entering .s05-type { animation: s05-type 1.6s steps(var(--n)) both .8s; }
+  @keyframes s05-type { from { width: 0; } }
+  .s05 .s05-caret { width: 2px; height: 1.2em; margin-left: -10px; background: var(--search); }
+  .s05.is-active .s05-caret { animation: s05-blink 1s steps(1) infinite; }
+  @keyframes s05-blink { 50% { opacity: 0; } }
+
+  .s05 .s05-chips { display: grid; grid-template-columns: auto 40px 1fr; align-items: center; gap: 10px; }
+  .s05 .s05-fan { width: 40px; height: 110px; overflow: visible; }
+  .s05 .s05-fan .flow { stroke-width: 2; vector-effect: non-scaling-stroke; }
+  .s05 .s05-dec { display: grid; gap: 8px; justify-items: start; }
+  .s05 .s05-chips .chip, .s05 .s05-more .chip, .s05 .s05-inputs .chip { font-size: clamp(13px, 1.05vw, 16px); padding: 7px 13px; }
+  .s05 .s05-chips .chip b { color: var(--tree); font-variant-numeric: tabular-nums; }
+
+  .s05 .s05-result { display: flex; align-items: center; gap: 16px; margin-top: auto; padding: 14px 18px; border-radius: 14px; background: #eef4ef; }
+  .s05 .s05-trees { width: clamp(90px, 9vw, 130px); height: auto; }
+  .s05 .s05-trees rect { fill: var(--tree); transform-box: fill-box; transform-origin: 50% 100%; }
+  .s05.is-entering .s05-trees rect { animation: s04g .5s cubic-bezier(.2,.7,.2,1) both; }
+  .s05.is-entering .s05-trees rect:nth-child(1) { animation-delay: 3.7s; }
+  .s05.is-entering .s05-trees rect:nth-child(2) { animation-delay: 3.8s; }
+  .s05.is-entering .s05-trees rect:nth-child(3) { animation-delay: 3.9s; }
+  .s05.is-entering .s05-trees rect:nth-child(4) { animation-delay: 4s; }
+  .s05.is-entering .s05-trees rect:nth-child(5) { animation-delay: 4.1s; }
+  .s05.is-entering .s05-trees rect:nth-child(6) { animation-delay: 4.2s; }
+  @keyframes s04g { from { transform: scaleY(0); } }
+  .s05 .s05-result b { display: block; font: 600 clamp(24px, 2.2vw, 34px)/1.1 var(--display); color: var(--tree-dark); }
+  .s05 .s05-result .muted { font-size: clamp(14px, 1.1vw, 17px); }
+
+  /* Photo check */
+  .s05 .s05-inputs { display: grid; grid-template-columns: auto 44px auto; justify-content: start; align-items: center; gap: 10px; }
+  .s05 .s05-in { display: grid; gap: 8px; justify-items: start; }
+  .s05 .s05-arrow { width: 40px; height: 16px; }
+  .s05 .s05-arrow path:not(.flow) { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .s05 .s05-q { font: 600 clamp(17px, 1.4vw, 21px)/1.2 var(--sans); }
+  .s05 .s05-bars { display: grid; gap: 10px; }
+  .s05 .s05-bar { display: grid; grid-template-columns: clamp(120px, 11vw, 160px) 1fr 52px; align-items: center; gap: 12px; font-size: clamp(14px, 1.1vw, 17px); color: var(--ink-2); }
+  .s05 .s05-bar i { position: relative; height: clamp(16px, 2.2vh, 22px); border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+  .s05 .s05-bar em { position: absolute; left: 0; top: 0; bottom: 0; width: max(4px, calc(var(--v) * 100%)); border-radius: 6px; background: var(--ink-3); transform-origin: 0 50%; }
+  .s05 .s05-bar.is-top em { background: var(--tree); }
+  .s05 .s05-bar.is-top { color: var(--ink); font-weight: 600; }
+  .s05 .s05-bar b { text-align: right; font-weight: 600; }
+  .s05.is-entering .s05-bar em { animation: s05-bar .9s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--k) * .15s + 1.9s); }
+  @keyframes s05-bar { from { transform: scaleX(0); } }
+  .s05 .s05-more { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+
+  .s05 .s05-foot { margin: 0; font-size: clamp(13px, 1vw, 16px); color: var(--ink-2); letter-spacing: .02em; }
+</style>
