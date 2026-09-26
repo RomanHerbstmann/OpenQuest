@@ -10,7 +10,7 @@ Each sync:
 4. **matches** them to the existing assets, so each asset keeps our own id (`asset.id`),
 5. writes created / updated / removed assets plus their history (`asset_snapshot`) in one transaction.
 
-Every run is recorded in `sync_run`, including failed ones. Data model: [docs/data-model/erd.md](../../docs/data-model/erd.md). The id decision is in [ADR-0002](../../docs/adr/0002-eigene-asset-id-und-raeumliches-matching.md).
+Every run is recorded in `sync_run`, including failed ones. Data model: [docs/data-model/erd.md](../../docs/data-model/erd.md). The id decision is in [ADR-0006](../../docs/adr/0006-eigene-asset-id-und-raeumliches-matching.md).
 
 ## Run with Docker
 
@@ -35,7 +35,7 @@ docker compose run --rm importer adapters
 Requires Python ≥ 3.11 and Docker.
 
 ```bash
-docker compose up -d db                      # from the repository root; PostGIS on localhost:5433
+docker compose up -d db                      # from the repository root; PostGIS on localhost:5432
 cd apps/importer
 python3 -m venv .venv
 .venv/bin/pip install -e ".[dev]"
@@ -123,4 +123,4 @@ Keep everything city-specific inside the adapter. The core never branches on cit
 .venv/bin/pytest
 ```
 
-Unit tests need nothing else. The database tests run when `OPENQUEST_TEST_DATABASE_URL` points to a Postgres/PostGIS server (e.g. `postgresql://openquest:openquest@localhost:5433/postgres` with docker compose). They create and drop their own temporary database.
+Unit tests need nothing else. The database tests run when `OPENQUEST_TEST_DATABASE_URL` points to a Postgres/PostGIS server (e.g. `postgresql://openquest:openquest@localhost:5432/postgres` with docker compose). They create and drop their own temporary database.

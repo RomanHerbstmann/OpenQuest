@@ -2,7 +2,7 @@
 # DATABASE_URL in the environment overrides [database] url.
 
 [database]
-url = "postgresql://openquest:openquest@localhost:5433/openquest"
+url = "postgresql://openquest:openquest@localhost:5432/openquest"
 
 [snapshots]
 # Relative paths are resolved against this file's directory.

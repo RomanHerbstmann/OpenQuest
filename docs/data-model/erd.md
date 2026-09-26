@@ -282,7 +282,7 @@ Every import is a `SYNC_RUN` (it is the snapshot in the sense of [ADR-0001](../a
 
 ### Asset identity
 
-`ASSET.id` is our own id and never changes. Sources with stable ids of their own store them in `external_id` and are matched by it; sources without (Münster) are matched spatially. Each adapter declares its strategy. Details and reasoning: [ADR-0002](../adr/0002-eigene-asset-id-und-raeumliches-matching.md).
+`ASSET.id` is our own id and never changes. Sources with stable ids of their own store them in `external_id` and are matched by it; sources without (Münster) are matched spatially. Each adapter declares its strategy. Details and reasoning: [ADR-0006](../adr/0006-eigene-asset-id-und-raeumliches-matching.md).
 
 ### Enrichers
 
@@ -336,7 +336,7 @@ Analysis of the CSV export (43,114 rows):
 
 Findings that affect the model:
 
-- **No id column.** Decided in [ADR-0002](../adr/0002-eigene-asset-id-und-raeumliches-matching.md): we assign our own id (`ASSET.id`) and leave `external_id` empty. On re-sync, records are matched to existing assets by identical record first, then by nearest position within 1 m. **Question for Stadt Münster:** is there an internal tree number we could get in the export? With it, the adapter would switch to matching by `external_id`.
+- **No id column.** Decided in [ADR-0006](../adr/0006-eigene-asset-id-und-raeumliches-matching.md): we assign our own id (`ASSET.id`) and leave `external_id` empty. On re-sync, records are matched to existing assets by identical record first, then by nearest position within 1 m. **Question for Stadt Münster:** is there an internal tree number we could get in the export? With it, the adapter would switch to matching by `external_id`.
 - **Only the genus, not the species.** Top genera: Tilia 10,279 · Quercus 8,199 · Acer 5,324 · Carpinus 3,448.
 - **Unknown / placeholder genus:** 2,832 × `Baum Amt62` and 103 empty values. The adapter normalizes these to `genus = null` (raw value stays in `raw`). These ~2,900 trees are ideal targets for first `verify_attribute` quests.
 - **Enrichment** (done in the adapter, reference files are part of the snapshot):
