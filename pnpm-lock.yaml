@@ -8,9 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@openquest/adapter-de-muenster':
+        specifier: workspace:*
+        version: link:packages/adapters/de-muenster
       '@openquest/tree-search':
         specifier: workspace:*
         version: link:packages/tree-search
+      '@openquest/tree-verification':
+        specifier: workspace:*
+        version: link:packages/tree-verification
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -27,12 +33,6 @@ importers:
         specifier: latest
         version: 19.3.0(react@19.3.0)
     devDependencies:
-      '@openquest/adapter-de-muenster':
-        specifier: workspace:*
-        version: link:packages/adapters/de-muenster
-      '@openquest/tree-verification':
-        specifier: workspace:*
-        version: link:packages/tree-verification
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.3.3
