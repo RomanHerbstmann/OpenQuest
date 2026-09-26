@@ -8,11 +8,11 @@
 
 :root { --font-pixel: 'Press Start 2P', 'Courier New', monospace; }
 
-/* The supplied horizontal artwork is the common wordmark everywhere in the app. */
-.brand { display: inline-flex; flex: 0 0 auto; align-items: center; width: fit-content; padding: 3px 6px; overflow: hidden; border: 1px solid #d5e1d0; border-radius: 13px; background: #fff; box-shadow: 0 4px 14px #072d201c; line-height: 0; }
+/* The supplied horizontal artwork is the common wordmark everywhere in the app; its cream lettering needs a dark ground. */
+.brand { display: inline-flex; flex: 0 0 auto; align-items: center; width: fit-content; padding: 3px 6px; overflow: hidden; border: 1px solid #2c5a45; border-radius: 13px; background: #103927; box-shadow: 0 4px 14px #072d2033; line-height: 0; }
 .brand-logo { display: block; width: 168px; height: auto; }
 .map-header { padding: 8px 10px; }
-.map-header .brand { border-color: #f9f8e8; box-shadow: 0 4px 14px #031d1770; }
+.map-header .brand { border-color: #dfdcc2; box-shadow: 0 4px 14px #031d1770; }
 .map-header .brand-logo { width: 136px; }
 .admin-sidebar .brand { margin-bottom: 40px; }
 .admin-sidebar .brand-logo { width: 164px; }
