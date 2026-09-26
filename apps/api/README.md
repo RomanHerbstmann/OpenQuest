@@ -5,12 +5,23 @@ The machine-readable contract is the OpenAPI spec at **`/openapi/v1.json`** (run
 
 ## Run
 
+From source:
+
 ```bash
-docker compose up -d                                  # PostGIS (5432) + MinIO (9000, console 9001)
+docker compose up -d db minio                         # PostGIS (5432) + MinIO (9000, console 9001)
 dotnet run --project apps/api/OpenQuest.Api           # http://localhost:5076, applies migrations, seeds catalog + admin
 ```
 
-`appsettings.Development.json` (committed) only holds non-secret values that match `docker-compose.yml`. Secrets are never in git:
+Or everything in Docker (PostGIS, MinIO, this API as a container from `apps/api/Dockerfile`, and the importer):
+
+```bash
+docker compose up -d --build                          # API on http://localhost:5076
+docker compose logs api | grep admin                  # generated admin password (first start only)
+```
+
+Don't combine the two: the `api` container already uses port 5076. To switch to `dotnet run`, stop it with `docker compose stop api`.
+
+`appsettings.Development.json` (committed) only holds non-secret values that match `docker-compose.yml`. In the container, `docker-compose.yml` points the connection string and MinIO to the service names (`db`, `minio`). Secrets are never in git:
 
 - **JWT key:** generated randomly on every start in Development (tokens die on restart). Elsewhere `Jwt__Key` is required.
 - **Admin:** created on first start. Without `Admin__Password` a password is generated and **printed once in the log**
@@ -18,7 +29,7 @@ dotnet run --project apps/api/OpenQuest.Api           # http://localhost:5076, a
   `dotnet user-secrets set Admin:Password "..." --project apps/api/OpenQuest.Api`. Outside Development `Admin__Password` is required.
 - Everything else: see [`.env.example`](../../.env.example).
 
-The API does not import data. Assets come from the separate importer, which writes the open data tables; the API only reads them.
+The API does not import data. Assets come from the separate importer ([apps/importer](../importer/README.md)), which writes the open data tables; the API only reads them. The schema still belongs to the API: the importer waits until the API has applied its migrations and seeded the asset types.
 
 ## Tests
 
