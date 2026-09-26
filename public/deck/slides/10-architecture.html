@@ -1,0 +1,199 @@
+<section class="slide s10" data-seconds="25">
+  <p class="eyebrow rise"><span lang="de">Architektur</span><span lang="en">Architecture</span></p>
+  <h2 class="display display-sm rise" style="--d: 1">
+    <span lang="de">Gebaut in zwei Tagen. <em class="gradient-text">Offen für jede Stadt.</em></span>
+    <span lang="en">Built in two days. <em class="gradient-text">Open to every city.</em></span>
+  </h2>
+
+  <div class="s10-sys" role="img" data-de-aria="Systembild: Offene Daten fließen über den Python-Importer in PostGIS, die .NET-API bedient Spieler-App und Karte, KI über OpenRouter, TypeScript-Pakete darunter, gehostet auf Render" data-en-aria="System diagram: open data flows through the Python importer into PostGIS, the .NET API serves the player app and the map, AI via OpenRouter, TypeScript packages below, hosted on Render">
+    <svg class="s10-lines" viewBox="0 0 1400 560" aria-hidden="true">
+      <g class="s10-l1">
+        <path class="flow" id="s10p0" d="M210 120 C245 120 245 110 280 110" />
+        <path class="flow" id="s10p1" d="M400 210 V260" />
+        <path class="flow" id="s10p3" d="M520 350 C555 350 555 250 590 250" />
+      </g>
+      <g class="s10-l2">
+        <path class="flow s10-gold" id="s10p2" d="M520 70 H590" />
+        <path class="flow" id="s10p4" d="M730 300 V340" />
+        <path class="flow s10-green" id="s10p5" d="M870 110 H950" />
+        <path class="flow s10-green" id="s10p6" d="M1175 222 V252" />
+        <path class="flow" id="s10p7" d="M1175 488 V448" />
+      </g>
+      <g class="s10-dots">
+        <circle r="5"><animateMotion dur="1.8s" begin="0s" repeatCount="indefinite"><mpath href="#s10p0" /></animateMotion></circle>
+        <circle r="5"><animateMotion dur="1.2s" begin="0.4s" repeatCount="indefinite"><mpath href="#s10p1" /></animateMotion></circle>
+        <circle r="5"><animateMotion dur="1.4s" begin="0.8s" repeatCount="indefinite"><mpath href="#s10p2" /></animateMotion></circle>
+        <circle r="5"><animateMotion dur="1.8s" begin="0.2s" repeatCount="indefinite"><mpath href="#s10p3" /></animateMotion></circle>
+        <circle r="6" class="g"><animateMotion dur="1.4s" begin="0.6s" repeatCount="indefinite"><mpath href="#s10p5" /></animateMotion></circle>
+      </g>
+    </svg>
+    <span class="s10-tag mono" style="--x: 555; --y: 50">pg_notify</span>
+
+    <!-- Column 1: outside world -->
+    <div class="s10-box s10-data rise" style="--d: 2; --x: 0; --y: 0; --w: 210; --h: 250">
+      <p class="s10-h"><span lang="de">Offene Daten</span><span lang="en">Open data</span></p>
+      <ul class="s10-list">
+        <li>Münster</li><li>NRW</li><li>DWD</li><li>OSM</li>
+      </ul>
+    </div>
+    <div class="s10-box s10-host rise" style="--d: 3; --x: 0; --y: 290; --w: 210; --h: 150">
+      <p class="s10-h">Hosting</p>
+      <b>Render</b>
+      <small><span lang="de">Docker-Container</span><span lang="en">Docker containers</span></small>
+      <small class="mono">openquest.fun</small>
+    </div>
+
+    <!-- Column 2: import + storage -->
+    <div class="s10-box rise" style="--d: 4; --x: 280; --y: 0; --w: 240; --h: 210">
+      <p class="s10-h">Importer <span class="muted">Python</span></p>
+      <ul class="s10-list s10-list-sm">
+        <li><mark>Adapter</mark> + Enricher</li>
+        <li><span lang="de">täglicher Sync</span><span lang="en">daily sync</span></li>
+        <li><span lang="de">Rohdaten bleiben erhalten</span><span lang="en">keeps raw snapshots</span></li>
+      </ul>
+    </div>
+    <div class="s10-box s10-store pop" style="--d: 6; --x: 280; --y: 260; --w: 240; --h: 180">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></svg>
+      <b>PostGIS</b>
+      <small>Postgres 17</small>
+      <small><span lang="de">Bäume, Quests, Sync-Läufe</span><span lang="en">Trees, quests, sync runs</span></small>
+    </div>
+
+    <!-- Column 3: API -->
+    <div class="s10-box s10-core pop" style="--d: 7; --x: 590; --y: 0; --w: 280; --h: 300">
+      <p class="s10-core-title">API <span class="s10-core-sub">.NET 10 · Minimal API</span></p>
+      <ul class="s10-grid">
+        <li>Quests</li><li>Claims</li>
+        <li><span lang="de">Punkte</span><span lang="en">Points</span></li><li><span lang="de">Karten</span><span lang="en">Cards</span></li>
+        <li><span lang="de">Bezirke</span><span lang="en">Districts</span></li><li>Outbox-Events</li>
+      </ul>
+      <p class="s10-adr mono">ADR 0003 · ADR 0004</p>
+    </div>
+    <div class="s10-box s10-store pop" style="--d: 8; --x: 590; --y: 340; --w: 280; --h: 100">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2" /><circle cx="12" cy="13" r="3.5" /><path d="M8 6l1.5-2h5L16 6" /></svg>
+      <b>MinIO <span class="muted">S3</span></b>
+      <small><span lang="de">Fotos</span><span lang="en">Photos</span></small>
+    </div>
+
+    <!-- Column 4: clients + AI -->
+    <div class="s10-box s10-app pop" style="--d: 9; --x: 950; --y: 0; --w: 450; --h: 222">
+      <p class="s10-app-title"><span lang="de">Spieler-App</span><span lang="en">Player app</span></p>
+      <p class="s10-stack">Next.js 16 · React · Leaflet</p>
+      <p class="s10-chips"><span class="chip">PWA</span><span class="chip">Capacitor · Android / iOS</span></p>
+      <p class="s10-routes mono">/api/verify · /api/tree-search</p>
+    </div>
+    <div class="s10-box s10-ai pop" style="--d: 10; --x: 950; --y: 252; --w: 450; --h: 96">
+      <p class="s10-h"><span lang="de">KI</span><span lang="en">AI</span> <span class="s10-ai-sub">OpenRouter</span></p>
+      <p class="s10-ai-row"><span>Gemini <i><span lang="de">Bilder</span><span lang="en">images</span></i></span><span>Jev <i><span lang="de">Entscheidungen</span><span lang="en">decisions</span></i></span></p>
+    </div>
+    <div class="s10-box s10-map pop" style="--d: 11; --x: 950; --y: 378; --w: 450; --h: 70">
+      <b class="mono">karte.openquest.fun</b>
+      <small>Dashboard · Node · MapLibre</small>
+    </div>
+
+    <!-- Bottom band: shared TypeScript packages -->
+    <div class="s10-box s10-pkgs rise" style="--d: 12; --x: 280; --y: 488; --w: 1120; --h: 72">
+      <p class="s10-h"><span lang="de">TypeScript-Pakete</span><span lang="en">TypeScript packages</span></p>
+      <span class="s10-pkg mono">tree-verification</span>
+      <span class="s10-pkg mono">tree-search</span>
+      <span class="s10-pkg s10-pkg-adapter mono">adapter de-muenster</span>
+      <span class="s10-pkg s10-pkg-adapter mono">adapter de-nrw</span>
+    </div>
+  </div>
+
+  <p class="lead s10-rule rise" style="--d: 14">
+    <span lang="de">Nichts außerhalb eines Adapters kennt Münster: <em>eine neue Stadt heißt ein neuer Adapter.</em></span>
+    <span lang="en">Nothing outside an adapter knows Münster: <em>a new city is a new adapter.</em></span>
+  </p>
+  <p class="s10-facts mono rise" style="--d: 15">
+    <span><b>25</b> <span lang="de">PRs gemergt</span><span lang="en">PRs merged</span></span>
+    <span><b>251</b> <span lang="de">.NET-Tests grün</span><span lang="en">.NET tests green</span></span>
+    <span><b>11</b> ADRs</span>
+  </p>
+</section>
+<style>
+  .s10 { gap: clamp(10px, 2vh, 24px); }
+  /* Diagram: fixed 1400 x 560 coordinate system, boxes positioned in % of it, text in cqw. */
+  .s10 .s10-sys {
+    position: relative; container-type: inline-size;
+    width: min(100%, 1400px, calc((100vh - 64px - 400px) * 1400 / 560));
+    aspect-ratio: 1400 / 560; margin-top: clamp(0px, 1.2vh, 14px);
+  }
+  .s10 .s10-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .s10 .s10-lines .flow { stroke-width: 2.2; }
+  .s10 .s10-lines .s10-gold { stroke: var(--gold-dark); }
+  .s10 .s10-lines .s10-green { stroke: var(--tree); }
+  .s10 .s10-dots circle { fill: var(--gold); }
+  .s10 .s10-dots circle.g { fill: var(--tree); }
+  .s10 .s10-lines g { opacity: 0; }
+  .s10.is-entering .s10-l1, .s10.is-entering .s10-dots { animation: s10-fade .6s ease both 1.2s; }
+  .s10.is-entering .s10-l2 { animation: s10-fade .6s ease both 1.6s; }
+  .s10.is-entering .s10-tag { animation: s10-fade .6s ease both 1.8s; }
+  @keyframes s10-fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .s10 .s10-tag {
+    position: absolute; left: calc(var(--x) / 1400 * 100%); top: calc(var(--y) / 560 * 100%);
+    transform: translate(-50%, -50%); padding: .15cqw .45cqw; border-radius: .4cqw;
+    background: var(--bg); color: var(--gold-dark); font-size: .85cqw; font-weight: 600; white-space: nowrap;
+  }
+
+  .s10 .s10-box {
+    position: absolute; left: calc(var(--x) / 1400 * 100%); top: calc(var(--y) / 560 * 100%);
+    width: calc(var(--w) / 1400 * 100%); height: calc(var(--h) / 560 * 100%);
+    display: flex; flex-direction: column; justify-content: center; gap: .45cqw; padding: 1cqw 1.2cqw;
+    border: 1px solid var(--line); border-radius: 1cqw; background: var(--surface);
+    box-shadow: 0 8px 22px -18px #1b1c1a55;
+  }
+  .s10 .s10-h { margin: 0; font: 600 1.2cqw/1.2 var(--sans); }
+  .s10 .s10-h .muted { font-weight: 500; font-size: .85em; }
+  .s10 .s10-box small { font-size: .95cqw; line-height: 1.25; color: var(--ink-3); }
+  .s10 .s10-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .45cqw; }
+  .s10 .s10-list li { position: relative; padding-left: 1.2cqw; font-size: 1.1cqw; line-height: 1.25; color: var(--ink-2); }
+  .s10 .s10-list li::before { content: ""; position: absolute; left: 0; top: .45em; width: .55cqw; height: .55cqw; background: var(--tree); }
+  .s10 .s10-list-sm li { font-size: 1cqw; }
+  .s10 mark { padding: 0 .3cqw; border-radius: .3cqw; background: #f7ecc0; color: var(--bark); font-weight: 600; }
+
+  .s10 .s10-data { gap: 1cqw; padding-left: 1.6cqw; }
+  .s10 .s10-data .s10-list li { font-size: 1.2cqw; font-weight: 500; color: var(--ink); }
+  .s10 .s10-data .s10-list li::before { background: var(--gold); }
+  .s10 .s10-host { background: var(--surface-2); }
+  .s10 .s10-host b { font: 500 1.7cqw/1 var(--display); color: var(--ink); }
+
+  .s10 .s10-store { align-items: center; text-align: center; gap: .3cqw; }
+  .s10 .s10-store svg { width: 2.2cqw; height: 2.2cqw; fill: none; stroke: var(--ink-2); stroke-width: 1.6; stroke-linejoin: round; }
+  .s10 .s10-store b { font: 600 1.3cqw/1.1 var(--sans); }
+  .s10 .s10-store b .muted { font-weight: 500; font-size: .8em; }
+
+  .s10 .s10-core { gap: 1cqw; padding: 1.4cqw; border: 0; border-radius: 1.4cqw; background: var(--tree-dark); color: var(--parchment); box-shadow: 0 24px 50px -28px #16271dcc; }
+  .s10 .s10-core-title { margin: 0; font: 500 2.1cqw/1.1 var(--display); text-align: center; }
+  .s10 .s10-core-sub { display: block; margin-top: .35cqw; font: 500 .95cqw/1.2 var(--sans); color: #a9ad96; }
+  .s10 .s10-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: .5cqw; }
+  .s10 .s10-grid li { padding: .45cqw .6cqw; border-radius: .5cqw; background: #ffffff14; font-size: 1cqw; line-height: 1.2; text-align: center; white-space: nowrap; }
+  .s10 .s10-grid li:last-child { background: var(--gold); color: var(--tree-dark); font-weight: 600; }
+  .s10 .s10-adr { margin: 0; text-align: center; font-size: .8cqw; color: #a9ad96; letter-spacing: .04em; }
+
+  .s10 .s10-app { gap: .6cqw; padding: 1.2cqw 1.6cqw; border: 2px solid var(--tree); background: #eef4ef; }
+  .s10 .s10-app-title { margin: 0; font: 500 2.1cqw/1 var(--display); color: var(--tree-dark); }
+  .s10 .s10-stack { margin: 0; font: 600 1.15cqw/1.2 var(--sans); color: var(--ink); }
+  .s10 .s10-chips { display: flex; flex-wrap: wrap; gap: .5cqw; margin: 0; }
+  .s10 .s10-chips .chip { padding: .35cqw .8cqw; font-size: .95cqw; gap: .4cqw; }
+  .s10 .s10-routes { margin: 0; font-size: .95cqw; color: var(--tree); }
+
+  .s10 .s10-ai { gap: .5cqw; padding: .9cqw 1.6cqw; border-color: var(--ink); background: var(--ink); color: #fff; }
+  .s10 .s10-ai-sub { margin-left: .5cqw; font: 500 .95cqw var(--mono); color: #b9bab2; }
+  .s10 .s10-ai-row { display: flex; gap: 2cqw; margin: 0; font: 600 1.1cqw/1.2 var(--sans); }
+  .s10 .s10-ai-row i { font-style: normal; font-weight: 400; color: #b9bab2; margin-left: .3cqw; }
+
+  .s10 .s10-map { flex-direction: row; align-items: center; justify-content: space-between; padding: 0 1.6cqw; }
+  .s10 .s10-map b { font-size: 1.1cqw; color: var(--tree-dark); }
+
+  .s10 .s10-pkgs { flex-direction: row; align-items: center; gap: 1cqw; padding: 0 1.4cqw; background: var(--surface-2); }
+  .s10 .s10-pkgs .s10-h { margin-right: auto; }
+  .s10 .s10-pkg { padding: .45cqw .8cqw; border: 1px solid var(--line); border-radius: .5cqw; background: var(--surface); font-size: 1cqw; white-space: nowrap; }
+  .s10 .s10-pkg-adapter { border-color: #e6cf73; background: #f7ecc0; color: var(--bark); font-weight: 600; }
+
+  .s10 .s10-rule { max-width: 1200px; font-size: clamp(18px, 1.7vw, 28px); color: var(--ink); }
+  .s10 .s10-rule em { font-style: italic; color: var(--tree); }
+  .s10 .s10-facts { display: flex; gap: clamp(16px, 2.4vw, 36px); margin: 0; font-size: 13px; color: var(--ink-3); letter-spacing: .02em; }
+  .s10 .s10-facts b { color: var(--ink); font-weight: 700; }
+</style>
