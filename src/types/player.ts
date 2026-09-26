@@ -3,5 +3,6 @@ export type PlayerProgress = {
   level: number;
   discoveredTrees: string[];
   discoveredSpecies: string[];
+  scannedSpecies: string[];
   completedMissions: string[];
 };

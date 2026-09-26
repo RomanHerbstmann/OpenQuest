@@ -21,5 +21,6 @@ export const demoObservations: Observation[] = seeds.map(([id, treeId, action, o
     lat: tree?.lat ?? 51.9602,
     lng: tree?.lng ?? 7.6318,
     source: 'demo',
+    reviewedAt: reviewStatus === 'verified' ? observedAt : undefined,
   };
 });

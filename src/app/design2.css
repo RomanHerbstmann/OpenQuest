@@ -1,0 +1,375 @@
+:root { --background: #eef3ec; --surface: #f9fbf5; --primary: #147e58; --primary-dark: #0b3329; --accent: #d9f575; --text: #102e27; --text-muted: #607a6d; --border: #d9e5d9; --d2-ink: #082a22; --d2-lime: #dcfb80; --d2-mint: #61dec0; }
+body { background: var(--background); color: var(--text); font-family: 'Segoe UI Variable Text', 'Aptos', 'Segoe UI', Arial, sans-serif; }
+button, a { transition: transform .22s ease, background-color .22s ease, border-color .22s ease, box-shadow .22s ease, color .22s ease; }
+button:active, a:active { transform: scale(.975); }
+:focus-visible { outline: 3px solid #bff27b; outline-offset: 3px; }
+.brand { font-family: 'Segoe UI Variable Display', 'Aptos Display', 'Segoe UI', sans-serif; font-size: 23px; font-weight: 900; letter-spacing: -1.55px; }
+.brand-icon { background: linear-gradient(150deg, #d6fa7a, #79dcb0); color: #073427; box-shadow: inset 0 0 0 1px #ffffff8c, 0 5px 16px #0a4a2d26; transform: rotate(-7deg); }
+.brand-accent { color: #3baf82; }
+.brand-dot { color: #c9ef63; }
+
+/* Floating game navigation */
+.bottom-nav { bottom: max(10px, env(safe-area-inset-bottom)); left: 50%; right: auto; width: min(calc(100% - 20px), 600px); height: 70px; padding: 7px; gap: 4px; border: 1px solid #bdebd445; border-radius: 24px; color: white; background: linear-gradient(120deg, #092d25f5, #0c3c30f7); box-shadow: 0 16px 38px #05231f50, inset 0 1px #ffffff18; backdrop-filter: blur(18px); transform: translateX(-50%); }
+.nav-item { max-width: none; border-radius: 17px; color: #acd2bf; font-size: 10px; letter-spacing: .1px; }
+.nav-item svg { transition: transform .25s ease; }
+.nav-item:hover { color: #f5ffe3; background: #ffffff13; }
+.nav-item:hover svg { transform: translateY(-2px) rotate(-5deg); }
+.nav-item.active { color: #092b21; background: linear-gradient(145deg, #e2ff92, #9df0b6); box-shadow: 0 3px 12px #cfff8859, inset 0 1px #fff9; }
+.nav-item.active svg { filter: drop-shadow(0 1px #ffffffaa); }
+
+/* Map cockpit */
+.map-screen, .leaflet-container { background: #f7faeb; }
+.map-header { top: max(13px, env(safe-area-inset-top)); padding: 11px 13px; border: 1px solid #bce9d743; border-radius: 21px; color: #f3fff1; background: linear-gradient(110deg, #082b24f5, #0c4032ef 64%, #15513fed); box-shadow: 0 13px 34px #0a372d49, inset 0 1px #ffffff23; }
+.map-header::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; background: radial-gradient(circle at 75% -80%, #d6ff8240, transparent 38%); }
+.map-header .brand { position: relative; z-index: 1; color: #f7fff3; }
+.map-header .brand-accent { color: #b9f5bc; }
+.map-header .demo-tag { position: relative; z-index: 1; color: #d6f8bd; background: #ffffff20; border: 1px solid #d9ffad40; letter-spacing: 1px; }
+.map-header .header-progress { position: relative; z-index: 1; }
+.map-header .header-progress > div:first-child { color: #aadac0; }
+.map-header .header-progress strong { color: #f6ffeb; }
+.map-header .progress-track { background: #ffffff2b; }
+.map-header .progress-track span { background: linear-gradient(90deg, #78e5bb, #e1fc83); box-shadow: 0 0 12px #b5f5939c; }
+.map-intro { top: 104px; padding: 9px 14px 9px 9px; border-radius: 18px; background: linear-gradient(112deg, #fff8e6f7, #fdfaf4f2); box-shadow: 0 9px 27px #3055292c; }
+.map-intro:hover { transform: translateY(-3px); box-shadow: 0 14px 34px #3055293c; }
+.map-presentation-shortcut { border: 1px solid #f0d28b; }
+.map-presentation-shortcut .intro-spark { width: 40px; height: 40px; flex-basis: 40px; border-radius: 13px; color: #4a3411; background: radial-gradient(circle at 30% 20%, #fff4aa, #eaba5b); box-shadow: 0 0 18px #e9bb65ab; animation: d2-star-pulse 3.2s ease-in-out infinite; }
+.intro-eyebrow { display: block; margin-bottom: 3px; color: #997033; font-size: 8px; font-weight: 900; letter-spacing: 1.3px; }
+.map-intro strong { color: #173d2e; font-size: 13px; letter-spacing: -.25px; }
+.map-intro div > span { color: #7b7966; }
+.filter-bar { top: 182px; gap: 7px; }
+.filter-chip { min-height: 36px; padding: 0 14px; border: 1px solid #ffffffd1; color: #164c39; background: #fffef5e8; box-shadow: 0 5px 15px #103b312a; backdrop-filter: blur(7px); font-size: 11px; }
+.filter-chip:hover { background: #e5f7d4; transform: translateY(-2px); }
+.filter-chip.active { color: #eaffcf; background: linear-gradient(130deg, #08472f, #0d6b4d); border-color: #6bd6a18a; box-shadow: 0 7px 16px #0c513f50; }
+.map-density-legend { bottom: calc(172px + env(safe-area-inset-bottom)); border-color: #98d4ad76; color: #e8ffcb; background: #0b392ce8; box-shadow: 0 8px 22px #0b372a52; backdrop-filter: blur(9px); }
+.map-density-legend small { color: #bde3c2; }
+.map-density-gradient { background: linear-gradient(90deg, #d9e7c3, #8fe5a0, #dffb73); }
+.map-bottom-area { bottom: calc(98px + env(safe-area-inset-bottom)); }
+.map-count { padding: 7px 13px 7px 7px; border: 1px solid #b1e7c659; border-radius: 18px; color: white; background: linear-gradient(135deg, #0a3529ef, #0c553cee); box-shadow: 0 10px 25px #0b362f50; backdrop-filter: blur(10px); }
+.map-count strong { color: #f3ffdc; font-size: 12px; }
+.map-count div > span { color: #a9debf; }
+.count-icon { color: #113725; background: #d8f885; }
+.district-open-button { min-height: 45px; padding: 0 14px; border: 1px solid #b7e7c9; border-radius: 15px; color: #134932; background: #f9fff0; box-shadow: 0 9px 24px #173e2e30; font-size: 12px; }
+.district-open-button:hover { background: #e0fac0; transform: translateY(-2px); }
+.locate-button { width: 49px; height: 49px; border-radius: 16px; color: #0c402f; background: linear-gradient(145deg, #e1fc8d, #a4edb4); box-shadow: 0 9px 23px #18493442; }
+.locate-button:hover { transform: translateY(-2px); }
+.leaflet-bottom.leaflet-right { bottom: 173px; }
+.leaflet-bottom.leaflet-left { bottom: 82px; }
+.leaflet-control-attribution { border-radius: 7px; background: #f9fff0d9 !important; color: #315a43 !important; }
+.leaflet-control-zoom { border: 1px solid #b5dec5 !important; }
+.leaflet-control-zoom a { color: #104533 !important; background: #fafff0 !important; }
+.leaflet-control-zoom a:hover { background: #d9f5b8 !important; }
+.tree-marker .marker-face { background: linear-gradient(145deg, #0f6646, #1ca874); border: 2px solid #f6ffe6; box-shadow: 0 3px 12px #084b3280, 0 0 0 3px #b7ed9d55; }
+.tree-marker.selected .marker-face { background: #0b533a; box-shadow: 0 3px 15px #084b32a0, 0 0 0 7px #9ceb9e55; animation: d2-selected-pulse 1.8s ease-in-out infinite; }
+.tree-marker.presentation .marker-face { background: linear-gradient(145deg, #f9e491, #8564bd); box-shadow: 0 3px 15px #8564bd93, 0 0 0 4px #f5dd8b69; animation: d2-star-pulse 3.2s ease-in-out infinite; }
+.district-map-label { border-radius: 10px; border-color: #f9fff0; color: #1f6141; background: #fafff0e8; box-shadow: 0 3px 10px #17432b28; }
+@keyframes d2-star-pulse { 0%, 100% { box-shadow: 0 0 12px #ecc96474; } 50% { box-shadow: 0 0 23px #fbe07fbf; } }
+@keyframes d2-selected-pulse { 0%, 100% { box-shadow: 0 3px 15px #084b32a0, 0 0 0 5px #9ceb9e45; } 50% { box-shadow: 0 3px 18px #084b32c0, 0 0 0 10px #9ceb9e1c; } }
+
+/* Tree profile */
+.sheet-backdrop { z-index: 1150; background: #061e19b8; backdrop-filter: blur(7px); }
+.tree-sheet { z-index: 1200; left: 0; right: 0; bottom: max(12px, env(safe-area-inset-bottom)); width: min(calc(100% - 18px), 620px); max-height: min(88dvh, 770px); margin: auto; overflow-x: hidden; padding: 18px 22px 24px; border: 1px solid #a6e3ae50; border-radius: 27px; color: #efffec; background: linear-gradient(155deg, #092d24 2%, #103a2d 50%, #08291f 100%); box-shadow: 0 20px 70px #031d19b8, inset 0 1px #ffffff24; animation: d2-sheet-in .36s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes d2-sheet-in { from { transform: translateY(35px) scale(.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+.sheet-atmosphere { position: absolute; top: -130px; right: -100px; width: 360px; height: 330px; border-radius: 50%; background: radial-gradient(circle, #b6fc8140, transparent 68%); pointer-events: none; }
+.drag-handle { position: relative; width: 42px; height: 5px; margin-bottom: 14px; background: #a3d7b07a; }
+.sheet-close { z-index: 2; top: 18px; right: 18px; color: #e0f6e3; background: #ffffff21; border: 1px solid #ffffff22; }
+.sheet-close:hover { background: #ffffff37; }
+.sheet-topline { position: relative; display: flex; justify-content: space-between; gap: 15px; padding-right: 42px; margin: 0 0 18px; color: #a7dbb6; font-size: 9px; font-weight: 900; letter-spacing: 1.3px; }
+.sheet-topline span:first-child { display: flex; align-items: center; gap: 6px; }
+.sheet-topline span:last-child { color: #d5f597; }
+.sheet-hero { position: relative; align-items: flex-start; gap: 17px; }
+.sheet-tree-icon { width: 85px; height: 91px; flex: 0 0 85px; border: 1px solid #d7ffb762; border-radius: 24px; color: #e2ffac; background: radial-gradient(circle at 30% 20%, #598e5a, #165a42 65%, #0c4434); box-shadow: 0 12px 24px #031d1961, inset 0 1px #ffffff54; }
+.sheet-tree-icon svg { width: 49px; height: 49px; filter: drop-shadow(0 4px 6px #082f29a0); }
+.presentation-tree-icon { color: #ffec9c; background: radial-gradient(circle at 30% 20%, #aa8453, #513967 70%); }
+.sheet-hero .eyebrow { margin: 3px 0 6px; color: #9be3ad; font-size: 9px; letter-spacing: 1.15px; }
+.sheet-hero h2 { color: #f7fff0; font-size: clamp(27px, 6vw, 38px); letter-spacing: -1.2px; }
+.sheet-hero .latin { color: #b9d9c2; }
+.sheet-hero-signature { margin: 8px 0 0; color: #d7f7ab; font-size: 11px; font-weight: 750; line-height: 1.35; }
+.sheet-pills { position: relative; margin: 18px 0; }
+.tree-sheet .pill-green { color: #d3f5d0; background: #1d7653; }
+.tree-sheet .pill-neutral { color: #c6e9cb; background: #ffffff1d; }
+.tree-sheet .pill-amber { color: #ffe6a1; background: #ae7c2c46; }
+.tree-sheet .sheet-info { border-top: 1px solid #d2edc733; border-bottom: 1px solid #d2edc733; }
+.tree-sheet .sheet-info div { color: #cce1cf; }
+.tree-sheet .sheet-info svg { color: #bef19d; }
+.tree-sheet .tree-district-link { color: #e9ffdf; background: #ffffff18; border: 1px solid #ffffff19; }
+.tree-sheet .tree-district-link:hover { background: #ffffff28; }
+.tree-knowledge-card { position: relative; margin-top: 17px; padding: 16px; overflow: hidden; border-radius: 20px; color: #183f2b; background: linear-gradient(115deg, #f0facd, #e1f5d7 63%, #c8e8cf); box-shadow: 0 8px 22px #031d1940; }
+.tree-knowledge-card::after { content: '✦'; position: absolute; top: -20px; right: 15px; color: #a2d28175; font-size: 100px; pointer-events: none; }
+.tree-knowledge-top { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; }
+.tree-knowledge-icon { display: grid; place-items: center; width: 41px; height: 41px; flex: 0 0 41px; border-radius: 13px; color: #efffe5; background: #146448; }
+.tree-knowledge-top small, .tree-knowledge-top strong { display: block; }
+.tree-knowledge-top small { color: #42805c; font-size: 9px; font-weight: 900; letter-spacing: 1.3px; }
+.tree-knowledge-top strong { margin-top: 3px; font-size: 16px; letter-spacing: -.4px; }
+.tree-knowledge-facts { position: relative; z-index: 1; display: grid; gap: 8px; margin: 15px 0; color: #315c40; font-size: 11px; line-height: 1.35; }
+.tree-knowledge-facts span { display: flex; align-items: flex-start; gap: 7px; }
+.tree-knowledge-facts svg { flex: 0 0 14px; color: #2d9362; }
+.tree-knowledge-link { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 8px; color: #0b5b3c; font-size: 11px; font-weight: 900; text-decoration: none; }
+.tree-knowledge-link:hover { gap: 12px; }
+.tree-scan-button { position: sticky; z-index: 4; bottom: -9px; min-height: 49px; margin-top: 15px; border-radius: 14px; color: #123c2c; background: linear-gradient(125deg, #e8ff9c, #8fe6af); box-shadow: 0 7px 22px #93e6a650; font-size: 13px; }
+.tree-scan-button:hover { background: #e7ffaf; transform: translateY(-2px); }
+.tree-sheet .mission-preview { border-color: #c7e5ba36; color: #e8f8e5; background: #ffffff0e; }
+.tree-sheet .mission-preview h3 { color: #f0ffec; }
+.tree-sheet .mission-preview p { color: #b8d8bd; }
+.tree-sheet .mission-symbol { color: #c9f391; background: #ffffff1d; }
+.tree-sheet .mission-disabled { color: #c8ddc9; background: #47765b; }
+.tree-sheet .sheet-footer-note, .tree-sheet .presentation-tree-note { color: #a9c4ae; }
+.tree-sheet .presentation-tree-story { border-color: #f3d18550; color: #ffebc4; background: #bb8a3d22; }
+.tree-sheet .presentation-tree-story strong { color: #ffe6a8; }
+.tree-sheet .presentation-tree-story p { color: #e2d1ac; }
+
+/* Scan experience */
+.scan-overlay { background: #041a17dc; backdrop-filter: blur(12px); }
+.scan-modal { border: 1px solid #8bd5a653; border-radius: 27px; color: #f4fff1; background: radial-gradient(circle at 50% 0, #1b5a43, #0c3329 52%, #08251f); box-shadow: 0 25px 80px #0009, inset 0 1px #ffffff1e; }
+.scan-header .eyebrow { color: #b5f18e; }
+.scan-header h2 { color: #f9ffed; font-size: clamp(23px, 5vw, 31px); letter-spacing: -.8px; }
+.scan-close { color: #e6fbe6; background: #ffffff20; border: 1px solid #ffffff27; }
+.scan-progress-steps { display: flex; justify-content: space-between; gap: 8px; margin: 15px 0; padding: 8px; border-radius: 11px; background: #ffffff10; }
+.scan-progress-steps span { flex: 1; color: #83a894; font-size: 9px; font-weight: 900; letter-spacing: .5px; text-align: center; white-space: nowrap; }
+.scan-progress-steps span.active { color: #d8fc92; }
+.scan-viewfinder { overflow: hidden; border: 1px solid #a4e7bb77; border-radius: 22px; background: radial-gradient(circle at 50% 45%, #315b46, #081a18); box-shadow: inset 0 0 65px #061b1aa8, 0 14px 35px #031c1870; }
+.scan-viewfinder::after { content: ''; position: absolute; z-index: 2; left: 9%; right: 9%; top: 10%; height: 2px; background: #d5ff94; box-shadow: 0 0 12px 5px #9bf5ab8c, 0 0 30px 12px #8cf0b842; animation: d2-viewfinder-sweep 3.7s ease-in-out infinite alternate; pointer-events: none; }
+@keyframes d2-viewfinder-sweep { from { top: 11%; opacity: .7; } to { top: 84%; opacity: 1; } }
+.scan-viewfinder-caption { position: absolute; z-index: 4; left: 50%; bottom: 13px; display: flex; align-items: center; gap: 6px; width: max-content; max-width: 90%; padding: 6px 10px; border-radius: 999px; color: #d8f7d3; background: #092e25ca; font-size: 9px; font-weight: 900; letter-spacing: .7px; transform: translateX(-50%); }
+.scan-camera-message { color: #e8ffde; }
+.scan-help { color: #c5dfca; }
+.scan-primary { border-radius: 14px; color: #0c3828; background: linear-gradient(125deg, #e7ff99, #9be8b1); box-shadow: 0 8px 25px #9be8b14b; }
+.scan-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px #9be8b163; }
+.scan-secondary { border-color: #c6efc343; color: #e2f9d9; background: #ffffff17; }
+.scan-secondary:hover { background: #ffffff29; }
+.scan-processing-label, .scan-success { color: #d9fc9c; }
+.scan-disclaimer { color: #adc8b3; }
+.scan-demo-note { border: 1px solid #e6c67d66; color: #ffefc7; background: #99703230; }
+.scan-species-label { color: #e9ffe3; }
+.scan-species-select { border-color: #a7dfa97a; border-radius: 12px; color: #dff5e2; background: #184433; }
+.scan-existing { color: #c5f497; }
+.scan-reward { color: #503a09; background: #ffe08c; }
+.card-viewer-lexicon-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; padding: 9px 13px; border: 1px solid #d4f1ba55; border-radius: 999px; color: #e7ffb8; background: #ffffff18; font-size: 11px; font-weight: 850; text-decoration: none; }
+.card-viewer-lexicon-link:hover { background: #ffffff2a; }
+
+/* Collection and nature lexicon */
+.design2-page { max-width: 1160px; padding-top: 26px; background: radial-gradient(circle at 90% 0, #dff4e36e, transparent 35%), var(--background); }
+.design2-page .page-top { position: relative; z-index: 2; }
+.d2-top-pill { display: inline-flex; align-items: center; gap: 7px; padding: 9px 12px; border: 1px solid #b7ddc0; border-radius: 999px; color: #155d44; background: #f7fff1; font-size: 10px; font-weight: 900; letter-spacing: 1px; white-space: nowrap; box-shadow: 0 4px 16px #24543c10; }
+.d2-kicker, .d2-hero-kicker { display: inline-flex; align-items: center; gap: 7px; font-size: 10px; font-weight: 900; letter-spacing: 1.8px; }
+.d2-kicker { color: #359671; }
+.d2-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 37px 0 17px; }
+.d2-section-heading h2 { margin: 5px 0 0; color: #12372c; font-size: clamp(25px, 4vw, 34px); font-weight: 850; letter-spacing: -1.1px; }
+.d2-section-heading > span { color: #668577; font-size: 11px; font-weight: 750; white-space: nowrap; }
+
+.collection-hero, .lexicon-hero { position: relative; isolation: isolate; overflow: hidden; border-radius: 30px; color: #f7ffef; background: linear-gradient(120deg, #092d26, #12523b 70%, #1c6847); box-shadow: 0 22px 45px #0a3e2b31, inset 0 1px #ffffff26; }
+.collection-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .62fr); min-height: 355px; margin-top: 30px; padding: clamp(26px, 4vw, 43px); }
+.collection-hero::before, .lexicon-hero::before { content: ''; position: absolute; z-index: -1; inset: -45% -15% auto auto; width: 60%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, #b9f9708c, #62d0a029 45%, transparent 70%); }
+.collection-hero::after { content: ''; position: absolute; z-index: -1; width: 500px; height: 500px; left: -250px; bottom: -390px; border: 1px solid #bafabb42; border-radius: 50%; box-shadow: 0 0 0 50px #bafabb0a, 0 0 0 105px #bafabb0b, 0 0 0 165px #bafabb06; }
+.collection-hero-grain { position: absolute; inset: 0; z-index: -1; opacity: .23; background-image: radial-gradient(#f4ffcc 1px, transparent 1px); background-size: 24px 24px; mask-image: linear-gradient(90deg, transparent, black); }
+.collection-hero-copy { position: relative; z-index: 2; max-width: 580px; }
+.d2-hero-kicker { color: #d8f997; }
+.collection-hero h1, .lexicon-hero h1 { margin: 13px 0 13px; font-family: 'Segoe UI Variable Display', 'Aptos Display', 'Segoe UI', sans-serif; font-size: clamp(37px, 5vw, 62px); font-weight: 900; letter-spacing: -2.6px; line-height: .99; }
+.collection-hero h1 em, .lexicon-hero h1 em { color: #d8fa8a; font-style: normal; }
+.collection-hero-copy > p, .lexicon-hero > p { max-width: 470px; margin: 0; color: #c8e4d0; font-size: 13px; line-height: 1.55; }
+.collection-hero-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 23px; }
+.collection-scan-button, .collection-lexicon-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 45px; margin: 0; padding: 0 16px; border-radius: 14px; font-size: 12px; font-weight: 850; text-decoration: none; white-space: nowrap; }
+.collection-scan-button { border: 0; color: #123b28; background: linear-gradient(125deg, #e7ff95, #a0efaf); box-shadow: 0 9px 24px #a1eb9170; }
+.collection-scan-button:hover { transform: translateY(-2px); box-shadow: 0 12px 30px #a1eb9199; }
+.collection-scan-button svg:last-child { margin-left: 6px; }
+.collection-lexicon-button { border: 1px solid #b7e7bb6e; color: #ecffe5; background: #ffffff1a; }
+.collection-lexicon-button:hover { background: #ffffff30; transform: translateY(-2px); }
+.collection-hero-progress { display: flex; align-items: end; gap: 17px; margin-top: 30px; }
+.collection-hero-progress strong, .collection-hero-progress small { display: block; }
+.collection-hero-progress strong { font-size: 25px; line-height: 1; letter-spacing: -1px; }
+.collection-hero-progress strong span { color: #acd2ad; font-size: 16px; }
+.collection-hero-progress small { margin-top: 4px; color: #b7d7bd; font-size: 10px; font-weight: 700; }
+.collection-progress-track { width: min(160px, 35vw); height: 7px; margin-bottom: 14px; overflow: hidden; border-radius: 99px; background: #ffffff2e; }
+.collection-progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #79dab1, #dfff7f); box-shadow: 0 0 12px #dfff7fb4; transition: width .5s ease; }
+.collection-hero-cards { position: relative; min-width: 210px; perspective: 800px; }
+.collection-hero-card { position: absolute; top: 44px; left: 50%; width: clamp(150px, 16vw, 205px); aspect-ratio: 2 / 3; overflow: hidden; border: 3px solid #d9e9b5; border-radius: 16px; background: #142b26; box-shadow: 0 15px 38px #0008; }
+.collection-hero-card img { object-fit: cover; }
+.collection-hero-card.front { z-index: 2; transform: translateX(-35%) rotate(11deg); animation: d2-card-float 5s ease-in-out infinite; }
+.collection-hero-card.back { z-index: 1; opacity: .76; transform: translateX(-82%) rotate(-13deg) scale(.94); }
+.collection-hero-spark { position: absolute; z-index: 3; top: 7px; right: 22px; color: #e9ffab; font-size: 41px; text-shadow: 0 0 25px #d6ff88; animation: d2-spark 3s ease-in-out infinite; }
+@keyframes d2-card-float { 0%, 100% { transform: translateX(-35%) translateY(0) rotate(11deg); } 50% { transform: translateX(-35%) translateY(-9px) rotate(8deg); } }
+@keyframes d2-spark { 0%, 100% { opacity: .65; transform: scale(.8) rotate(-10deg); } 50% { opacity: 1; transform: scale(1.12) rotate(12deg); } }
+.collection-filter-bar, .lexicon-groups { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.collection-filter-bar { margin: 0 0 18px; }
+.collection-filter-bar button, .lexicon-groups button { flex: 0 0 auto; min-height: 37px; padding: 0 14px; border: 1px solid #cde2d0; border-radius: 999px; color: #446c55; background: #fbfdf7; font-size: 11px; font-weight: 800; }
+.collection-filter-bar button.active, .lexicon-groups button.active { border-color: #0c6548; color: #efffdc; background: #0c6548; box-shadow: 0 5px 14px #1e785535; }
+.collection-filter-bar button:hover, .lexicon-groups button:hover { transform: translateY(-2px); }
+.collection-page .species-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.collection-page .species-grid.single-card { grid-template-columns: minmax(0, 285px); justify-content: center; }
+.collection-page .species-card { min-height: 0; padding: 9px; border: 1px solid #194f3b; border-radius: 21px; color: #efffea; background: linear-gradient(155deg, #0a3429, #124532); box-shadow: 0 9px 22px #113f3029; }
+.collection-page .species-card::after { content: ''; position: absolute; z-index: 1; top: -80%; left: -90%; width: 80%; height: 220%; pointer-events: none; background: linear-gradient(90deg, transparent, #ffffff1e, transparent); transform: rotate(22deg); transition: left .5s ease; }
+.collection-page .species-card:hover::after { left: 170%; }
+.collection-page .species-card:hover { transform: translateY(-5px) rotate(-1deg); box-shadow: 0 19px 33px #113f3042; }
+.collection-page .species-art { border-radius: 15px; background: radial-gradient(circle at 50% 35%, #92ce9a, #254d3d); }
+.collection-page .species-art.has-card-image { background: #183629; }
+.collection-page .species-art.has-card-image img { object-fit: cover; }
+.collection-page .species-card.locked .species-art.has-card-image img { filter: saturate(.7) brightness(.76); }
+.collection-page .species-card.locked .species-art:not(.has-card-image) { color: #e6d58c; background: radial-gradient(circle, #426550, #24392f 70%); }
+.collection-page .species-card-open { z-index: 3; }
+.collection-page .species-card-open svg, .collection-page .species-card-open span { color: #164a31; background: #e9ffd5; }
+.collection-page .species-copy { position: relative; z-index: 2; padding: 9px 7px 8px; }
+.species-copy-heading { display: flex; align-items: center; justify-content: space-between; }
+.collection-page .species-copy-heading > small { color: #a8d7aa; font-size: 9px; font-weight: 900; letter-spacing: 1.3px; }
+.collection-page .species-status { position: static; display: grid; place-items: center; width: 23px; height: 23px; border-radius: 7px; color: #a8c6ab; background: #ffffff1b; }
+.collection-page .species-status.unlocked { color: #eaff99; background: #b2e68330; }
+.collection-page .species-copy h2 { margin: 6px 0 2px; color: #f3ffed; font-size: 17px; }
+.collection-page .species-copy p { color: #b7d5b8; font-size: 11px; }
+.collection-page .species-note { color: #a6cab0; }
+.collection-page .species-copy > span { color: #dbf993; font-weight: 850; }
+.collection-page .species-card.locked .species-copy > span { color: #a5bfaa; }
+.collection-empty, .lexicon-empty { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 32px; border: 1px dashed #a5c8ae; border-radius: 20px; color: #5d9271; background: #f6faf1; text-align: center; }
+.collection-empty strong, .lexicon-empty strong { color: #194633; font-size: 14px; }
+.collection-empty span, .lexicon-empty span { color: #6b8a75; font-size: 11px; }
+.collection-empty-action { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; padding: 11px 17px; border: 0; border-radius: 999px; color: #f3ffe8; background: #0c6548; font-size: 12px; font-weight: 850; cursor: pointer; }
+.collection-empty-action:hover { background: #16805d; transform: translateY(-2px); }
+
+.lexicon-hero { min-height: 315px; margin-top: 30px; padding: clamp(28px, 5vw, 48px); background: linear-gradient(120deg, #0d352c, #155340 70%, #1c6957); }
+.lexicon-hero::after { content: '✺'; position: absolute; top: -60px; right: 5%; color: #c7f7a41c; font-size: 390px; line-height: 1; transform: rotate(-15deg); }
+.lexicon-orbit { position: absolute; right: 8%; top: -10%; width: 260px; height: 260px; border: 1px solid #d3fab53a; border-radius: 50%; }
+.lexicon-orbit-two { right: -4%; top: -38%; width: 480px; height: 480px; border-color: #d3fab51c; }
+.lexicon-hero-kicker { display: inline-flex; align-items: center; gap: 7px; color: #dcf997; font-size: 10px; font-weight: 900; letter-spacing: 1.6px; }
+.lexicon-hero h1 { position: relative; z-index: 1; max-width: 600px; }
+.lexicon-hero > p { position: relative; z-index: 1; }
+.lexicon-hero-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; margin-top: 25px; color: #d7ebd8; font-size: 11px; font-weight: 700; }
+.lexicon-hero-footer span { display: inline-flex; align-items: center; gap: 7px; }
+.lexicon-hero-footer strong { color: #e1ff98; font-size: 24px; line-height: 1; }
+.lexicon-toolbar { margin-top: 24px; }
+.lexicon-search { display: flex; align-items: center; gap: 10px; height: 49px; padding: 0 15px; border: 1px solid #b8d9c1; border-radius: 15px; color: #267455; background: #fbfef6; box-shadow: 0 5px 16px #16462b0e; }
+.lexicon-search:focus-within { border-color: #348b64; box-shadow: 0 0 0 3px #9ef2b459; }
+.lexicon-search input { width: 100%; height: 100%; border: 0; outline: 0; color: #123f2d; background: transparent; font: inherit; font-size: 13px; }
+.lexicon-search input::placeholder { color: #8ba696; }
+.lexicon-groups { margin-top: 12px; }
+.lexicon-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.lexicon-card { position: relative; display: flex; align-items: center; gap: 14px; min-height: 143px; overflow: hidden; padding: 14px; border: 1px solid #d3e4d0; border-radius: 21px; color: #143f2e; background: #fbfff7; box-shadow: 0 7px 18px #194f3012; text-decoration: none; animation: d2-card-enter .36s ease both; animation-delay: calc(var(--entry-index) * 35ms); }
+@keyframes d2-card-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.lexicon-card:hover { transform: translateY(-4px); border-color: #89ca9c; box-shadow: 0 15px 29px #194f302a; }
+.lexicon-card-art { position: relative; display: grid; place-items: center; width: 105px; height: 112px; flex: 0 0 105px; overflow: hidden; border-radius: 16px; background: radial-gradient(circle at 32% 25%, #ffffffb8, transparent 48%), var(--entry-accent); }
+.lexicon-card-art span { position: relative; z-index: 1; font-size: 47px; filter: drop-shadow(0 7px 5px #16432347); transition: transform .3s ease; }
+.lexicon-card:hover .lexicon-card-art span { transform: translateY(-4px) rotate(-7deg) scale(1.1); }
+.lexicon-card-art i { position: absolute; inset: 12px; border: 1px solid #ffffff8e; border-radius: 50%; box-shadow: 0 0 0 18px #ffffff2b; }
+.lexicon-card-copy { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; padding-right: 20px; }
+.lexicon-card-copy small { color: #478362; font-size: 9px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; }
+.lexicon-card-copy strong { margin-top: 5px; font-size: 18px; font-weight: 900; letter-spacing: -.5px; }
+.lexicon-card-copy em { color: #698774; font-size: 11px; }
+.lexicon-card-copy > span { margin-top: 10px; color: #3d7657; font-size: 11px; line-height: 1.3; }
+.lexicon-card-arrow { position: absolute; top: 15px; right: 15px; display: grid; place-items: center; width: 27px; height: 27px; border-radius: 8px; color: #286a49; background: #e6f5db; }
+.lexicon-editorial-note { max-width: 700px; margin: 29px auto 0; color: #789080; font-size: 11px; line-height: 1.5; text-align: center; }
+
+.lexicon-back { display: inline-flex; align-items: center; gap: 7px; margin: 29px 0 15px; color: #246d4d; font-size: 12px; font-weight: 850; text-decoration: none; }
+.lexicon-back:hover { gap: 11px; }
+.lexicon-detail-hero { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 290px; align-items: center; min-height: 360px; overflow: hidden; padding: clamp(27px, 5vw, 45px); border-radius: 29px; color: #f8fff0; background: radial-gradient(circle at 80% 40%, color-mix(in srgb, var(--entry-accent) 50%, transparent), transparent 39%), linear-gradient(125deg, #092d25, #14513d); box-shadow: 0 18px 39px #103f2d32; }
+.lexicon-detail-hero::after { content: ''; position: absolute; right: -110px; top: -220px; width: 590px; height: 590px; border: 1px solid #e2ffb12b; border-radius: 50%; box-shadow: 0 0 0 45px #e2ffb109, 0 0 0 100px #e2ffb10a; }
+.lexicon-detail-copy { position: relative; z-index: 2; }
+.lexicon-detail-copy .d2-kicker { color: #d7f899; }
+.lexicon-detail-copy h1 { margin: 12px 0 1px; font-size: clamp(40px, 6vw, 68px); font-weight: 900; letter-spacing: -2.8px; line-height: 1; }
+.lexicon-detail-copy > em { color: #abd2b5; font-size: 15px; }
+.lexicon-detail-copy > p { max-width: 540px; margin: 22px 0; color: #d5e9d6; font-size: 14px; line-height: 1.55; }
+.lexicon-detail-group { display: inline-flex; align-items: center; gap: 6px; padding: 8px 11px; border: 1px solid #caeab271; border-radius: 999px; color: #ebffca; background: #ffffff20; font-size: 11px; font-weight: 850; }
+.lexicon-detail-visual { position: relative; z-index: 2; justify-self: center; width: 200px; aspect-ratio: 2 / 3; transform: rotate(7deg); animation: d2-detail-float 5s ease-in-out infinite; }
+@keyframes d2-detail-float { 0%, 100% { transform: translateY(0) rotate(7deg); } 50% { transform: translateY(-8px) rotate(5deg); } }
+.lexicon-detail-visual img { z-index: 2; border: 4px solid #fff2ba; border-radius: 16px; object-fit: cover; box-shadow: 0 15px 35px #032d1d9c; }
+.lexicon-detail-halo { position: absolute; inset: -20%; border-radius: 50%; background: radial-gradient(circle, var(--entry-accent), transparent 62%); filter: blur(15px); opacity: .55; }
+.lexicon-detail-visual small { position: absolute; z-index: 3; right: -22px; bottom: 12px; padding: 6px 9px; border-radius: 7px; color: #0f3e2c; background: #e7ffa9; font-size: 9px; font-weight: 900; letter-spacing: 1px; }
+.lexicon-detail-emoji { position: relative; z-index: 2; display: grid; place-items: center; width: 100%; height: 100%; border: 4px solid #ffffffad; border-radius: 17px; background: var(--entry-accent); font-size: 100px; box-shadow: 0 15px 35px #032d1d9c; }
+.lexicon-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.lexicon-facts article { min-height: 194px; padding: 20px; border: 1px solid #d0e3d0; border-radius: 21px; background: #fbfff7; box-shadow: 0 8px 20px #194f3012; }
+.lexicon-facts article > span { display: grid; place-items: center; width: 43px; height: 43px; margin-bottom: 17px; border-radius: 13px; color: #164f36; background: var(--entry-accent); }
+.lexicon-facts article small { color: #5a9870; font-size: 9px; font-weight: 900; letter-spacing: 1.2px; }
+.lexicon-facts article h3 { margin: 6px 0; font-size: 18px; letter-spacing: -.5px; }
+.lexicon-facts article p { margin: 0; color: #577262; font-size: 12px; line-height: 1.45; }
+.lexicon-detail-lower { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-top: 13px; }
+.lexicon-insight { padding: 22px; border-radius: 22px; color: #f6ffea; background: linear-gradient(130deg, #0b4532, #146b49); }
+.lexicon-insight > div { display: flex; align-items: center; gap: 9px; color: #d5f7a1; font-size: 10px; font-weight: 900; letter-spacing: 1.2px; }
+.lexicon-insight > div span { display: grid; place-items: center; width: 37px; height: 37px; border-radius: 10px; background: #ffffff23; }
+.lexicon-insight h2 { margin: 18px 0 7px; font-size: 25px; letter-spacing: -.8px; }
+.lexicon-insight p { margin: 0; color: #bee4c8; font-size: 12px; line-height: 1.5; }
+.lexicon-context { display: grid; padding: 15px 21px; border: 1px solid #d0e3d0; border-radius: 22px; background: #fbfff7; }
+.lexicon-context div { display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 9px 0; border-bottom: 1px solid #d9e8d8; }
+.lexicon-context div:last-child { border-bottom: 0; }
+.lexicon-context span { color: #5b9b74; font-size: 9px; font-weight: 900; letter-spacing: 1.2px; }
+.lexicon-context strong { color: #254a32; font-size: 12px; line-height: 1.4; }
+.lexicon-next-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.lexicon-map-link, .lexicon-next-link { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding: 0 14px; border-radius: 12px; font-size: 11px; font-weight: 850; text-decoration: none; }
+.lexicon-map-link { color: #e9ffcc; background: #0e6346; }
+.lexicon-next-link { color: #165e40; background: #ddf1d6; }
+.lexicon-map-link:hover, .lexicon-next-link:hover { transform: translateY(-2px); }
+
+/* Missions and player profile */
+.missions-hero { position: relative; overflow: hidden; margin-top: 30px; padding: clamp(26px, 4vw, 42px); border-radius: 29px; color: #f7ffec; background: radial-gradient(circle at 88% 12%, #a5e97157, transparent 35%), linear-gradient(115deg, #0b352c, #125a41); box-shadow: 0 19px 39px #103f2d2d; }
+.missions-hero::after { content: '✦'; position: absolute; top: -95px; right: 8%; color: #dcff9d1f; font-size: 400px; line-height: 1; transform: rotate(-15deg); pointer-events: none; }
+.missions-hero h1 { position: relative; z-index: 1; margin: 13px 0; font-size: clamp(38px, 6vw, 62px); font-weight: 900; letter-spacing: -2.4px; line-height: 1; }
+.missions-hero h1 em { color: #dafa8f; font-style: normal; }
+.missions-hero > p { position: relative; z-index: 1; max-width: 450px; margin: 0; color: #c5e2cb; font-size: 13px; line-height: 1.55; }
+.missions-page .mission-banner { position: relative; z-index: 1; max-width: 520px; margin-top: 27px; border: 1px solid #d9f3bc5b; border-radius: 17px; background: #ffffff1b; box-shadow: 0 10px 25px #02231930; backdrop-filter: blur(8px); }
+.missions-page .mission-banner > span { color: #e4ff9b; }
+.missions-page .mission-banner a { color: #153d29; background: #dafa8f; }
+.missions-page .mission-banner a:hover { transform: translateX(3px); }
+.missions-page .section-label, .profile-page .section-label { margin-top: 36px; color: #174d38; }
+.missions-page .mission-list { gap: 12px; }
+.missions-page .mission-list-card { position: relative; min-height: 88px; padding: 16px; overflow: hidden; border-color: #d1e4cf; border-radius: 18px; background: #fbfff7; box-shadow: 0 8px 19px #183e2b12; }
+.missions-page .mission-list-card::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: linear-gradient(#a6eeb1, #1a7f56); }
+.missions-page .mission-list-card:hover { transform: translateY(-3px); box-shadow: 0 13px 25px #183e2b22; }
+.missions-page .mission-list-icon { color: #0c5638; background: #d8f6af; }
+.missions-page .mission-list-card .eyebrow { color: #468564; }
+.missions-page .mission-list-card h2 { font-size: 14px; }
+.missions-page .mission-list-card .pill-amber { color: #76500e; background: #fff0c7; }
+.missions-page .empty-card { border-color: #accfb2; color: #5c8b6e; background: #f7fdf3; }
+
+.profile-intro { margin-top: 35px; }
+.profile-intro h1 { margin: 6px 0 8px; color: #0c3b2b; font-size: clamp(39px, 6vw, 58px); font-weight: 900; letter-spacing: -2.3px; line-height: 1; }
+.profile-intro h1 span { color: #80bd6e; }
+.profile-intro p { max-width: 480px; margin: 0; color: #587465; font-size: 13px; line-height: 1.5; }
+.profile-page .profile-hero { overflow: hidden; margin-top: 26px; padding: 24px; border: 1px solid #3b8f66; border-radius: 25px; color: #efffe7; background: radial-gradient(circle at 85% 0, #b6ee794d, transparent 35%), linear-gradient(120deg, #0a3429, #12553b); box-shadow: 0 17px 34px #0a3e2b32; }
+.profile-page .avatar { border: 1px solid #d4ffa55c; color: #dafa92; background: #ffffff1d; box-shadow: inset 0 1px #ffffff33; }
+.profile-page .profile-hero-main p { color: #c9f49e; }
+.profile-page .profile-hero-main h2 { color: #f7fff0; font-size: 24px; }
+.profile-page .profile-hero-main span { color: #bbddc0; }
+.profile-page .level-emblem { color: #20412b; background: linear-gradient(140deg, #f4ffb2, #b7ed87); box-shadow: 0 6px 18px #badf767a; }
+.profile-page .profile-progress > div:first-child { color: #bddbc2; }
+.profile-page .profile-progress strong { color: #ebffa9; }
+.profile-page .profile-progress .progress-track { background: #ffffff38; }
+.profile-page .profile-progress .progress-track span { background: linear-gradient(90deg, #77d9ab, #e5ff86); }
+.profile-page .stat-card { min-height: 125px; padding: 18px; border: 1px solid #d3e5d0; border-radius: 19px; background: #fbfff7; box-shadow: 0 8px 20px #153d2a12; }
+.profile-page .stat-card svg { color: #138451; }
+.profile-page .stat-card strong { color: #123f2a; font-size: 30px; }
+.profile-page .stat-card span { color: #627d69; font-size: 11px; }
+.profile-page .badge-card { min-height: 68px; padding: 14px; border: 1px solid #d3e5d0; border-radius: 17px; background: #fbfff7; box-shadow: 0 7px 17px #153d2a11; }
+.profile-page .badge-card > span { color: #204a2f; background: #dff5c7; }
+.profile-page .badge-card.locked { opacity: .7; }
+
+@media (min-width: 700px) { .collection-page .species-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 950px) { .collection-page .species-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .lexicon-grid { grid-template-columns: 1fr; } .lexicon-detail-hero { grid-template-columns: minmax(0, 1fr) 170px; } .lexicon-detail-visual { width: 135px; } }
+@media (max-width: 550px) {
+  .bottom-nav { height: 67px; }
+  .nav-item { font-size: 9px; }
+  .nav-item svg { width: 19px; height: 19px; }
+  .design2-page { padding-left: 15px; padding-right: 15px; }
+  .d2-top-pill { padding: 8px 9px; font-size: 9px; }
+  .collection-hero { grid-template-columns: 1fr; min-height: 435px; padding: 27px 23px; }
+  .collection-hero-copy { z-index: 3; }
+  .collection-hero h1, .lexicon-hero h1 { font-size: clamp(36px, 9vw, 47px); }
+  .collection-hero-copy > p { max-width: 230px; }
+  .collection-hero-actions { max-width: 290px; }
+  .collection-hero-cards { position: absolute; z-index: 1; right: -65px; bottom: -48px; width: 210px; height: 270px; min-width: 0; opacity: .86; }
+  .collection-hero-card { top: 12px; width: 150px; }
+  .collection-hero-progress { position: relative; z-index: 4; width: fit-content; margin-top: 34px; padding: 8px 11px; border-radius: 11px; background: #082d25c9; }
+  .collection-progress-track { width: 83px; }
+  .collection-page .species-copy h2 { font-size: 15px; }
+  .lexicon-hero { min-height: 302px; padding: 28px 24px; }
+  .lexicon-hero::after { right: -75px; top: 40px; font-size: 245px; }
+  .lexicon-hero > p { max-width: 290px; }
+  .lexicon-hero-footer { gap: 13px; }
+  .lexicon-detail-hero { grid-template-columns: 1fr; min-height: 370px; padding: 26px; }
+  .lexicon-detail-copy { padding-right: 45px; }
+  .lexicon-detail-copy h1 { font-size: clamp(35px, 10vw, 50px); }
+  .lexicon-detail-copy > p { max-width: 265px; font-size: 12px; }
+  .lexicon-detail-visual { position: absolute; right: 7px; bottom: -28px; width: 115px; opacity: .85; }
+  .lexicon-detail-visual small { right: -5px; bottom: 38px; font-size: 7px; }
+  .lexicon-facts { grid-template-columns: 1fr; }
+  .lexicon-facts article { display: grid; grid-template-columns: 46px 1fr; align-items: center; column-gap: 13px; min-height: 100px; padding: 13px; }
+  .lexicon-facts article > span { grid-row: 1 / 4; margin: 0; }
+  .lexicon-facts article h3 { margin: 3px 0; font-size: 16px; }
+  .lexicon-detail-lower { grid-template-columns: 1fr; }
+}
+@media (max-width: 385px) { .map-header .brand { font-size: 19px; } .map-header .brand-icon { width: 32px; height: 32px; } .map-header .demo-tag { display: none; } .map-count { padding-right: 8px; } .district-open-button { padding: 0 9px; } .nav-item { gap: 3px; font-size: 8px; } .collection-hero-cards { right: -40px; opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }

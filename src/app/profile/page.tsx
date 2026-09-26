@@ -15,9 +15,9 @@ export default function ProfilePage() {
   const { progress, ready } = usePlayer();
   const xp = ready ? progress.xp : 0;
   const level = levelProgress(xp);
-  return <main className="section-page">
-    <div className="page-top"><Brand /><span className="pill pill-green"><CircleUserRound size={14} /> PROFIL</span></div>
-    <p className="eyebrow page-eyebrow">DEIN ABENTEUER</p><h1 className="page-heading">Hallo, Explorer<span className="brand-dot">.</span></h1><p className="page-description">Jeder entdeckte Baum macht deine persönliche Karte ein Stück lebendiger.</p>
+  return <main className="section-page design2-page profile-page">
+    <div className="page-top"><Brand /><span className="d2-top-pill"><CircleUserRound size={15} /> PROFIL</span></div>
+    <div className="profile-intro"><span className="d2-kicker">DEIN ABENTEUER</span><h1>Hallo, Explorer<span>.</span></h1><p>Jeder entdeckte Baum macht deine persönliche Karte ein Stück lebendiger.</p></div>
     <section className="profile-hero surface-card"><div className="avatar"><Compass size={39} /></div><div className="profile-hero-main"><p>DEIN SPIELERPROFIL</p><h2>Explorer</h2><span>Level {level.level} · {xp} XP gesammelt</span></div><span className="level-emblem">LVL<br /><strong>{level.level}</strong></span><div className="profile-progress"><div><span>Fortschritt zu Level {level.level + 1}</span><strong>{level.current} / {level.required} XP</strong></div><div className="progress-track"><span style={{ width: `${level.percent}%` }} /></div></div></section>
     <div className="section-label"><span>DEINE STATISTIK</span></div>
     <div className="stats-grid"><div className="stat-card surface-card"><Trees size={20} /><strong>{progress.discoveredTrees.length}</strong><span>Bäume entdeckt</span></div><div className="stat-card surface-card"><Sparkles size={20} /><strong>{progress.discoveredSpecies.length}</strong><span>Arten gesammelt</span></div><div className="stat-card surface-card"><CheckCircle2 size={20} /><strong>{progress.completedMissions.length}</strong><span>Missionen</span></div><div className="stat-card surface-card"><Award size={20} /><strong>{xp}</strong><span>XP gesammelt</span></div></div>

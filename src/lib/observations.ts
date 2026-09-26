@@ -34,8 +34,8 @@ function csvCell(value: string | number | null) {
 }
 
 export function observationsToCsv(items: Observation[]) {
-  const columns = ['observation_id', 'tree_id', 'action', 'observed_at', 'latitude', 'longitude', 'accuracy_m', 'suggested_species', 'review_status', 'review_note', 'source'];
-  const rows = items.map((item) => [item.id, item.treeId, item.action, item.observedAt, item.lat, item.lng, item.accuracyMeters, item.suggestedSpecies, item.reviewStatus, item.reviewNote, item.source].map(csvCell).join(','));
+  const columns = ['observation_id', 'tree_id', 'action', 'observed_at', 'latitude', 'longitude', 'accuracy_m', 'suggested_species', 'review_status', 'reviewed_at', 'review_note', 'source', 'user_id'];
+  const rows = items.map((item) => [item.id, item.treeId, item.action, item.observedAt, item.lat, item.lng, item.accuracyMeters, item.suggestedSpecies, item.reviewStatus, item.reviewedAt ?? null, item.reviewNote, item.source, item.userId ?? null].map(csvCell).join(','));
   return '\uFEFF' + [columns.join(','), ...rows].join('\r\n');
 }
 
@@ -48,7 +48,7 @@ export function observationsToGeoJson(items: Observation[]) {
       type: 'Feature',
       id: item.id,
       geometry: { type: 'Point', coordinates: [item.lng, item.lat] },
-      properties: { observation_id: item.id, tree_id: item.treeId, action: item.action, observed_at: item.observedAt, accuracy_m: item.accuracyMeters, suggested_species: item.suggestedSpecies, review_status: item.reviewStatus, review_note: item.reviewNote, source: item.source },
+      properties: { observation_id: item.id, tree_id: item.treeId, action: item.action, observed_at: item.observedAt, accuracy_m: item.accuracyMeters, suggested_species: item.suggestedSpecies, review_status: item.reviewStatus, reviewed_at: item.reviewedAt ?? null, review_note: item.reviewNote, source: item.source, user_id: item.userId ?? null },
     })),
   }, null, 2);
 }

@@ -3,6 +3,7 @@ node_modules/
 .next/
 out/
 output/
+backups/
 *.tsbuildinfo
 *.log
 .env*

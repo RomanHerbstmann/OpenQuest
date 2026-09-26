@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import './design2.css';
 import 'leaflet/dist/leaflet.css';
 import { PlayerProvider } from '@/context/PlayerContext';
 import { AppNavigation } from '@/components/navigation/AppNavigation';

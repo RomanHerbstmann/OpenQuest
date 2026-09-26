@@ -5,12 +5,13 @@ import { levelForXp } from '@/lib/levels';
 import type { PlayerProgress } from '@/types/player';
 
 const STORAGE_KEY = 'openquest-player-v1';
-const initialProgress: PlayerProgress = { xp: 0, level: 1, discoveredTrees: [], discoveredSpecies: [], completedMissions: [] };
+const initialProgress: PlayerProgress = { xp: 0, level: 1, discoveredTrees: [], discoveredSpecies: [], scannedSpecies: [], completedMissions: [] };
 
 type PlayerContextValue = {
   progress: PlayerProgress;
   ready: boolean;
   recordDiscovery: (treeId: string, species: string, xp: number) => void;
+  addScannedCard: (species: string, xpReward?: number) => void;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -30,6 +31,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           level: levelForXp(xp),
           discoveredTrees: Array.isArray(value.discoveredTrees) ? value.discoveredTrees.filter((item): item is string => typeof item === 'string') : [],
           discoveredSpecies: Array.isArray(value.discoveredSpecies) ? value.discoveredSpecies.filter((item): item is string => typeof item === 'string') : [],
+          scannedSpecies: Array.isArray(value.scannedSpecies) ? value.scannedSpecies.filter((item): item is string => typeof item === 'string') : [],
           completedMissions: Array.isArray(value.completedMissions) ? value.completedMissions.filter((item): item is string => typeof item === 'string') : [],
         });
       }
@@ -48,6 +50,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       if (current.completedMissions.includes(treeId)) return current;
       const totalXp = current.xp + xp;
       return {
+        ...current,
         xp: totalXp,
         level: levelForXp(totalXp),
         discoveredTrees: [...current.discoveredTrees, treeId],
@@ -57,7 +60,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  return <PlayerContext.Provider value={{ progress, ready, recordDiscovery }}>{children}</PlayerContext.Provider>;
+  const addScannedCard = (species: string, xpReward = 0) => {
+    setProgress((current) => {
+      const collected = current.discoveredSpecies.includes(species);
+      const scanned = current.scannedSpecies.includes(species);
+      if (collected && scanned) return current;
+      const xp = current.xp + (collected ? 0 : Math.max(0, Number.isFinite(xpReward) ? xpReward : 0));
+      return {
+        ...current,
+        xp,
+        level: levelForXp(xp),
+        discoveredSpecies: collected ? current.discoveredSpecies : [...current.discoveredSpecies, species],
+        scannedSpecies: scanned ? current.scannedSpecies : [...current.scannedSpecies, species],
+      };
+    });
+  };
+
+  return <PlayerContext.Provider value={{ progress, ready, recordDiscovery, addScannedCard }}>{children}</PlayerContext.Provider>;
 }
 
 export function usePlayer() {

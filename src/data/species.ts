@@ -9,4 +9,7 @@ export const species = [
   { name: 'Birke', latin: 'Betula pendula', emoji: '🌱', note: 'Helle Rinde' },
   { name: 'Eberesche', latin: 'Sorbus aucuparia', emoji: '🍒', note: 'Rote Beeren' },
   { name: 'Ginkgo', latin: 'Ginkgo biloba', emoji: '🍂', note: 'Fächerförmige Blätter' },
+  { name: 'Kiefer', latin: 'Pinus sp.', emoji: '🌲', note: 'Nadeln · bisher nur per Scan' },
+  { name: 'Zierkirsche', latin: 'Prunus sp.', emoji: '🌸', note: 'Blüten · bisher nur per Scan' },
+  { name: 'Festtanne', latin: 'Art nicht bestimmt', emoji: '🎄', note: 'Legendäre Bühnenkarte · MS Hack 2026' },
 ] as const;

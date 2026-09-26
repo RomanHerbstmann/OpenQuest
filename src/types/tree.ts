@@ -14,4 +14,6 @@ export type Tree = {
   xpReward: number;
   lastChecked?: string;
   area: string;
+  inventory?: { genus: string; streetKey: string };
+  presentation?: boolean;
 };

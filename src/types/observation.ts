@@ -13,4 +13,6 @@ export type Observation = {
   reviewStatus: ReviewStatus;
   reviewNote: string;
   source: 'demo' | 'local';
+  userId?: string;
+  reviewedAt?: string;
 };

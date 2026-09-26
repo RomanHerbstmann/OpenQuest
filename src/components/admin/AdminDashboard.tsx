@@ -77,7 +77,8 @@ export function AdminDashboard() {
 
   const updateSelected = (changes: Partial<Observation>) => {
     if (!selected) return;
-    setObservations((current) => current.map((item) => item.id === selected.id ? { ...item, ...changes } : item));
+    const reviewedAt = changes.reviewStatus ? (changes.reviewStatus === 'verified' ? new Date().toISOString() : undefined) : selected.reviewedAt;
+    setObservations((current) => current.map((item) => item.id === selected.id ? { ...item, ...changes, reviewedAt } : item));
   };
 
   const counts = {
