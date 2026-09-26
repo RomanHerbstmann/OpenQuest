@@ -1,8 +1,8 @@
 <section class="slide s02" data-seconds="25">
   <p class="eyebrow rise"><span lang="de">Das Problem</span><span lang="en">The problem</span></p>
   <h2 class="display display-sm rise" style="--d: 1">
-    <span lang="de">Münsters Baumdaten sind lückenhaft.</span>
-    <span lang="en">Münster's tree data has gaps.</span>
+    <span lang="de">Die Baumdaten haben Lücken.</span>
+    <span lang="en">The tree data has gaps.</span>
   </h2>
 
   <div class="s02-stats">
@@ -13,32 +13,27 @@
     <div class="card stat s02-stat rise" style="--d: 3">
       <div class="stat-value"><span lang="de">3.582</span><span lang="en">3,582</span></div>
       <div class="stat-label">
-        <span lang="de">ohne Gattung, nur Platzhalter wie „Baum Amt62“ (8&nbsp;%)</span>
-        <span lang="en">with no genus, just placeholders like “Baum Amt62” (8&nbsp;%)</span>
+        <span lang="de">ohne Gattung</span>
+        <span lang="en">without genus</span>
       </div>
     </div>
     <div class="card stat s02-stat s02-gap rise" style="--d: 4">
       <div class="stat-value">≈&nbsp;50&nbsp;%</div>
       <div class="stat-label">
-        <span lang="de">der rund 100.000 Stadtbäume fehlen</span>
-        <span lang="en">of about 100,000 city trees are missing</span>
+        <span lang="de">der Bäume fehlen</span>
+        <span lang="en">of trees missing</span>
       </div>
     </div>
     <div class="card stat s02-stat rise" style="--d: 5">
       <div class="stat-value">2017<span class="s02-slash">/2020</span></div>
       <div class="stat-label">
-        <span lang="de">Datenstand, keine Höhe, kein Zustand</span>
-        <span lang="en">last update, no height, no condition</span>
+        <span lang="de">Datenstand</span>
+        <span lang="en">last update</span>
       </div>
     </div>
   </div>
 
-  <p class="lead s02-question rise" style="--d: 6">
-    <span lang="de">Wer kümmert sich um Bäume, die keiner erfasst hat?</span>
-    <span lang="en">Who looks after trees nobody has recorded?</span>
-  </p>
-
-  <p class="s02-source small muted rise" style="--d: 7">
+  <p class="s02-source small muted rise" style="--d: 6">
     <span lang="de">Quelle: Stadt Münster, Digitales Baumkataster (WFS), dl-de/by-2.0</span>
     <span lang="en">Source: City of Münster, digital tree register (WFS), dl-de/by-2.0</span>
   </p>
@@ -50,7 +45,6 @@
   .s02 .s02-slash { font-size: .5em; color: var(--ink-3); letter-spacing: 0; }
   .s02 .stat-label { margin-top: clamp(8px, 1.4vh, 16px); line-height: 1.35; }
   .s02 .s02-gap .stat-value { color: var(--tree); }
-  .s02 .s02-question { font-style: italic; }
   .s02 .s02-source { position: absolute; left: 0; right: 0; bottom: clamp(12px, 2vh, 22px); margin: 0; text-align: center; }
   @media (max-width: 900px) {
     .s02 .s02-stats { grid-template-columns: 1fr 1fr; }

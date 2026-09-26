@@ -4,7 +4,7 @@
   const SLIDES = [
     '01-title', '02-problem', '03-sources', '04-analysis', '05-jev',
     '06-karte', '07-game', '08-mechanics', '09-video', '10-architecture',
-    '11-impact', '12-team', '13-outro',
+    '11-team', '12-outro',
   ];
   const deck = document.getElementById('deck');
   const $ = (id) => document.getElementById(id);
