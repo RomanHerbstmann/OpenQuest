@@ -15,6 +15,7 @@ import io
 import json
 
 from openquest_importer.adapters.base import AdapterError
+from openquest_importer.adapters.boundary import parse_named_areas
 from openquest_importer.geo import AreaIndex
 
 STREETS_URL = "https://www.stadt-muenster.de/ows/mapserv706/odstrasseserv"
@@ -50,31 +51,8 @@ def parse_street_names(content: bytes) -> dict[str, str]:
 
 
 def parse_districts(content: bytes) -> AreaIndex:
-    return _parse_areas(content, DISTRICT_NAME_FIELD, "District")
+    return parse_named_areas(content, DISTRICT_NAME_FIELD, "District")
 
 
 def parse_quarters(content: bytes) -> AreaIndex:
-    return _parse_areas(content, QUARTER_NAME_FIELD, "Quarter")
-
-
-def _parse_areas(content: bytes, name_field: str, label: str) -> AreaIndex:
-    try:
-        collection = json.loads(content)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise AdapterError(f"{label} file is not valid GeoJSON: {exc}") from exc
-    crs = (collection.get("crs") or {}).get("properties", {}).get("name", "")
-    if crs and "CRS84" not in crs and not crs.endswith("4326"):
-        raise AdapterError(f"{label} file: expected WGS84 lon/lat coordinates, got CRS {crs}")
-
-    areas = []
-    for index, feature in enumerate(collection.get("features") or []):
-        name = (feature.get("properties") or {}).get(name_field)
-        if not name:
-            raise AdapterError(f"{label} feature {index} has no {name_field}")
-        areas.append((str(name).strip(), feature.get("geometry") or {}))
-    if not areas:
-        raise AdapterError(f"{label} file contains no areas")
-    try:
-        return AreaIndex(areas)
-    except ValueError as exc:
-        raise AdapterError(f"{label} file: {exc}") from exc
+    return parse_named_areas(content, QUARTER_NAME_FIELD, "Quarter")

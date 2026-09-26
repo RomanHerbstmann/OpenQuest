@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from openquest_importer.adapters import available_adapters, create_adapter
+from openquest_importer.adapters.base import DataSourceAdapter, ReportAdapter
 from openquest_importer.config import ConfigError, load_config
 from openquest_importer.db import SchemaNotReadyError, connect, wait_for_schema
 from openquest_importer.enrichers import available_enrichers, create_enricher
@@ -35,7 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     sync = commands.add_parser("sync", help="import data sources")
     sync.add_argument("sources", nargs="*", metavar="SOURCE", help="source keys from the config")
-    sync.add_argument("--all", action="store_true", help="sync all configured sources")
+    sync.add_argument("--all", action="store_true", help="sync all enabled sources")
     sync.add_argument("--force", action="store_true",
                       help="apply the sync even if it removes more assets than max_removal_ratio")
     sync.add_argument("--accept-schema-change", action="store_true",
@@ -54,7 +55,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "adapters":
         for key, cls in sorted(available_adapters().items()):
-            print(f"adapter   {key}\t{cls.__module__}.{cls.__qualname__}\tasset type: {cls.asset_type}")
+            if issubclass(cls, DataSourceAdapter):
+                produces = f"assets of type {cls.asset_type}"
+            elif issubclass(cls, ReportAdapter):
+                produces = "reports"
+            else:
+                produces = "readings"
+            print(f"adapter   {key}\t{cls.__module__}.{cls.__qualname__}\t{produces}")
         for key, cls in sorted(available_enrichers().items()):
             print(f"enricher  {key}\t{cls.__module__}.{cls.__qualname__}\tsets: {', '.join(sorted(cls.attributes))}")
         return 0
@@ -85,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
 
     with connect(config.database_url) as conn:
 
-        keys = list(config.sources) if args.all else args.sources
+        keys = [k for k, s in config.sources.items() if s.enabled] if args.all else args.sources
         if not keys:
             log.error("Name at least one source or use --all (configured: %s)", ", ".join(config.sources) or "none")
             return 2
@@ -98,6 +105,8 @@ def main(argv: list[str] | None = None) -> int:
         failed = 0
         for key in keys:
             source = config.sources[key]
+            if not source.enabled:
+                log.warning("%s is disabled in the config; syncing it because it was named explicitly", key)
             try:
                 enrichers = [(e.name, create_enricher(e.name, e.options, config.cache_dir)) for e in source.enrichers]
                 report = run_sync(conn, source, create_adapter(source.adapter, source.options), store,

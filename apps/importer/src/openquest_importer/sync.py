@@ -3,9 +3,10 @@
 The tables belong to the API (EF Core migrations) and have no database
 defaults, so every insert sets ids, timestamps and counters explicitly.
 
-Every sync is recorded in ``sync_run``, also when it fails. Changes to assets
-are written in a single transaction, so a failed sync leaves the assets as
-they were.
+Every sync is recorded in ``sync_run``, also when it fails. Changes are
+written in a single transaction, so a failed sync leaves the data as it was.
+Assets are handled here; reports and readings in ``feeds.py``. For those,
+``sync_run.assets_created/updated`` count reports or readings.
 """
 
 from __future__ import annotations
@@ -21,7 +22,17 @@ import psycopg
 from psycopg.types.json import Jsonb
 from jsonschema import Draft202012Validator
 
-from openquest_importer.adapters.base import DataSourceAdapter, NormalizedAsset, Snapshot
+from openquest_importer.adapters.base import (
+    BaseAdapter,
+    DataSourceAdapter,
+    NormalizedAsset,
+    ParsedReadings,
+    ParsedReports,
+    ParsedSnapshot,
+    ReadingAdapter,
+    ReportAdapter,
+    Snapshot,
+)
 from openquest_importer.config import SourceConfig
 from openquest_importer.enrichers.base import Enricher
 from openquest_importer.matching import ExistingAsset, MatchResult, match
@@ -64,7 +75,7 @@ def schema_hash(fields: frozenset[str]) -> str:
 def run_sync(
     conn: psycopg.Connection,
     source: SourceConfig,
-    adapter: DataSourceAdapter,
+    adapter: BaseAdapter,
     store: SnapshotStore,
     *,
     enrichers: Sequence[tuple[str, Enricher]] = (),
@@ -73,18 +84,36 @@ def run_sync(
 ) -> SyncReport:
     """Sync one data source.
 
-    ``enrichers`` are ``(name, enricher)`` pairs run after parsing, in order.
-    ``force`` skips the removal guard. ``accept_schema_change`` imports even if the
-    source's fields differ from what the adapter expects (the run still records the
-    new ``schema_hash``); the adapter's ``expected_fields`` should then be updated.
+    ``enrichers`` are ``(name, enricher)`` pairs run after parsing, in order
+    (assets only). ``force`` skips the removal guard. ``accept_schema_change``
+    imports even if the source's fields differ from what the adapter expects (the
+    run still records the new ``schema_hash``); the adapter's ``expected_fields``
+    should then be updated.
     """
+    from openquest_importer import feeds  # feeds imports this module
+
+    if isinstance(adapter, DataSourceAdapter):
+        asset_type_id, attribute_schema = _asset_type(conn, adapter.asset_type)
+
+        def body(run_id: UUID, source_id: UUID) -> SyncReport:
+            return _run(conn, source, adapter, store, run_id, source_id,
+                        asset_type_id, attribute_schema, enrichers, force, accept_schema_change)
+    elif isinstance(adapter, ReportAdapter):
+        link_types = [_asset_type(conn, key)[0] for key in adapter.link_asset_types]
+
+        def body(run_id: UUID, source_id: UUID) -> SyncReport:
+            snapshot, parsed = fetch_and_check(conn, source, adapter, store, run_id, accept_schema_change)
+            return feeds.apply_reports(conn, source, adapter, run_id, source_id, parsed, link_types)
+    elif isinstance(adapter, ReadingAdapter):
+        def body(run_id: UUID, source_id: UUID) -> SyncReport:
+            snapshot, parsed = fetch_and_check(conn, source, adapter, store, run_id, accept_schema_change)
+            return feeds.apply_readings(conn, source, run_id, source_id, parsed)
+    else:
+        raise SyncError(f"Unsupported adapter type {type(adapter).__name__}")
+    if enrichers and not isinstance(adapter, DataSourceAdapter):
+        raise SyncError(f"Enrichers only work on assets, not on {type(adapter).__name__}")
+
     source_id = _upsert_data_source(conn, source)
-    type_row = conn.execute(
-        "SELECT id, attribute_schema FROM asset_type WHERE key = %s", (adapter.asset_type,)
-    ).fetchone()
-    if type_row is None:
-        raise SyncError(f"Asset type '{adapter.asset_type}' does not exist; the API seeds asset types on start")
-    asset_type_id, attribute_schema = type_row
     conn.commit()
 
     locked = conn.execute("SELECT pg_try_advisory_lock(hashtext(%s))", (f"sync:{source.key}",)).fetchone()[0]
@@ -102,8 +131,7 @@ def run_sync(
         conn.commit()
         log.info("Sync %s of %s started", run_id, source.key)
         try:
-            report = _run(conn, source, adapter, store, run_id, source_id,
-                          asset_type_id, attribute_schema, enrichers, force, accept_schema_change)
+            report = body(run_id, source_id)
         except Exception as exc:
             conn.rollback()
             conn.execute(
@@ -119,8 +147,25 @@ def run_sync(
         conn.commit()
 
 
-def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
-         attribute_schema, enrichers, force, accept_schema_change) -> SyncReport:
+def _asset_type(conn: psycopg.Connection, key: str) -> tuple[UUID, dict[str, Any]]:
+    row = conn.execute("SELECT id, attribute_schema FROM asset_type WHERE key = %s", (key,)).fetchone()
+    conn.commit()
+    if row is None:
+        raise SyncError(f"Asset type '{key}' does not exist; the API seeds asset types on start")
+    return row[0], row[1]
+
+
+def _record_count(parsed: ParsedSnapshot | ParsedReports | ParsedReadings) -> int:
+    if isinstance(parsed, ParsedReports):
+        return len(parsed.reports)
+    if isinstance(parsed, ParsedReadings):
+        return len(parsed.readings)
+    return len(parsed.assets)
+
+
+def fetch_and_check(conn: psycopg.Connection, source: SourceConfig, adapter: BaseAdapter,
+                    store: SnapshotStore, run_id: UUID, accept_schema_change: bool = False):
+    """Download, store the snapshot, parse and check the source's fields."""
     snapshot = adapter.fetch()
     key = store.save(source.key, snapshot)
     conn.execute("UPDATE sync_run SET snapshot_key = %s WHERE id = %s", (key, run_id))
@@ -129,7 +174,7 @@ def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
     parsed = adapter.parse(snapshot)
     conn.execute(
         "UPDATE sync_run SET schema_hash = %s, record_count = %s WHERE id = %s",
-        (schema_hash(parsed.fields), len(parsed.assets), run_id),
+        (schema_hash(parsed.fields), _record_count(parsed), run_id),
     )
     conn.commit()
 
@@ -142,6 +187,12 @@ def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
                 message + " Check the source and update the adapter, or run with --accept-schema-change."
             )
         log.warning("%s Continuing because the schema change was accepted; update the adapter's expected fields.", message)
+    return snapshot, parsed
+
+
+def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
+         attribute_schema, enrichers, force, accept_schema_change) -> SyncReport:
+    snapshot, parsed = fetch_and_check(conn, source, adapter, store, run_id, accept_schema_change)
 
     if enrichers:
         # Store what every enricher used next to the download, so the sync
@@ -150,7 +201,11 @@ def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
         for name, enricher in enrichers:
             result = enricher.enrich(parsed.assets)
             if result is not None:
-                extras[f"enrichment:{name}"] = result
+                key = f"enrichment:{name}"
+                n = 2
+                while key in extras:  # the same enricher configured twice, e.g. district and quarter
+                    key, n = f"enrichment:{name}:{n}", n + 1
+                extras[key] = result
         key = store.save(source.key, Snapshot(content=snapshot.content, extension=snapshot.extension, extras=extras))
         conn.execute("UPDATE sync_run SET snapshot_key = %s WHERE id = %s", (key, run_id))
         conn.commit()

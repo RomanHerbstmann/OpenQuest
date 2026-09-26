@@ -21,6 +21,13 @@ public class DataSource
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
+/// <summary>Normalized status of an <see cref="AssetReport"/>.</summary>
+public static class ReportStatus
+{
+    public const string Open = "open";
+    public const string Closed = "closed";
+}
+
 public static class RunStatus
 {
     public const string Running = "running";
@@ -63,6 +70,63 @@ public class AssetSnapshot
     /// <summary>Source record in this version (JSON).</summary>
     public string Raw { get; set; } = "{}";
     public string SourceHash { get; set; } = "";
+}
+
+/// <summary>
+/// A report about the real world from an external feed (e.g. a citizen reporting a broken branch in the city's
+/// issue tracker). Written by the importer, linked to the nearest asset; admins derive quests from open reports.
+/// </summary>
+public class AssetReport
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid DataSourceId { get; set; }
+    public DataSource DataSource { get; set; } = null!;
+    /// <summary>Id of the report in the source, unique per data source.</summary>
+    public string ExternalId { get; set; } = "";
+    /// <summary>Normalized category, e.g. <c>tree_damage</c>, <c>oak_processionary_moth</c>.</summary>
+    public string Category { get; set; } = "";
+    /// <summary>Normalized status: <c>open</c> or <c>closed</c>.</summary>
+    public string Status { get; set; } = "";
+    /// <summary>Text of the reporter; e-mail addresses and phone numbers are removed by the importer.</summary>
+    public string? Description { get; set; }
+    /// <summary>Answer of the city, if any.</summary>
+    public string? StatusNotes { get; set; }
+    public string? Address { get; set; }
+    public string? MediaUrl { get; set; }
+    /// <summary>Reported position (WGS84); set by the reporter, so only roughly accurate.</summary>
+    public Point Geom { get; set; } = null!;
+    /// <summary>Nearest active asset within the link radius at import time, if any.</summary>
+    public Guid? AssetId { get; set; }
+    public double? DistanceM { get; set; }
+    public DateTimeOffset ReportedAt { get; set; }
+    public DateTimeOffset? SourceUpdatedAt { get; set; }
+    public string Raw { get; set; } = "{}";
+    public string SourceHash { get; set; } = "";
+    public DateTimeOffset FirstSeenAt { get; set; }
+    public DateTimeOffset LastSeenAt { get; set; }
+}
+
+/// <summary>
+/// A measured or modelled value of the environment at a station and time, e.g. daily soil moisture from the
+/// German weather service. Written by the importer; used to trigger quests such as "water this tree".
+/// </summary>
+public class EnvironmentReading
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid DataSourceId { get; set; }
+    public DataSource DataSource { get; set; } = null!;
+    /// <summary>Station or grid cell id in the source.</summary>
+    public string StationId { get; set; } = "";
+    /// <summary>What was measured, e.g. <c>soil_moisture_grass_sand_0_60cm</c>.</summary>
+    public string Metric { get; set; } = "";
+    public double Value { get; set; }
+    /// <summary>Unit, e.g. <c>%nFK</c>, <c>mm</c>, <c>°C</c>.</summary>
+    public string Unit { get; set; } = "";
+    /// <summary>Start of the period the value stands for (a day for daily values), UTC.</summary>
+    public DateTimeOffset MeasuredAt { get; set; }
+    /// <summary>Station position (WGS84), if known.</summary>
+    public Point? Geom { get; set; }
+    public DateTimeOffset ImportedAt { get; set; }
 }
 
 public class AssetTypeEntity

@@ -24,7 +24,7 @@ public sealed class QuestCampaignService(
 
     public async Task<ServiceResult<CreateQuestsResult>> CreateAsync(Guid adminId, CreateQuestsRequest req, CancellationToken ct)
     {
-        var target = req.Target ?? new QuestTarget(null, null, null, null, null, null);
+        var target = req.Target ?? new QuestTarget(null, null, null, null, null, null, null);
         var errors = Validate(req, target, out var taskTypeEnum, out var assetTypeDef);
         if (errors.Count > 0) return Invalid(errors);
 
@@ -81,8 +81,9 @@ public sealed class QuestCampaignService(
         if (req.ClaimTtlMinutes is < 1 or > 1440) errors["claimTtlMinutes"] = ["Must be between 1 and 1440."];
         if (req.EndsAt is { } end && req.StartsAt is { } start && end <= start) errors["endsAt"] = ["Must be after startsAt."];
         if (req.Status is not (null or QuestStatus.Active or QuestStatus.Draft)) errors["status"] = ["Only draft or active when creating."];
-        if (t.AssetIds is not { Count: > 0 } && t.BBox is null && t.AttributeFilter is null && t.WithoutApprovedPhoto != true)
-            errors["target"] = ["Select assets with assetIds, bbox, attributeFilter or withoutApprovedPhoto."];
+        if (t.AssetIds is not { Count: > 0 } && t.BBox is null && t.AttributeFilter is null && t.WithoutApprovedPhoto != true
+            && string.IsNullOrWhiteSpace(t.WithOpenReport))
+            errors["target"] = ["Select assets with assetIds, bbox, attributeFilter, withoutApprovedPhoto or withOpenReport."];
         if (t.BBox is { } b && (b.MinLon >= b.MaxLon || b.MinLat >= b.MaxLat)) errors["target.bbox"] = ["Invalid bounding box."];
         return errors;
     }
@@ -108,6 +109,13 @@ public sealed class QuestCampaignService(
         if (t.WithoutApprovedPhoto == true)
             query = query.Where(a => !db.AttributeChanges.Any(c => c.AssetId == a.Id && c.AttributeKey == "photo_url"
                                                                    && (c.Status == ChangeStatus.Accepted || c.Status == ChangeStatus.Exported)));
+
+        if (!string.IsNullOrWhiteSpace(t.WithOpenReport))
+        {
+            var category = t.WithOpenReport.Trim();
+            query = query.Where(a => db.AssetReports.Any(r => r.AssetId == a.Id && r.Status == ReportStatus.Open
+                                                             && (category == "any" || r.Category == category)));
+        }
 
         // Don't create the same quest twice for an asset.
         var openStatuses = new[] { QuestStatus.Draft, QuestStatus.Active, QuestStatus.Paused, QuestStatus.Full };

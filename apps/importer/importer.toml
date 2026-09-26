@@ -44,3 +44,127 @@ name = "de_nrw.ndom_height"
 [sources.enrichers.options]
 radius_m = 2.5
 max_age_days = 365
+
+# Protected avenues (Alleenkataster NRW, LANUK, dl-de/zero-2.0): avenue_id / avenue_name.
+[[sources.enrichers]]
+name = "de_nrw.alleen"
+
+[sources.enrichers.options]
+distance_m = 10
+
+# ---------------------------------------------------------------------------
+# Trees along federal and state roads in Münster (Straßen.NRW, dl-de/zero-2.0).
+# Complements the city's inventory, which only covers trees owned by the city.
+[[sources]]
+key = "de-nrw-strassen-trees-muenster"
+adapter = "de_nrw.strassen_trees"
+name = "Straßen.NRW Fachschale Baum (Münster)"
+city = "Münster"
+source_url = "https://opendata.strassen.nrw.de/FS_Baum/"
+license = "dl-de/zero-2.0"
+attribution = "Baumdaten an Bundes- und Landesstraßen: Straßen.NRW, Fachschale Baum, dl-de/zero-2-0 (https://www.govdata.de/dl-de/zero-2-0)."
+
+[sources.options]
+url = "https://opendata.strassen.nrw.de/FS_Baum/OpenData2025BaumDaten.csv"
+# Keep only trees inside Münster (the Stadtbezirke together cover the city).
+boundary_url = "https://opendata.stadt-muenster.de/sites/default/files/stadtbezirke-muenster.geojson"
+
+[sources.sync]
+match_radius_m = 1.0
+max_removal_ratio = 0.2
+
+[[sources.enrichers]]
+name = "geo.area_name"
+
+[sources.enrichers.options]
+url = "https://opendata.stadt-muenster.de/sites/default/files/stadtbezirke-muenster.geojson"
+name_field = "NAME_STADT"
+attribute = "district"
+
+[[sources.enrichers]]
+name = "geo.area_name"
+
+[sources.enrichers.options]
+url = "https://opendata.stadt-muenster.de/sites/default/files/stadtteile-statistische-bezirke-muenster.geojson"
+name_field = "NAME_STATI"
+attribute = "quarter"
+
+[[sources.enrichers]]
+name = "de_nrw.ndom_height"
+
+[sources.enrichers.options]
+radius_m = 2.5
+max_age_days = 365
+
+[[sources.enrichers]]
+name = "de_nrw.alleen"
+
+[sources.enrichers.options]
+distance_m = 10
+
+# ---------------------------------------------------------------------------
+# Natural monuments (Naturdenkmale) of Münster, harvested from the city's WMS.
+# DISABLED: the licence of this register is not stated. Ask the Amt für
+# Grünflächen before enabling it; `sync de-muenster-natural-monuments` still
+# works for testing.
+[[sources]]
+key = "de-muenster-natural-monuments"
+adapter = "de_muenster.natural_monuments"
+name = "Naturdenkmale Münster"
+city = "Münster"
+source_url = "https://www.stadt-muenster.de/gruen/naturschutz/schutzgebiete-und-naturdenkmale"
+license = "unknown"
+attribution = "Naturdenkmale: Stadt Münster (Lizenz ungeklärt, nicht veröffentlichen)."
+enabled = false
+
+[sources.options]
+boundary_url = "https://opendata.stadt-muenster.de/sites/default/files/stadtbezirke-muenster.geojson"
+grid_m = 500
+concurrency = 4
+
+[sources.sync]
+max_removal_ratio = 0.2
+
+[[sources.enrichers]]
+name = "de_nrw.alleen"
+
+[sources.enrichers.options]
+distance_m = 10
+
+# ---------------------------------------------------------------------------
+# Citizen reports about trees from the Münster "Mängelmelder" (Open311 on
+# Beteiligung NRW, dl-de/by-2.0). Admins derive quests from open reports
+# (target.withOpenReport). The endpoint returns the last 90 days.
+[[sources]]
+key = "de-muenster-maengelmelder-trees"
+adapter = "open311.reports"
+name = "Mängelmelder Münster (Bäume)"
+city = "Münster"
+source_url = "https://opendata.stadt-muenster.de/"
+license = "dl-de/by-2.0"
+attribution = "Meldungen: Stadt Münster, Mängelmelder, dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0)."
+
+[sources.options]
+base_url = "https://beteiligung.nrw.de/api/rest/public/open311/v2/beteiligung/1003255"
+days = 90
+link_radius_m = 25
+
+[sources.options.services]
+"1001742" = "tree_damage"             # "Baum": Astbruch, Sturmschaden, ...
+"1001746" = "oak_processionary_moth"  # "Eichenprozessionsspinner"
+
+# ---------------------------------------------------------------------------
+# Daily soil moisture and evaporation, DWD station 1766 Münster/Osnabrück
+# (AMBAV model, GeoNutzV: "Quelle: Deutscher Wetterdienst"). Trigger for
+# "water this tree" quests.
+[[sources]]
+key = "dwd-soil-1766"
+adapter = "dwd.soil_daily"
+name = "DWD Bodenfeuchte Münster/Osnabrück (1766)"
+city = "Münster"
+source_url = "https://opendata.dwd.de/climate_environment/CDC/derived_germany/soil/daily/recent/"
+license = "GeoNutzV"
+attribution = "Bodenfeuchte: Quelle: Deutscher Wetterdienst."
+
+[sources.options]
+station_id = "1766"

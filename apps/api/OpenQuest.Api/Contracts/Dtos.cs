@@ -27,6 +27,8 @@ public record QuestTarget(
     /// <summary>JSONB containment against asset attributes, e.g. {"genus":null} or {"quality_flags":["placeholder_genus"]}.</summary>
     JsonObject? AttributeFilter,
     bool? WithoutApprovedPhoto,
+    /// <summary>Only assets with an open report from an external feed: a report category (e.g. "tree_damage") or "any".</summary>
+    string? WithOpenReport,
     int? Limit);
 
 public record CreateQuestsRequest(

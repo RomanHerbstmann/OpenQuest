@@ -55,5 +55,16 @@ public static class SyncEndpoints
             await history.ListAsync(id, ct) is { } versions ? Results.Ok(versions) : Results.NotFound())
             .WithName("AssetHistory")
             .WithSummary("Versions of an asset over time: created, changed (with position and source record) or removed at the source.");
+
+        admin.MapGet("/reports", async (string? status, string? category, int? limit, IImportedFeeds feeds, CancellationToken ct) =>
+            Results.Ok(await feeds.ReportsAsync(status, category, Math.Clamp(limit ?? 100, 1, 1000), ct)))
+            .WithName("ListReports")
+            .WithSummary("Reports from external feeds (e.g. the city's issue tracker), newest first, with the linked asset.")
+            .WithDescription("Filter with status=open|closed and category (e.g. tree_damage). Create quests for the linked assets with target.withOpenReport.");
+
+        admin.MapGet("/readings", async (string? metric, int? days, IImportedFeeds feeds, CancellationToken ct) =>
+            Results.Ok(await feeds.ReadingsAsync(metric, Math.Clamp(days ?? 14, 1, 366), ct)))
+            .WithName("ListReadings")
+            .WithSummary("Environment readings (e.g. daily soil moisture) of the last days, newest first.");
     }
 }

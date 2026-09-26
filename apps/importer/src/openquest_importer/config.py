@@ -40,6 +40,8 @@ class SourceConfig:
     options: dict[str, Any] = field(default_factory=dict)
     sync: SyncOptions = field(default_factory=SyncOptions)
     enrichers: tuple[EnricherConfig, ...] = ()
+    #: Disabled sources are skipped by ``sync --all`` but can still be synced by name.
+    enabled: bool = True
 
 
 @dataclass(frozen=True)
@@ -80,6 +82,7 @@ def load_config(path: Path) -> Config:
                     EnricherConfig(name=e["name"], options=dict(e.get("options", {})))
                     for e in entry.get("enrichers", [])
                 ),
+                enabled=bool(entry.get("enabled", True)),
             )
         except KeyError as exc:
             raise ConfigError(f"Source is missing required field {exc}") from exc

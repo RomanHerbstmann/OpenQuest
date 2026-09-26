@@ -45,24 +45,32 @@ CSHARP_ASSET_TYPES = REPO / "packages" / "core" / "OpenQuest.Core" / "Domain" / 
 EF_MIGRATIONS = REPO / "apps" / "api" / "OpenQuest.Api" / "Data" / "Migrations"
 
 
-def csharp_tree_schema() -> dict:
-    """The tree attribute schema as defined in C# (the API seeds it from there)."""
+def csharp_asset_types() -> dict[str, tuple[str, str, dict]]:
+    """All asset types defined in C# as ``key → (name, icon, attribute schema)``; the API seeds them from there."""
     import re
 
     source = CSHARP_ASSET_TYPES.read_text(encoding="utf-8")
-    match = re.search(r'new\(\s*"tree",\s*"[^"]*",\s*"[^"]*",\s*"""(.*?)"""', source, re.S)
-    if not match:
-        raise AssertionError(f"Tree schema not found in {CSHARP_ASSET_TYPES}")
-    return json.loads(match.group(1))
+    types = {
+        m.group(1): (m.group(2), m.group(3), json.loads(m.group(4)))
+        for m in re.finditer(r'new\(\s*"([a-z_]+)",\s*"([^"]*)",\s*"([^"]*)",\s*"""(.*?)"""', source, re.S)
+    }
+    if "tree" not in types:
+        raise AssertionError(f"No asset types found in {CSHARP_ASSET_TYPES}")
+    return types
+
+
+def csharp_tree_schema() -> dict:
+    """The tree attribute schema as defined in C#."""
+    return csharp_asset_types()["tree"][2]
 
 
 @pytest.fixture
 def db_url():
-    """A fresh database with the API's schema (EF migrations) and the tree asset type.
+    """A fresh database with the API's schema (EF migrations) and the asset types.
 
     Skips without a test server. The schema comes from tests/fixtures/ef_schema.sql
-    (regenerate with scripts/update-ef-schema.sh), the tree schema from AssetType.cs,
-    just like the API seeds it on start.
+    (regenerate with scripts/update-ef-schema.sh), the asset types from AssetType.cs,
+    just like the API seeds them on start.
     """
     server_url = os.environ.get("OPENQUEST_TEST_DATABASE_URL")
     if not server_url:
@@ -79,11 +87,12 @@ def db_url():
     try:
         with psycopg.connect(url, autocommit=True) as conn:
             conn.execute(EF_SCHEMA.read_text(encoding="utf-8-sig"))
-            conn.execute(
-                "INSERT INTO asset_type (id, key, name, icon, attribute_schema)"
-                " VALUES (gen_random_uuid(), 'tree', 'asset_type.tree', 'tree', %s)",
-                (Jsonb(csharp_tree_schema()),),
-            )
+            for key, (type_name, icon, schema) in csharp_asset_types().items():
+                conn.execute(
+                    "INSERT INTO asset_type (id, key, name, icon, attribute_schema)"
+                    " VALUES (gen_random_uuid(), %s, %s, %s, %s)",
+                    (key, type_name, icon, Jsonb(schema)),
+                )
         yield url
     finally:
         with psycopg.connect(server_url, autocommit=True) as admin:

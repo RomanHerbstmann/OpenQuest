@@ -4,7 +4,7 @@ Status: **draft** — first version for discussion. Target database: PostgreSQL 
 
 The model has four areas:
 
-1. **Open data** — generic assets (trees today, anything with a location tomorrow) and where they come from.
+1. **Open data** — generic assets (trees and natural monuments today, anything with a location tomorrow), where they come from, reports about them from external feeds and environment readings.
 2. **Users** — accounts, roles, credentials.
 3. **Quests** — quests, claims, submissions, photos, review.
 4. **Write-back & gamification** — attribute changes derived from approved submissions, exports to the city, points and badges.
@@ -16,6 +16,9 @@ erDiagram
     DATA_SOURCE ||--o{ SYNC_RUN : "is synced by"
     SYNC_RUN ||--o{ ASSET_SNAPSHOT : records
     ASSET ||--o{ ASSET_SNAPSHOT : "has history"
+    DATA_SOURCE ||--o{ ASSET_REPORT : provides
+    ASSET |o--o{ ASSET_REPORT : "is reported by"
+    DATA_SOURCE ||--o{ ENVIRONMENT_READING : provides
     ASSET_TYPE ||--o{ ASSET : classifies
     ASSET_TYPE ||--o{ ASSET_TYPE_TASK_TYPE : allows
     TASK_TYPE ||--o{ ASSET_TYPE_TASK_TYPE : "is allowed for"
@@ -87,9 +90,42 @@ erDiagram
         varchar source_hash
     }
 
+    ASSET_REPORT {
+        uuid id PK
+        uuid data_source_id FK
+        varchar external_id "UK with data_source_id"
+        varchar category "tree_damage | oak_processionary_moth | ..."
+        varchar status "open | closed"
+        text description "citizen text, contact details removed"
+        text status_notes "answer of the city"
+        text address
+        text media_url
+        geography geom "reported position"
+        uuid asset_id FK "nearest asset within 25 m, nullable"
+        float distance_m
+        timestamptz reported_at
+        timestamptz source_updated_at
+        jsonb raw
+        varchar source_hash
+        timestamptz first_seen_at
+        timestamptz last_seen_at
+    }
+
+    ENVIRONMENT_READING {
+        uuid id PK
+        uuid data_source_id FK
+        varchar station_id "UK with source, metric, measured_at"
+        varchar metric "e.g. soil_moisture_grass_sand_0_60cm"
+        float value
+        varchar unit "%nFK | mm | °C"
+        timestamptz measured_at "start of the day / period"
+        geography geom "station, nullable"
+        timestamptz imported_at
+    }
+
     ASSET_TYPE {
         uuid id PK
-        varchar key UK "tree | bench | playground | ..."
+        varchar key UK "tree | natural_monument | ..."
         varchar name "i18n key"
         varchar icon
         jsonb attribute_schema "JSON Schema of ASSET.attributes"
@@ -284,6 +320,15 @@ Every import is a `SYNC_RUN` (it is the snapshot in the sense of [ADR-0001](../a
 
 `ASSET.id` is our own id and never changes. Sources with stable ids of their own store them in `external_id` and are matched by it; sources without (Münster) are matched spatially. Each adapter declares its strategy. Details and reasoning: [ADR-0006](../adr/0006-eigene-asset-id-und-raeumliches-matching.md).
 
+### Reports and environment readings
+
+Not everything from open data is an asset. Two further kinds of records come from external feeds and are written by the importer (API: read only, EF migration `AddReportsAndReadings`):
+
+- **`ASSET_REPORT`**: a report about the real world, e.g. a citizen reporting a broken branch in the city's issue tracker ("Mängelmelder", Open311). Reports are matched by `external_id`, keep their status history in `raw`/`source_hash`, and are linked to the nearest active asset of the adapter's asset types within 25 m (`asset_id`, `distance_m`; re-linked on every sync because assets come and go). The feed only shows the last 90 days; older reports keep their last known status. Admins create quests from them with `target.withOpenReport` (a category or `any`), e.g. a `condition_report` quest for every tree with an open damage report.
+- **`ENVIRONMENT_READING`**: a value of a metric at a station and time, e.g. the DWD's daily modelled soil moisture. Matched by station, metric and time; values are updated if the source revises them. Intended trigger for "water this tree" quests.
+
+For these runs, `SYNC_RUN.assets_created/updated` count reports or readings.
+
 ### Enrichers
 
 Data that is keyed by location rather than by the source (e.g. heights from a state-wide surface model) is added by **enrichers**. They run after the adapter, are configured per data source and set attributes that must exist in the asset type's schema. What an enricher used is stored in the sync's snapshot (`SYNC_RUN.snapshot_key`), so the result stays reproducible. No extra tables: the values live in `ASSET.attributes` like everything else.
@@ -360,7 +405,9 @@ Findings that affect the model:
     "district":     { "type": ["string", "null"], "description": "Stadtbezirk" },
     "quarter":      { "type": ["string", "null"], "description": "Stadtteil (statistical district)" },
     "height_m":     { "type": ["number", "null"], "description": "Object height above ground at the tree point (nDOM); not a measured tree height" },
-    "quality_flags": { "type": "array", "items": { "enum": ["placeholder_genus", "near_duplicate", "typo_corrected"] } },
+    "avenue_id":    { "type": ["string", "null"], "description": "Protected avenue (Alleenkataster NRW), e.g. AL-MS-9004" },
+    "avenue_name":  { "type": ["string", "null"] },
+    "quality_flags": { "type": "array", "items": { "enum": ["placeholder_genus", "near_duplicate", "typo_corrected", "ambiguous_genus"] } },
     "trunk_circumference_cm": { "type": ["number", "null"] },
     "condition":    { "enum": ["good", "damaged", "dead", "gone", null] },
     "photo_url":    { "type": ["string", "null"] },
@@ -392,6 +439,21 @@ Findings that affect the model:
 `requiresReview = true` (always for hazards, dead or missing trees, new assets) means a moderator has to confirm before the change may be accepted or exported to the city.
 
 The assessment attributes above (`vitality`, `damage`, `pests`, `age_class`, `tree_pit`) are not yet part of the tree schema in `AssetType.Known` (`packages/core/OpenQuest.Core/Domain/AssetType.cs`); they have to be added there before the API accepts them.
+
+`ambiguous_genus`: the source names the tree by a common name that stands for several genera ("Kastanie", "Obstbaum", "Mammutbaum") or by one we can't map yet.
+
+`attribute_schema` for `ASSET_TYPE = natural_monument` (abridged): `monument_number`, `description` (e.g. "1 Platane"), `genus` (if one genus), official `height_m`, `circumference_m`, `crown_diameter_m` (the largest value for groups), `location`, `historical_context`, `landscape_context`, `condition`, `photo_url`, `avenue_id`, `avenue_name`, `quality_flags`. Allowed tasks: photo, measure, condition report.
+
+## Other data sources
+
+| Source | Adapter / enricher | Writes | Licence |
+|---|---|---|---|
+| Straßen.NRW "Fachschale Baum": trees along federal and state roads, all of NRW, clipped to Münster (2,314 trees) | `de_nrw.strassen_trees` | `ASSET` (`tree`), German names mapped to genera | dl-de/zero-2.0 |
+| Naturdenkmale Münster (WMS `naturschutz_serv`, layer `naturschutz2`) | `de_muenster.natural_monuments` | `ASSET` (`natural_monument`), matched by register number | **not stated**, source disabled until the city agrees |
+| Mängelmelder Münster (Open311, Beteiligung NRW), services "Baum" and "Eichenprozessionsspinner" | `open311.reports` | `ASSET_REPORT` | dl-de/by-2.0 |
+| DWD daily soil moisture, station 1766 Münster/Osnabrück (AMBAV) | `dwd.soil_daily` | `ENVIRONMENT_READING` | GeoNutzV ("Quelle: Deutscher Wetterdienst") |
+| Alleenkataster NRW (LINFOS WFS) | enricher `de_nrw.alleen` | `avenue_id`, `avenue_name` | dl-de/zero-2.0 |
+| Any polygon GeoJSON (e.g. Stadtbezirke) | enricher `geo.area_name` | a configured attribute | as the source |
 
 ## Implementation notes (backend, .NET)
 
