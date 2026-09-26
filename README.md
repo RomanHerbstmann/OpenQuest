@@ -3,6 +3,54 @@ Hackathon-Projekt: öffentliche Daten der Stadt Münster analysieren, aufbereite
 
 Domain: [openquest.fun](https://openquest.fun)
 
+## Frontend prototype
+
+The repository includes a mobile-first Next.js prototype for the Münster tree quest demo. It implements phases 1 and 2 of [the prototype brief](openquest-codex-prototype-brief-v0.1.md), plus a local admin review demo. The interface is in German.
+
+### Run locally
+
+Requires Node.js 20.9 or newer and pnpm.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open `http://localhost:3000`. For a production build, run `pnpm build` followed by `pnpm start`.
+
+### Included features
+
+- Responsive Münster map with light, colorful OpenStreetMap tiles and a localized tree-density overlay from the city's public digital tree inventory. Individual street trees appear as small dots when zoomed in. The browser refreshes the visible area from Münster's WFS; `public/data/muenster-trees-snapshot.json` is a bundled 25 September 2026 fallback. The 24 regular Quest markers now use distinct, original WFS tree coordinates matched by recorded genus and nearby location (retrieved 26 September 2026); their street labels come from Münster's street WFS. Exact species, verification status, rarity, and game progress remain demo content because the tree inventory supplies genus and position only. The separate presentation tree at Hafenweg 7 keeps its fixed stage location and does not affect the density overlay. Tree data: Stadt Münster, Digitales Baumkataster, dl-de/by-2.0.
+- Markers for open, confirmed and reported missing trees, tree detail sheets, map filters and geolocation with a manual fallback.
+- Seven schematic game districts on the map with a district overview, rankings and a 30-day territory rule. The shapes are **not official Münster district boundaries**.
+- Bottom navigation and initial missions, collection and profile screens.
+- Design 2.0 visual system across the map, tree profile, scan, collection, missions, profile and admin dashboard: floating navigation, richer motion, clearer status and a premium card presentation. A searchable nature lexicon at `/lexicon` contains 13 species/group portraits with leaf, bark, fruit, season and habitat cues. These are editorial prototype notes; they are not measured facts about an individual tree. Tree profiles and the card viewer link to the corresponding portrait.
+- Shared player context with local progress and level calculation.
+- Camera scan prototype in the collection and tree details: capture or choose a photo, see a scan animation and an explicitly labeled demo species response, correct the species, and save one card per species in browser `localStorage`. A mobile camera-picker fallback is available if the live preview fails. The photo itself is not stored or sent to a server. The recognition seam is `src/lib/mockScan.ts`.
+- The Baumbuch lists only species with a supplied card image, shows the shared Ahorn artwork once, and can be filtered to collected cards. Species without card art remain available in the nature lexicon.
+- Admin review demo at `/admin` with eight sample reports, search, status filters, map context, review notes, local decisions and CSV/GeoJSON export.
+
+Quest completion is not implemented yet. Phase 3 will add questions, locally stored observations and XP rewards. Demo scans only add collection cards and do not grant territory points. The presentation Festtanne awards 25 XP once when first collected through its pin, matching the supplied card art. A bundled city-tree snapshot supports the density overlay and the Quest pins use selected municipal inventory coordinates; game states and precise species remain demo content. Map tiles require an internet connection.
+
+For the stage demo, click **Festtanne scannen** on the map, then scan the small tree or select a photo. The test response proposes Festtanne, reveals its supplied full-art card, and adds it to the Baumbuch after confirmation. The pin is positioned on the OpenStreetMap building for Hafenweg 7; it is a presentation prop, not a public tree or territory contribution.
+
+Territory ownership is a demo preview: only project-verified observations of distinct trees count once per player and district if the tree was observed within the last 30 days. The unique leader holds the district; a tie leaves it contested. Fictional rival contributions populate the leaderboard. Future player observations can join the scoring once mission submission and review are connected. Existing collection progress does not count as verified territory points.
+
+The admin area is a local demo without authentication or a backend. Review decisions only update browser `localStorage`; they never change official city data. Public deployment requires access control, server-side persistence and review rules.
+
+### Validation
+
+```bash
+pnpm typecheck
+pnpm build
+```
+
+### Prototype planning
+
+- [Hackathon concept](ms-hack-stadtbaum-quest-konzept-1.md)
+- [Prototype brief](openquest-codex-prototype-brief-v0.1.md)
+- [Frontend plan](openquest-frontend-planung-v0.1.md)
+
 ## Entscheidungen
 
 - [ADR-0001: Baumkataster direkt vom WFS beziehen, Rückkanal über GitHub und Open Data Koordination](docs/adr/0001-baumkataster-datenbezug-und-rueckkanal.md)
