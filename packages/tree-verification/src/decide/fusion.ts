@@ -1,3 +1,5 @@
+import type { TreeAssessment } from "../assess/aggregate.ts";
+import type { InventoryStatus } from "../assess/proposals.ts";
 import type { VerificationConfig } from "../config.ts";
 import type { GeoContext } from "../geo/context.ts";
 import type { PrecheckResult } from "../precheck.ts";
@@ -12,9 +14,10 @@ export interface FusionInput {
   jev?: JevAnswers;
   jevFailed: boolean;
   expected?: ExpectedTree;
+  assessment?: TreeAssessment | null;
 }
 
-export type FusionResult = Pick<TreeVerificationResult, "verdict" | "treePresent" | "targetMatch" | "genus" | "genusSuggestion" | "reasons">;
+export type FusionResult = Pick<TreeVerificationResult, "verdict" | "treePresent" | "targetMatch" | "genus" | "genusSuggestion" | "reasons" | "inventory">;
 
 const NON_LIVE = new Set(["photo_of_screen", "photo_of_print", "illustration_or_render"]);
 
@@ -45,7 +48,7 @@ export function fuse(input: FusionInput, config: VerificationConfig): FusionResu
   const vision = input.vision;
   if (!vision || vision.treeProbability === null) {
     if (input.pre.image) add("vision_unavailable", "soft", "all vision models failed");
-    return finish(reasons, { value: false, probability: 0 }, undefined, { value: null, probability: 0, alternatives: [] });
+    return finish(reasons, { value: false, probability: 0 }, undefined, { value: null, probability: 0, alternatives: [] }, "unknown");
   }
 
   const w = input.jev ? config.jevWeight : 0;
@@ -56,8 +59,18 @@ export function fuse(input: FusionInput, config: VerificationConfig): FusionResu
   if (nonLive > 0 && nonLive === obs.length) add("not_a_live_photo", "hard", obs.map((o) => o.photo_authenticity).join(", "));
   else if (nonLive > 0) add("possibly_not_live_photo", "soft", `${nonLive}/${obs.length} models`);
 
-  if (treeP < t.rejectTreeProbability) add("no_tree", "hard", `p=${treeP.toFixed(2)}`);
+  // A stump or empty tree pit at the target is not a failed quest but a valuable report:
+  // the tree is gone. Only for live photos inside the geofence (hard prechecks already reject the rest).
+  const site = input.assessment?.siteState;
+  const treeMissing =
+    !!input.expected && treeP < 0.5 && nonLive === 0 && !!site && (site.value === "stump" || site.value === "empty_tree_pit") && site.confidence >= 0.5;
+
+  if (treeMissing) add("tree_missing", "soft", `${site!.value} at the recorded position`);
+  else if (treeP < t.rejectTreeProbability) add("no_tree", "hard", `p=${treeP.toFixed(2)}`);
   else if (treeP < t.approveTreeProbability) add("tree_uncertain", "soft", `p=${treeP.toFixed(2)}`);
+
+  const safety = treeP >= 0.5 ? (input.assessment?.safetyFlags ?? []) : [];
+  if (safety.length) add("safety_concern", "soft", safety.map((f) => `${f.value} ${(f.confidence * 100).toFixed(0)}%`).join(", "));
 
   if (vision.spread > t.maxModelSpread) add("models_disagree", "soft", `spread=${vision.spread.toFixed(2)}`);
 
@@ -71,7 +84,9 @@ export function fuse(input: FusionInput, config: VerificationConfig): FusionResu
   let targetMatch: FusionResult["targetMatch"];
   let genusSuggestion: GenusEstimate | undefined;
   if (input.expected) {
-    if (treeP < 0.5) {
+    if (treeMissing) {
+      targetMatch = { value: "tree_missing", probability: site!.confidence };
+    } else if (treeP < 0.5) {
       targetMatch = { value: "no_tree", probability: 1 - treeP };
     } else if (input.expected.genus && top) {
       // No special case for leafless trees: the models lower their genus probabilities themselves,
@@ -113,13 +128,23 @@ export function fuse(input: FusionInput, config: VerificationConfig): FusionResu
     }
   }
 
-  if (!input.expected && input.geo.failedProviders.length === 0 && input.geo.trees.length === 0) {
-    add("no_known_tree_nearby", "soft");
-  }
+  // Free photo (no target): a tree with no inventory tree close to the player is a candidate
+  // for a tree the city has not recorded yet. Only trust this if every provider answered.
+  const nearest = input.geo.trees[0]?.distanceM ?? Infinity;
+  const newTree = !input.expected && treeP >= 0.5 && input.geo.failedProviders.length === 0 && nearest > config.newTreeRadiusM;
+  if (newTree) add("new_tree_candidate", "soft", nearest === Infinity ? "no inventory tree nearby" : `nearest inventory tree ${nearest.toFixed(0)} m`);
+
+  const inventory: InventoryStatus = treeMissing
+    ? "tree_missing"
+    : newTree
+      ? "new_tree_candidate"
+      : treeP >= 0.5 && (input.expected || nearest <= config.newTreeRadiusM)
+        ? "confirmed"
+        : "unknown";
 
   if (treeP >= t.approveTreeProbability) add("tree_confirmed", "info", `p=${treeP.toFixed(2)}`);
 
-  return finish(reasons, { value: treeP >= 0.5, probability: treeP }, targetMatch, genus, genusSuggestion);
+  return finish(reasons, { value: treeP >= 0.5, probability: treeP }, targetMatch, genus, inventory, genusSuggestion);
 }
 
 function finish(
@@ -127,6 +152,7 @@ function finish(
   treePresent: FusionResult["treePresent"],
   targetMatch: FusionResult["targetMatch"],
   genus: FusionResult["genus"],
+  inventory: InventoryStatus,
   genusSuggestion?: GenusEstimate,
 ): FusionResult {
   const verdict: Verdict = reasons.some((r) => r.severity === "hard")
@@ -134,5 +160,5 @@ function finish(
     : reasons.some((r) => r.severity === "soft")
       ? "review"
       : "approve";
-  return { verdict, treePresent, targetMatch, genus, genusSuggestion, reasons };
+  return { verdict, treePresent, targetMatch, genus, genusSuggestion, reasons, inventory };
 }

@@ -68,7 +68,7 @@ erDiagram
         timestamptz started_at "= fetched_at of the snapshot"
         timestamptz finished_at
         varchar status "running | succeeded | failed"
-        varchar snapshot_key "full raw download in S3 / MinIO"
+        varchar snapshot_key "raw download (or manifest incl. reference data)"
         varchar schema_hash "source fields; a change fails the run"
         int record_count "records in the download"
         int assets_created
@@ -99,7 +99,7 @@ erDiagram
         uuid id PK
         uuid asset_type_id FK
         uuid data_source_id FK
-        varchar external_id "UK with data_source_id"
+        varchar external_id "UK with data_source_id; own id if the source has none"
         geography geom "PostGIS, WGS84 (4326)"
         jsonb attributes "normalized, validated by attribute_schema"
         jsonb raw "original source record"
@@ -275,10 +275,18 @@ Alternative considered: one table per asset type (`tree`, `bench`, …). Rejecte
 
 Every import is a `SYNC_RUN` (it is the snapshot in the sense of [ADR-0001](../adr/0001-baumkataster-datenbezug-und-rueckkanal.md): `snapshot_id` = `SYNC_RUN.id`, `fetched_at` = `SYNC_RUN.started_at`). History is kept on two levels:
 
-- **Full download:** the unchanged file from the source is stored in object storage (`SYNC_RUN.snapshot_key`). Every snapshot can be reloaded exactly as it was.
+- **Full download:** the unchanged file from the source is stored in object storage (`SYNC_RUN.snapshot_key`). Every snapshot can be reloaded exactly as it was. Keys are content hashes, so identical downloads share one file. If the adapter needs reference data to parse the source (Münster: street list and district polygons), those files are stored too and `snapshot_key` points to a small manifest listing all files.
 - **Changes per asset:** `ASSET_SNAPSHOT` gets a row only when an asset was created, changed (`source_hash` differs) or disappeared at the source. A daily sync of 43k unchanged trees therefore adds no rows, and the state of any asset at any sync can still be reconstructed.
 
 `ASSET` itself always holds the current state. `SYNC_RUN.schema_hash` records the source's field list; if it changes unexpectedly, the run fails loudly instead of importing broken data.
+
+### Asset identity
+
+`ASSET.id` is our own id and never changes. Sources with stable ids of their own store them in `external_id` and are matched by it; sources without (Münster) are matched spatially. Each adapter declares its strategy. Details and reasoning: [ADR-0006](../adr/0006-eigene-asset-id-und-raeumliches-matching.md).
+
+### Enrichers
+
+Data that is keyed by location rather than by the source (e.g. heights from a state-wide surface model) is added by **enrichers**. They run after the adapter, are configured per data source and set attributes that must exist in the asset type's schema. What an enricher used is stored in the sync's snapshot (`SYNC_RUN.snapshot_key`), so the result stays reproducible. No extra tables: the values live in `ASSET.attributes` like everything else.
 
 ### Where city-specific things live
 
@@ -316,7 +324,7 @@ An approved `SUBMISSION` produces `ATTRIBUTE_CHANGE` rows (e.g. `genus: "Baum Am
 
 ## Münster tree data (`gruen_opendata.csv`)
 
-Source and access are decided in [ADR-0001](../adr/0001-baumkataster-datenbezug-und-rueckkanal.md): the data comes live from the city's WFS (`geo.stadt-muenster.de/mapserv/odgruen_serv`, layer `Baeume`), not from the portal. License dl-de/by-2.0.
+All sources, licenses and attribution: [data-sources.md](data-sources.md). Source and access are decided in [ADR-0001](../adr/0001-baumkataster-datenbezug-und-rueckkanal.md): the data comes live from the city's WFS (`geo.stadt-muenster.de/mapserv/odgruen_serv`, layer `Baeume`), not from the portal. License dl-de/by-2.0.
 
 Analysis of the CSV export (43,114 rows):
 
@@ -328,28 +336,77 @@ Analysis of the CSV export (43,114 rows):
 
 Findings that affect the model:
 
-- **No id column.** The adapter has to derive a stable `external_id`. On re-sync, points that moved slightly must be matched to the existing asset by nearest neighbour within a small radius (e.g. 1 m), otherwise quests and photos lose their tree. **Question for Stadt Münster:** is there an internal tree number we could get in the export?
-  - **Open point, to be settled in ADR-0001:** the ADR hashes coordinate (EPSG:25832, rounded to 0.1 m) + `str_schl` + `baumgruppe`. Including the genus means a tree gets a new id as soon as the city adopts a genus correction made by players, which cuts it off from its quests and photos. Recommendation for OpenQuest: hash the coordinate only.
+- **No id column.** Decided in [ADR-0006](../adr/0006-eigene-asset-id-und-raeumliches-matching.md): we assign our own id (`ASSET.id`) and store it in `external_id` as well (required and unique per source in the API's schema; exports reference assets by it). On re-sync, records are matched to existing assets by identical record first, then by nearest position within 1 m. **Question for Stadt Münster:** is there an internal tree number we could get in the export? With it, the adapter would switch to matching by `external_id`.
 - **Only the genus, not the species.** Top genera: Tilia 10,279 · Quercus 8,199 · Acer 5,324 · Carpinus 3,448.
 - **Unknown / placeholder genus:** 2,832 × `Baum Amt62` and 103 empty values. The adapter normalizes these to `genus = null` (raw value stays in `raw`). These ~2,900 trees are ideal targets for first `verify_attribute` quests.
-- Street keys are padded to 5 digits and resolved to street names via the WFS `odstrasseserv`; district and quarter come from the portal's GeoJSON (see ADR-0001, adapter concern).
+- **Enrichment** (done in the adapter, reference files are part of the snapshot):
+  - `street_name`: `str_schl` joined to the street directory WFS `odstrasseserv` (layer `ms:Strassen`). 42,878 of 43,114 trees (99.45 %) get a name; the rest have no key (14) or a key missing from the directory (mostly `00713`: 124, `06995`: 57).
+  - `district`: point in polygon against the 6 Stadtbezirke from the portal (`stadtbezirke-muenster.geojson`, field `NAME_STADT`). All trees get a district; the result matches PostGIS `ST_Contains` for every tree.
+  - `quarter`: point in polygon against the 45 Stadtteile (statistical districts, `stadtteile-statistische-bezirke-muenster.geojson`, field `NAME_STATI`).
+  - `height_m`: object height above ground from the **nDOM50 surface model of Geobasis NRW** (WCS, 0.5 m grid, dl-de/zero-2.0), 95th percentile within 2.5 m of the tree point; same method as `packages/adapters/de-nrw` in PR #7. Added by the enricher `de_nrw.ndom_height`, which is not tied to Münster and can be switched on for any data source in NRW. It is the height *at the inventory point*, not a measured tree height: trees next to buildings can pick up the building, values below 2 m usually mean a young, pruned or missing tree.
 - The ADR also flags near-duplicates (< 1 m apart) and data quality issues. These go into `attributes.quality_flags`.
 
-Proposed `attribute_schema` for `ASSET_TYPE = tree` (first version):
+`attribute_schema` for `ASSET_TYPE = tree` (defined in `AssetType.Tree`, `packages/core/OpenQuest.Core/Domain/AssetType.cs`, seeded by the API; abridged):
 
 ```json
 {
   "type": "object",
   "properties": {
     "genus":        { "type": ["string", "null"], "description": "Latin genus, e.g. Tilia" },
+    "genus_raw":    { "type": ["string", "null"], "description": "Genus exactly as delivered by the source" },
     "species":      { "type": ["string", "null"], "description": "Latin species, not in Münster data yet" },
     "street_key":   { "type": ["string", "null"], "description": "5 digits, zero-padded" },
     "street_name":  { "type": ["string", "null"] },
     "district":     { "type": ["string", "null"], "description": "Stadtbezirk" },
+    "quarter":      { "type": ["string", "null"], "description": "Stadtteil (statistical district)" },
+    "height_m":     { "type": ["number", "null"], "description": "Object height above ground at the tree point (nDOM); not a measured tree height" },
     "quality_flags": { "type": "array", "items": { "enum": ["placeholder_genus", "near_duplicate", "typo_corrected"] } },
     "trunk_circumference_cm": { "type": ["number", "null"] },
     "condition":    { "enum": ["good", "damaged", "dead", "gone", null] },
-    "photo_url":    { "type": ["string", "null"] }
+    "photo_url":    { "type": ["string", "null"] },
+    "vitality":     { "enum": ["healthy", "slightly_damaged", "clearly_damaged", "severely_damaged_or_dead", null], "description": "Roloff-like scale, from player photos" },
+    "damage":       { "type": "array", "items": { "enum": ["bark_wound", "cavity", "crack", "leaning", "broken_branch", "dead_branches", "root_damage"] } },
+    "pests":        { "type": "array", "items": { "enum": ["oak_processionary_nests", "leaf_miner_damage", "mistletoe", "other_pest"] } },
+    "age_class":    { "enum": ["young", "semi_mature", "mature", "veteran", null] },
+    "tree_pit": {
+      "type": ["object", "null"],
+      "properties": {
+        "surface": { "enum": ["open_soil", "planted", "mulched", "sealed", "grate"] },
+        "watering_bag": { "type": "boolean" },
+        "stakes": { "type": "boolean" },
+        "protection_guard": { "type": "boolean" }
+      }
+    }
   }
 }
 ```
+
+### Attributes vs. observations from player photos
+
+`@openquest/tree-verification` returns `proposedChanges` for every photo (see [ADR-0005](../adr/0005-tree-assessment-from-player-photos.md)):
+
+- `kind: "attribute"` (condition, vitality, damage, pests, age_class, tree_pit, genus): the **state** of the tree. Becomes an `ATTRIBUTE_CHANGE` with `status = proposed`.
+- `kind: "observation"` (phenology, drought_stress, tree_pit_issue, safety_concern): **time stamped facts** that must not overwrite each other, e.g. "flowering on 2026-05-03". They form a history per asset (useful for phenology time series) and fit `ATTRIBUTE_CHANGE` rows with `attribute_key = "observation:<key>"` for now; a dedicated `ASSET_OBSERVATION` table in the API is the cleaner option.
+- `kind: "new_asset"`: a photographed tree with no inventory tree nearby; a candidate for a new `ASSET` after review.
+
+`requiresReview = true` (always for hazards, dead or missing trees, new assets) means a moderator has to confirm before the change may be accepted or exported to the city.
+
+The assessment attributes above (`vitality`, `damage`, `pests`, `age_class`, `tree_pit`) are not yet part of the tree schema in `AssetType.Known` (`packages/core/OpenQuest.Core/Domain/AssetType.cs`); they have to be added there before the API accepts them.
+
+## Implementation notes (backend, .NET)
+
+Where the running backend differs from or adds to the draft above. Tables use singular snake_case names (`asset`, `claim`, `user`, …); enums are stored as snake_case strings.
+
+- **Points:** `POINT_TRANSACTION` is implemented as in the ERD (append-only, unique per `submission_id` and `reason`, `amount <> 0`). Reasons so far: `quest_approved` (the quest's `reward_points`, paid when a submission is approved) and `correction`. `USER.total_points` is updated in the same transaction as the ledger line. Levels are not stored: they are computed from `total_points` with a curve (`LevelCurve`, default thresholds 0/100/250/500/800, override with `Gamification:LevelThresholds`).
+- **Cities and districts (not in the ERD diagram above, [ADR-0007](../adr/0007-cities-and-districts-drawn-by-admins.md)):** `city` (`key`, `name`, `country_code`, `center_lat/lon`, `default_zoom`, `timezone`, `is_active`), `district` (`city_id`, `key`, `name`, `description`, `color`, `is_active`, `total_points` cache, derived `geom` polygon and `centroid_lat/lon`; `key` and `name` unique per city) and `district_point` (`district_id`, `position`, `lat`, `lon`; unique per district and position). The ordered points are the source of the outline. `POINT_TRANSACTION.district_id` records the district a point was earned in at the time of the award (set null when the district is deleted, which is only possible while no points exist).
+- **Not implemented yet:** `BADGE`, `USER_BADGE`. `MEDIA.captured_at` stays null (the EXIF time is dropped with the rest of the metadata).
+- **Import is not part of the API.** Assets, data sources and sync runs are written by the separate importer; the API only reads them (and reads `sync_run` / `asset_snapshot` for `GET /admin/sync/runs` and `GET /admin/assets/{id}/history`). How `external_id` is assigned (or left empty for sources without ids) and how assets are matched across syncs is decided by the importer.
+- **`quality_flags` of trees** use exactly the enum above: `placeholder_genus` (`Baum Amt62`, `Baumgruppe`, `Standort`, `Leerer*`, `Unbekannt`, empty), `typo_corrected` (a known typo such as `Catalpha` was fixed, or a `-Hybride` suffix was stripped), `near_duplicate` (another tree < 1 m away). Quests can select assets with a JSONB containment filter on these, e.g. `{"genus": null}`. The `condition` enum is `good | damaged | dead | gone`, used by the `condition_report` task.
+- **Claims:** the partial unique index covers `status IN ('active','submitted')` (not only `active`), so a player cannot claim a quest again after handing in a submission. A rejected submission sets the claim to `cancelled`, which frees the slot and allows a retry. `quest.status = 'full'` is derived from `slots_taken` and set automatically.
+- **Task types:** `task_config` / `payload` are validated with the JSON Schemas in `task_type` (`verify_attribute` and `measure` need `{"attribute": "<key>"}` in `task_config`, the key must exist in the asset type's `attribute_schema`). Each task type maps to the attribute it changes: `photo` → `photo_url` (`/media/{id}`), `condition_report` → `condition`, the other two → `task_config.attribute`.
+- **Attribute changes:** created as `proposed` on submit, `accepted` on approval, `discarded` on rejection, `exported` by an export run.
+- **`MEDIA.phash`** is 16 hex characters (64-bit difference hash).
+- **Recovery codes:** 8 codes of 12 characters (`XXXX-XXXX-XXXX`, ambiguous characters left out), matched case- and separator-insensitively.
+- **Outbox:** table `outbox_message` (`type`, `payload` jsonb, `occurred_at`, `available_at`, `processed_at`, `attempts`, `last_error`, `status` = `pending | processed | dead`) holds domain events written in the same transaction as the change they describe; a trigger sends `NOTIFY outbox`. See [ADR-0004](../adr/0004-event-driven-writeback.md).
+- **`EXPORT_RUN`** is now created by the event handler for every delivered batch of accepted changes, so `created_by` is nullable (null = triggered by the system). `storage_key` holds the location of the published resource (public feed path or GitHub URL).
+- **Snapshots and history:** written by the importer as described in "Snapshots and history". The API shows them read-only: `GET /admin/sync/runs` lists the runs (status, counters, error), `GET /admin/assets/{id}/history` the versions of an asset (`created`, `updated`, `removed`).

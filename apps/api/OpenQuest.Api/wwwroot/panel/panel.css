@@ -1,0 +1,83 @@
+:root {
+  --bg: #f4f6f5; --surface: #fff; --text: #1c2a24; --muted: #66756e; --line: #d8e0dc;
+  --accent: #2c8054; --accent-text: #fff; --danger: #c62828; --ok: #2c8054; --radius: 8px;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #151b18; --surface: #1f2723; --text: #e6eee9; --muted: #93a49b; --line: #33403a; --accent: #3fa373; --danger: #ef6a6a; --ok: #56c08a; }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+h1, h2, h3 { margin: 0 0 .5rem; line-height: 1.2; }
+h1 { font-size: 1.4rem; } h2 { font-size: 1.05rem; } h3 { font-size: .95rem; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { padding: .45rem .8rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+button.danger { color: var(--danger); border-color: var(--danger); }
+button.icon { padding: 0 .5rem; line-height: 1.4; }
+input, select, textarea { width: 100%; padding: .4rem .55rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+input[type=checkbox] { width: auto; }
+input[type=color] { width: 3rem; height: 2rem; padding: 2px; }
+label { display: block; margin: .5rem 0; font-size: .85rem; color: var(--muted); }
+label.inline { display: inline-flex; align-items: center; gap: .4rem; margin: .25rem 0; }
+label input, label select, label textarea { margin-top: .2rem; color: var(--text); }
+.muted { color: var(--muted); } .small { font-size: .82rem; } .mono { font-family: ui-monospace, monospace; font-size: .85rem; }
+.problem { color: var(--danger); margin: .25rem 0; } .ok { color: var(--ok); margin: .25rem 0; }
+.row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; } .row.between { justify-content: space-between; } .grow { flex: 1; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .8rem; margin-bottom: .75rem; }
+.badge { font-size: .7rem; padding: 0 .4rem; border-radius: 99px; background: var(--line); }
+.swatch { display: inline-block; width: .9rem; height: .9rem; border-radius: 3px; border: 1px solid rgba(0,0,0,.25); flex: none; }
+
+.login { min-height: 100%; display: grid; place-items: center; padding: 1rem; }
+.login-card { width: min(22rem, 100%); }
+.login-card button { width: 100%; margin-top: .5rem; }
+
+.app { height: 100%; display: flex; flex-direction: column; }
+.topbar { display: flex; align-items: center; gap: 1rem; padding: .5rem 1rem; background: var(--surface); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tabs { display: flex; gap: .25rem; }
+.tab.active { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.content { flex: 1; min-height: 0; }
+.pane { height: 100%; }
+.pane.split { display: grid; grid-template-columns: minmax(320px, 380px) 1fr; }
+.pane.page { overflow: auto; padding: 1rem; }
+.sidebar { overflow: auto; padding: .75rem; border-right: 1px solid var(--line); }
+.mapwrap { min-height: 300px; display: flex; }
+.map { flex: 1; position: relative; } /* Leaflet sets position: relative itself when the element is not attached yet */
+.map.drawing { cursor: crosshair; }
+@media (max-width: 800px) { .pane.split { grid-template-columns: 1fr; grid-template-rows: 55% 45%; } .mapwrap { order: -1; } .sidebar { border-right: 0; border-top: 1px solid var(--line); } }
+
+.district-list, .ranking, .points, .import-problems { list-style: none; margin: .5rem 0 0; padding: 0; }
+.district-list li.district { padding: .45rem .5rem; border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: .35rem; cursor: pointer; }
+.district-list li.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.district-list li.off strong { text-decoration: line-through; opacity: .7; }
+.actions { margin-top: .4rem; }
+.ranking li { display: flex; align-items: center; gap: .5rem; padding: .25rem 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.ranking .rank { width: 1.4rem; text-align: right; color: var(--muted); }
+.points li { display: flex; align-items: center; gap: .4rem; padding: .1rem 0; counter-increment: point; }
+.points { counter-reset: point; max-height: 9rem; overflow: auto; }
+.points li::before { content: counter(point); width: 1.4rem; text-align: right; color: var(--muted); font-size: .8rem; }
+.editor textarea { resize: vertical; }
+.status { margin: .5rem 0; }
+
+.vertex { width: 22px; height: 22px; line-height: 22px; text-align: center; border-radius: 50%; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; border: 2px solid #fff; box-shadow: 0 0 3px rgba(0,0,0,.6); }
+.vertex.first { background: #1565c0; }
+
+.dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--text); padding: 1rem; width: min(30rem, 92vw); }
+.dialog::backdrop { background: rgba(0,0,0,.45); }
+.form h2 { margin-bottom: .75rem; }
+.import-result { max-height: 14rem; overflow: auto; }
+
+.submissions { display: grid; gap: .75rem; }
+.submission { display: grid; grid-template-columns: 12rem 1fr; gap: .75rem; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: .75rem; }
+.submission .photo { display: grid; place-items: center; background: var(--bg); border-radius: var(--radius); min-height: 8rem; overflow: hidden; }
+.submission .photo img { width: 100%; height: 100%; object-fit: cover; }
+.submission p { margin: .2rem 0; }
+@media (max-width: 600px) { .submission { grid-template-columns: 1fr; } }
+
+.toasts { position: fixed; right: 1rem; bottom: 1rem; display: grid; gap: .5rem; z-index: 5000; }
+.toast { background: var(--text); color: var(--bg); padding: .5rem .8rem; border-radius: var(--radius); box-shadow: 0 2px 8px rgba(0,0,0,.3); max-width: 24rem; }
+.toast.error { background: var(--danger); color: #fff; }

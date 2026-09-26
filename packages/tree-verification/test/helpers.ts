@@ -1,5 +1,5 @@
 import { resolveConfig } from "../src/config.ts";
-import type { VisionObservation } from "../src/vision/schema.ts";
+import type { TreeAssessmentObservation, VisionObservation } from "../src/vision/schema.ts";
 
 export const config = resolveConfig({ openRouterApiKey: "test-key" }, {});
 
@@ -23,6 +23,24 @@ export function obs(overrides: Partial<VisionObservation> = {}): VisionObservati
     image_quality: "good",
     quality_issues: ["none"],
     scene_description: "A linden tree on a sidewalk.",
+    assessment: assessment(),
+    ...overrides,
+  };
+}
+
+export function assessment(overrides: Partial<TreeAssessmentObservation> = {}): TreeAssessmentObservation {
+  return {
+    site_state: "tree_present",
+    vitality: "healthy",
+    crown_density: "dense",
+    damage: ["none"],
+    fungi_on_trunk: false,
+    pests: ["none"],
+    drought_stress: "none",
+    tree_pit: { visible: true, surface: "open_soil", issues: ["none"], watering_bag: false, stakes: false, protection_guard: false },
+    phenology: "full_leaf",
+    age_class: "mature",
+    notes: "",
     ...overrides,
   };
 }

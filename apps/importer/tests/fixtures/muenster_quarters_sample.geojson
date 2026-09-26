@@ -1,0 +1,177 @@
+{
+ "type": "FeatureCollection",
+ "name": "stadtteile-statistische-bezirke-muenster",
+ "crs": {
+  "type": "name",
+  "properties": {
+   "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+  }
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "NAME_STATI": "Uppenberg"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       7.605,
+       51.97
+      ],
+      [
+       7.618,
+       51.97
+      ],
+      [
+       7.618,
+       51.98
+      ],
+      [
+       7.605,
+       51.98
+      ],
+      [
+       7.605,
+       51.97
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "NAME_STATI": "Überwasser"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       7.615,
+       51.958
+      ],
+      [
+       7.625,
+       51.958
+      ],
+      [
+       7.625,
+       51.965
+      ],
+      [
+       7.615,
+       51.965
+      ],
+      [
+       7.615,
+       51.958
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "NAME_STATI": "Schützenhof"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       7.625,
+       51.945
+      ],
+      [
+       7.635,
+       51.945
+      ],
+      [
+       7.635,
+       51.955
+      ],
+      [
+       7.625,
+       51.955
+      ],
+      [
+       7.625,
+       51.945
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "NAME_STATI": "Schlachthof"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       7.635,
+       51.965
+      ],
+      [
+       7.645,
+       51.965
+      ],
+      [
+       7.645,
+       51.975
+      ],
+      [
+       7.635,
+       51.975
+      ],
+      [
+       7.635,
+       51.965
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "NAME_STATI": "Rumphorst"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       7.645,
+       51.975
+      ],
+      [
+       7.655,
+       51.975
+      ],
+      [
+       7.655,
+       51.985
+      ],
+      [
+       7.645,
+       51.985
+      ],
+      [
+       7.645,
+       51.975
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

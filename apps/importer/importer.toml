@@ -1,0 +1,46 @@
+# OpenQuest importer configuration.
+# DATABASE_URL in the environment overrides [database] url.
+
+[database]
+url = "postgresql://openquest:openquest@localhost:5432/openquest"
+
+[snapshots]
+# Relative paths are resolved against this file's directory.
+dir = "../../data/snapshots"
+
+[cache]
+# Data kept between syncs by enrichers (e.g. nDOM heights). Safe to delete.
+dir = "../../data/cache"
+
+[[sources]]
+key = "de-muenster-trees"
+adapter = "de_muenster.trees"
+name = "Digitales Baumkataster Münster"
+city = "Münster"
+source_url = "https://opendata.stadt-muenster.de/dataset/digitales-baumkataster-m%C3%BCnster"
+license = "dl-de/by-2.0"
+attribution = "Datenquelle: Stadt Münster, Digitales Baumkataster, dl-de/by-2-0 (https://www.govdata.de/dl-de/by-2-0), https://opendata.stadt-muenster.de/dataset/digitales-baumkataster-m%C3%BCnster. Daten bereinigt und angereichert durch Team OpenQuest."
+
+[sources.options]
+wfs_url = "https://geo.stadt-muenster.de/mapserv/odgruen_serv"
+layer = "Baeume"
+# Street names, city districts and quarters are added by default (enrich = true).
+# Offline instead of the WFS / portal:
+# file = "tests/fixtures/muenster_trees_sample.geojson"
+# streets_file = "tests/fixtures/muenster_streets_sample.csv"
+# districts_file = "tests/fixtures/muenster_districts_sample.geojson"
+# quarters_file = "tests/fixtures/muenster_quarters_sample.geojson"
+
+[sources.sync]
+match_radius_m = 1.0
+max_removal_ratio = 0.2
+
+# Tree heights from the NRW surface model (nDOM50, Geobasis NRW, dl-de/zero-2.0).
+# Works for any source in NRW. The first sync fetches ~10,000 cells (a few minutes),
+# later syncs only fetch cells of new or moved trees.
+[[sources.enrichers]]
+name = "de_nrw.ndom_height"
+
+[sources.enrichers.options]
+radius_m = 2.5
+max_age_days = 365

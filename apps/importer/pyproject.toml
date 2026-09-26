@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openquest-importer"
+version = "0.1.0"
+description = "Imports municipal open data (e.g. tree inventories) into the OpenQuest database."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "TBD" }
+dependencies = [
+    "psycopg[binary]>=3.2",
+    "jsonschema>=4.23",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+openquest-importer = "openquest_importer.cli:main"
+
+# Adapters shipped with this package. Adapters from other packages register
+# themselves under the same entry point group, see README.
+[project.entry-points."openquest.adapters"]
+"de_muenster.trees" = "openquest_importer.adapters.de_muenster.trees:MuensterTreesAdapter"
+
+[project.entry-points."openquest.enrichers"]
+"de_nrw.ndom_height" = "openquest_importer.enrichers.de_nrw.ndom:NdomHeightEnricher"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openquest_importer"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
