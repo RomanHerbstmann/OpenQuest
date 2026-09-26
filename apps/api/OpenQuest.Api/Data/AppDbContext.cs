@@ -15,6 +15,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AssetTypeTaskType> AssetTypeTaskTypes => Set<AssetTypeTaskType>();
     public DbSet<AssetEntity> Assets => Set<AssetEntity>();
     public DbSet<AssetSnapshot> AssetSnapshots => Set<AssetSnapshot>();
+    public DbSet<AssetReport> AssetReports => Set<AssetReport>();
+    public DbSet<EnvironmentReading> EnvironmentReadings => Set<EnvironmentReading>();
     public DbSet<User> Users => Set<User>();
     public DbSet<UserRecoveryCode> UserRecoveryCodes => Set<UserRecoveryCode>();
     public DbSet<QuestCampaign> QuestCampaigns => Set<QuestCampaign>();
@@ -77,6 +79,35 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Geom).HasColumnType("geography (point)");
             e.Property(x => x.Raw).HasColumnType("jsonb");
             e.Property(x => x.SourceHash).HasMaxLength(64);
+        });
+
+        b.Entity<AssetReport>(e =>
+        {
+            e.ToTable("asset_report");
+            e.HasOne(x => x.DataSource).WithMany().HasForeignKey(x => x.DataSourceId);
+            e.HasOne<AssetEntity>().WithMany().HasForeignKey(x => x.AssetId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.DataSourceId, x.ExternalId }).IsUnique();
+            e.HasIndex(x => new { x.AssetId, x.Status });
+            e.HasIndex(x => new { x.Category, x.Status, x.ReportedAt });
+            e.Property(x => x.ExternalId).HasMaxLength(128);
+            e.Property(x => x.Category).HasMaxLength(48);
+            e.Property(x => x.Status).HasMaxLength(24);
+            e.Property(x => x.Geom).HasColumnType("geography (point)");
+            e.HasIndex(x => x.Geom).HasMethod("gist");
+            e.Property(x => x.Raw).HasColumnType("jsonb");
+            e.Property(x => x.SourceHash).HasMaxLength(64);
+        });
+
+        b.Entity<EnvironmentReading>(e =>
+        {
+            e.ToTable("environment_reading");
+            e.HasOne(x => x.DataSource).WithMany().HasForeignKey(x => x.DataSourceId);
+            e.HasIndex(x => new { x.DataSourceId, x.StationId, x.Metric, x.MeasuredAt }).IsUnique();
+            e.HasIndex(x => new { x.Metric, x.MeasuredAt });
+            e.Property(x => x.StationId).HasMaxLength(64);
+            e.Property(x => x.Metric).HasMaxLength(64);
+            e.Property(x => x.Unit).HasMaxLength(16);
+            e.Property(x => x.Geom).HasColumnType("geography (point)");
         });
 
         b.Entity<AssetTypeEntity>(e =>

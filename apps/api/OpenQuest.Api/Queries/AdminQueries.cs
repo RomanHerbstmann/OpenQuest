@@ -24,6 +24,43 @@ public interface IAssetHistory
     Task<IReadOnlyList<object>?> ListAsync(Guid assetId, CancellationToken ct);
 }
 
+/// <summary>Reports and environment readings written by the importer (read only).</summary>
+public interface IImportedFeeds
+{
+    Task<IReadOnlyList<object>> ReportsAsync(string? status, string? category, int limit, CancellationToken ct);
+    Task<IReadOnlyList<object>> ReadingsAsync(string? metric, int days, CancellationToken ct);
+}
+
+public sealed class ImportedFeeds(AppDbContext db, TimeProvider clock) : IImportedFeeds
+{
+    public async Task<IReadOnlyList<object>> ReportsAsync(string? status, string? category, int limit, CancellationToken ct)
+    {
+        var query = db.AssetReports.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(status)) query = query.Where(r => r.Status == status);
+        if (!string.IsNullOrWhiteSpace(category)) query = query.Where(r => r.Category == category);
+        var rows = await query.OrderByDescending(r => r.ReportedAt).Take(limit)
+            .Select(r => new { Report = r, DataSource = r.DataSource.Key }).ToListAsync(ct);
+        // Coordinates are read in memory: ST_X/ST_Y don't exist for geography columns.
+        return rows.Select(x => (object)new
+        {
+            x.Report.Id, dataSource = x.DataSource, x.Report.ExternalId, x.Report.Category, x.Report.Status,
+            x.Report.Description, x.Report.StatusNotes, x.Report.Address, x.Report.MediaUrl,
+            lat = x.Report.Geom.Y, lon = x.Report.Geom.X, x.Report.AssetId, x.Report.DistanceM,
+            x.Report.ReportedAt, x.Report.SourceUpdatedAt,
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<object>> ReadingsAsync(string? metric, int days, CancellationToken ct)
+    {
+        var since = clock.GetUtcNow().AddDays(-days);
+        var query = db.EnvironmentReadings.AsNoTracking().Where(r => r.MeasuredAt >= since);
+        if (!string.IsNullOrWhiteSpace(metric)) query = query.Where(r => r.Metric == metric);
+        return (await query.OrderByDescending(r => r.MeasuredAt).ThenBy(r => r.Metric)
+            .Select(r => new { dataSource = r.DataSource.Key, r.StationId, r.Metric, r.Value, r.Unit, r.MeasuredAt })
+            .ToListAsync(ct)).Cast<object>().ToList();
+    }
+}
+
 public interface IPublicationOverview
 {
     Task<IReadOnlyList<object>> ListRunsAsync(int limit, CancellationToken ct);

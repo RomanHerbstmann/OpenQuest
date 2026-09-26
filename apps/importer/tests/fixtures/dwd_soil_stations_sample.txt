@@ -1,0 +1,3 @@
+Stationsindex; Höhe in m;Breite   ;Länge    ;Name                                                                            ;Bundesland                                                                
+           44;        44;    52.93;     8.24;Großenkneten                                                                    ;Niedersachsen                                                             
+         1766;        48;    52.13;     7.70;Münster/Osnabrück                                                               ;Nordrhein-Westfalen                                                       

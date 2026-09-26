@@ -1,0 +1,83 @@
+{
+ "1001742": [
+  {
+   "service_request_id": "9001",
+   "status": "open",
+   "status_notes": null,
+   "service_name": "Baum",
+   "service_code": "1001742",
+   "description": "Großer Ast hängt über dem Radweg. Rückfragen an max.muster@example.org oder 0251 123456.",
+   "requested_datetime": "2026-09-20T10:00:00+02:00",
+   "updated_datetime": "2026-09-21T09:00:00+02:00",
+   "address": "Grevener Straße, 48149 Münster",
+   "zipcode": "48149",
+   "lat": 51.974684186495125,
+   "long": 7.612396614095637,
+   "media_url": null
+  },
+  {
+   "service_request_id": "9002",
+   "status": "closed",
+   "status_notes": "Wurde beseitigt. Ihre Stadt Münster.",
+   "service_name": "Baum",
+   "service_code": "1001742",
+   "description": "Baum umgestürzt",
+   "requested_datetime": "2026-09-20T10:00:00+02:00",
+   "updated_datetime": "2026-09-21T09:00:00+02:00",
+   "address": "Grevener Straße, 48149 Münster",
+   "zipcode": "48149",
+   "lat": 51.970400000000005,
+   "long": 7.6401,
+   "media_url": null
+  },
+  {
+   "service_request_id": "9003",
+   "status": "open",
+   "status_notes": null,
+   "service_name": "Baum",
+   "service_code": "1001742",
+   "description": "Ast abgebrochen, weit weg von allen Bäumen der Stichprobe",
+   "requested_datetime": "2026-09-20T10:00:00+02:00",
+   "updated_datetime": "2026-09-21T09:00:00+02:00",
+   "address": "Grevener Straße, 48149 Münster",
+   "zipcode": "48149",
+   "lat": 52.02,
+   "long": 7.7,
+   "media_url": null
+  }
+ ],
+ "1001746": [
+  {
+   "service_request_id": "9004",
+   "status": "open",
+   "status_notes": null,
+   "service_name": "Eichenprozessionsspinner",
+   "service_code": "1001746",
+   "description": "Nester an der Eiche, Tel. +49 251 9876543",
+   "requested_datetime": "2026-09-20T10:00:00+02:00",
+   "updated_datetime": "2026-09-21T09:00:00+02:00",
+   "address": "Grevener Straße, 48149 Münster",
+   "zipcode": "48149",
+   "lat": 51.97463418649512,
+   "long": 7.612346614095637,
+   "media_url": null
+  }
+ ],
+ "1001743": [
+  {
+   "service_request_id": "9005",
+   "status": "open",
+   "status_notes": null,
+   "service_name": "Beleuchtung",
+   "service_code": "1001743",
+   "description": "Laterne defekt",
+   "requested_datetime": "2026-09-20T10:00:00+02:00",
+   "updated_datetime": "2026-09-21T09:00:00+02:00",
+   "address": "Grevener Straße, 48149 Münster",
+   "zipcode": "48149",
+   "lat": 51.97463418649512,
+   "long": 7.612346614095637,
+   "media_url": null
+  }
+ ]
+}

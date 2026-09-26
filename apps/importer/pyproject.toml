@@ -24,9 +24,15 @@ openquest-importer = "openquest_importer.cli:main"
 # themselves under the same entry point group, see README.
 [project.entry-points."openquest.adapters"]
 "de_muenster.trees" = "openquest_importer.adapters.de_muenster.trees:MuensterTreesAdapter"
+"de_muenster.natural_monuments" = "openquest_importer.adapters.de_muenster.natural_monuments:MuensterNaturalMonumentsAdapter"
+"de_nrw.strassen_trees" = "openquest_importer.adapters.de_nrw.strassen_trees:StrassenNrwTreesAdapter"
+"open311.reports" = "openquest_importer.adapters.open311.reports:Open311ReportsAdapter"
+"dwd.soil_daily" = "openquest_importer.adapters.dwd.soil:DwdSoilDailyAdapter"
 
 [project.entry-points."openquest.enrichers"]
 "de_nrw.ndom_height" = "openquest_importer.enrichers.de_nrw.ndom:NdomHeightEnricher"
+"de_nrw.alleen" = "openquest_importer.enrichers.de_nrw.alleen:AlleenEnricher"
+"geo.area_name" = "openquest_importer.enrichers.geo_areas:AreaNameEnricher"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/openquest_importer"]

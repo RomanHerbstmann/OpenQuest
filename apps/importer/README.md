@@ -1,6 +1,20 @@
 # OpenQuest importer
 
-Loads open data sets (first: the Münster tree inventory) into the OpenQuest database and keeps them up to date.
+Loads open data sets into the OpenQuest database and keeps them up to date: trees, natural monuments, citizen reports and environment readings.
+
+## Sources (`importer.toml`)
+
+| Source key | Adapter | Writes | Enrichers | Licence |
+|---|---|---|---|---|
+| `de-muenster-trees` | `de_muenster.trees` | ~43,000 city trees (`asset`, type `tree`) with street, district, quarter | nDOM height, avenues | dl-de/by-2.0 |
+| `de-nrw-strassen-trees-muenster` | `de_nrw.strassen_trees` | ~2,300 trees along federal/state roads in Münster (Straßen.NRW) | district, quarter, nDOM height, avenues | dl-de/zero-2.0 |
+| `de-muenster-natural-monuments` | `de_muenster.natural_monuments` | natural monuments (`asset`, type `natural_monument`) from the city's WMS. **Disabled**: licence not stated | avenues | unknown |
+| `de-muenster-maengelmelder-trees` | `open311.reports` | citizen reports "Baum" and "Eichenprozessionsspinner" (`asset_report`), linked to the nearest tree | – | dl-de/by-2.0 |
+| `dwd-soil-1766` | `dwd.soil_daily` | daily soil moisture, evaporation, soil temperature of station Münster/Osnabrück (`environment_reading`) | – | GeoNutzV |
+
+`sync --all` runs every enabled source; a disabled one still runs when named (`sync de-muenster-natural-monuments`).
+
+Adapters come in three kinds, by what they write: **assets** (`DataSourceAdapter`), **reports** (`ReportAdapter`: matched by the source's id, linked to the nearest asset within `link_radius_m`) and **readings** (`ReadingAdapter`: matched by station, metric and time). Report and reading feeds only show a window of recent data, so nothing is removed when it drops out of the window.
 
 Each sync:
 
@@ -93,6 +107,8 @@ radius_m = 2.5
 | Enricher | Sets | Source |
 |---|---|---|
 | `de_nrw.ndom_height` | `height_m` | nDOM50 of Geobasis NRW (WCS, dl-de/zero-2.0): 95th percentile of the object height within `radius_m` of the tree point, one request per 50 m cell. Options: `radius_m`, `cell_m`, `concurrency`, `timeout_s`, `retries`, `max_age_days` |
+| `de_nrw.alleen` | `avenue_id`, `avenue_name` | Alleenkataster NRW (LINFOS WFS, dl-de/zero-2.0): trees within `distance_m` (default 10) of a legally protected avenue |
+| `geo.area_name` | the `attribute` option | any polygon GeoJSON (`url`/`file`) with the name in `name_field`, e.g. Stadtbezirke → `district`. Can be configured several times per source |
 
 Enrichers keep data between syncs in the cache directory (`[cache] dir`, `OPENQUEST_CACHE_DIR`; volume `importer-cache` in Docker). For nDOM the first sync of Münster fetches ~10,000 cells, later syncs only the cells of new or moved trees. If cells fail, the sync fails; successful cells are cached, so the next sync resumes. What an enricher used is stored in the snapshot.
 
@@ -111,7 +127,7 @@ The **removal guard** stops a sync that would remove more than `max_removal_rati
 
 ## Writing an adapter for another city
 
-1. Subclass `DataSourceAdapter` (`openquest_importer/adapters/base.py`): set `asset_type`, `identity` and `expected_fields`, implement `fetch()` (download the whole data set) and `parse()` (return `NormalizedAsset`s in WGS84 with attributes that match the asset type's schema).
+1. Subclass `DataSourceAdapter` (`openquest_importer/adapters/base.py`): set `asset_type`, `identity` and `expected_fields`, implement `fetch()` (download the whole data set) and `parse()` (return `NormalizedAsset`s in WGS84 with attributes that match the asset type's schema). For reports or readings subclass `ReportAdapter` / `ReadingAdapter` instead. `adapters/http.py` (downloads with retries, local files for offline development) and `adapters/boundary.py` (clip to a city) help.
 2. Register it under the entry point group `openquest.adapters`, either in this package's `pyproject.toml` or in your own package:
 
    ```toml

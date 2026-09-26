@@ -916,3 +916,104 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926101009_AddReportsAndReadings') THEN
+    CREATE TABLE asset_report (
+        id uuid NOT NULL,
+        data_source_id uuid NOT NULL,
+        external_id character varying(128) NOT NULL,
+        category character varying(48) NOT NULL,
+        status character varying(24) NOT NULL,
+        description text,
+        status_notes text,
+        address text,
+        media_url text,
+        geom geography (point) NOT NULL,
+        asset_id uuid,
+        distance_m double precision,
+        reported_at timestamp with time zone NOT NULL,
+        source_updated_at timestamp with time zone,
+        raw jsonb NOT NULL,
+        source_hash character varying(64) NOT NULL,
+        first_seen_at timestamp with time zone NOT NULL,
+        last_seen_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_asset_report PRIMARY KEY (id),
+        CONSTRAINT fk_asset_report_assets_asset_id FOREIGN KEY (asset_id) REFERENCES asset (id) ON DELETE SET NULL,
+        CONSTRAINT fk_asset_report_data_source_data_source_id FOREIGN KEY (data_source_id) REFERENCES data_source (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926101009_AddReportsAndReadings') THEN
+    CREATE TABLE environment_reading (
+        id uuid NOT NULL,
+        data_source_id uuid NOT NULL,
+        station_id character varying(64) NOT NULL,
+        metric character varying(64) NOT NULL,
+        value double precision NOT NULL,
+        unit character varying(16) NOT NULL,
+        measured_at timestamp with time zone NOT NULL,
+        geom geography (point),
+        imported_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_environment_reading PRIMARY KEY (id),
+        CONSTRAINT fk_environment_reading_data_source_data_source_id FOREIGN KEY (data_source_id) REFERENCES data_source (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926101009_AddReportsAndReadings') THEN
+    CREATE INDEX ix_asset_report_asset_id_status ON asset_report (asset_id, status);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926101009_AddReportsAndReadings') THEN
+    CREATE INDEX ix_asset_report_category_status_reported_at ON asset_report (category, status, reported_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926101009_AddReportsAndReadings') THEN
+    CREATE UNIQUE INDEX ix_asset_report_data_source_id_external_id ON asset_report (data_source_id, external_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926101009_AddReportsAndReadings') THEN
+    CREATE INDEX ix_asset_report_geom ON asset_report USING gist (geom);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926101009_AddReportsAndReadings') THEN
+    CREATE UNIQUE INDEX ix_environment_reading_data_source_id_station_id_metric_measur ON environment_reading (data_source_id, station_id, metric, measured_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926101009_AddReportsAndReadings') THEN
+    CREATE INDEX ix_environment_reading_metric_measured_at ON environment_reading (metric, measured_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926101009_AddReportsAndReadings') THEN
+    INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
+    VALUES ('20260926101009_AddReportsAndReadings', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+

@@ -122,6 +122,7 @@ public static class ServiceRegistration
         s.AddScoped<IQuestOverview, QuestOverview>();
         s.AddScoped<IPublicationOverview, PublicationOverview>();
         s.AddScoped<IAssetHistory, AssetHistory>();
+        s.AddScoped<IImportedFeeds, ImportedFeeds>();
 
         s.AddHostedService<ClaimExpiryWorker>();
         return s;

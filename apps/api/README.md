@@ -80,7 +80,7 @@ Approved photos are public at `GET /media/{id}` (only after approval, never befo
 | Role | Calls |
 |---|---|
 | `moderator`, `admin` | `GET /admin/submissions?status=pending`, `GET /admin/media/{id}`, `POST /admin/submissions/{id}/review` `{approved, reason}` (reason required to reject; rejecting frees the slot) |
-| `admin` | `POST /admin/quests` (creates a campaign with one quest per selected asset), `GET /admin/quests`, `POST /admin/quests/{id}/status`, `GET /admin/campaigns`, `GET /admin/sync/runs`, `GET /admin/assets/{id}/history`, `GET /admin/publications`, `POST /admin/publications/retry`, `GET /admin/outbox` |
+| `admin` | `POST /admin/quests` (creates a campaign with one quest per selected asset), `GET /admin/quests`, `POST /admin/quests/{id}/status`, `GET /admin/campaigns`, `GET /admin/sync/runs`, `GET /admin/assets/{id}/history`, `GET /admin/reports`, `GET /admin/readings`, `GET /admin/publications`, `POST /admin/publications/retry`, `GET /admin/outbox` |
 
 Create quests for trees without a known genus inside a map rectangle:
 
@@ -92,7 +92,7 @@ POST /admin/quests
               "bbox": { "minLon": 7.60, "minLat": 51.95, "maxLon": 7.64, "maxLat": 51.97 }, "limit": 100 } }
 ```
 
-`target` accepts `assetIds`, `bbox`, `attributeFilter` (JSONB containment on asset attributes, for example `{"quality_flags":["placeholder_genus"]}`) and `withoutApprovedPhoto`.
+`target` accepts `assetIds`, `bbox`, `attributeFilter` (JSONB containment on asset attributes, for example `{"quality_flags":["placeholder_genus"]}`), `withoutApprovedPhoto` and `withOpenReport` (assets with an open report from an external feed: a category such as `tree_damage` / `oak_processionary_moth`, or `any`). `assetType` selects `tree` (default) or `natural_monument`.
 An asset never gets the same quest twice.
 
 ## Phone app (CORS and photos)
@@ -195,6 +195,8 @@ Problem codes: `self_intersection`, `overlaps_district`, `too_few_points`, `too_
 The API does not import anything; a separate importer loads the city's data set and records every run in `sync_run` and every change of an asset in `asset_snapshot`. The API shows the result read-only:
 
 - `GET /admin/sync/runs`: the latest runs with status, counters and error;
+- `GET /admin/reports?status=open&category=tree_damage`: reports from external feeds (e.g. the city's "Mängelmelder"), with the linked asset;
+- `GET /admin/readings?metric=soil_moisture_grass_sand_0_60cm&days=14`: environment readings such as daily soil moisture;
 - `GET /admin/assets/{id}/history`: the versions of an asset (`created`, `updated`, `removed`).
 
 ## Data flow back to the city (event-driven)
