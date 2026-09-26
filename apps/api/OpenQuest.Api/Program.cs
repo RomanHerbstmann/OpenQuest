@@ -14,6 +14,7 @@ builder.Services
     .AddOpenQuestGame()
     .AddOpenQuestGamification()
     .AddOpenQuestEventing()
+    .AddOpenQuestAutoReview(config)
     .AddOpenQuestPublishing(config)
     .AddOpenQuestStartupTasks();
 

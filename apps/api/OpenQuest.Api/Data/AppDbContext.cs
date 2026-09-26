@@ -30,6 +30,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DistrictPoint> DistrictPoints => Set<DistrictPoint>();
     public DbSet<DistrictGenusStat> DistrictGenusStats => Set<DistrictGenusStat>();
     public DbSet<Card> Cards => Set<Card>();
+    public DbSet<AssetProposal> AssetProposals => Set<AssetProposal>();
     public DbSet<AssetActivity> AssetActivities => Set<AssetActivity>();
     public DbSet<QuestSchedule> QuestSchedules => Set<QuestSchedule>();
     public DbSet<QuestScheduleRun> QuestScheduleRuns => Set<QuestScheduleRun>();
@@ -179,12 +180,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.ToTable("quest");
             e.HasOne<QuestCampaign>().WithMany().HasForeignKey(x => x.CampaignId);
             e.HasOne(x => x.Asset).WithMany().HasForeignKey(x => x.AssetId);
+            e.HasOne<District>().WithMany().HasForeignKey(x => x.DistrictId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.TaskType).WithMany().HasForeignKey(x => x.TaskTypeId);
             e.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedBy);
             e.Property(x => x.TaskConfig).HasColumnType("jsonb");
             e.HasIndex(x => new { x.Status, x.AssetId });
             e.HasIndex(x => x.AssetId);
-            e.ToTable(t => t.HasCheckConstraint("ck_quest_slots", "slots_taken >= 0 AND max_completions >= 1"));
+            e.HasIndex(x => x.DistrictId);
+            e.ToTable(t =>
+            {
+                t.HasCheckConstraint("ck_quest_slots", "slots_taken >= 0 AND max_completions >= 1");
+                t.HasCheckConstraint("ck_quest_place", "asset_id IS NOT NULL OR district_id IS NOT NULL");
+            });
         });
 
         b.Entity<Claim>(e =>
@@ -208,6 +215,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => x.ClaimId).IsUnique();
             e.Property(x => x.Payload).HasColumnType("jsonb");
             e.Property(x => x.Location).HasColumnType("geography (point)");
+            e.Property(x => x.AutoReview).HasColumnType("jsonb");
             e.HasIndex(x => new { x.Status, x.SubmittedAt });
         });
 
@@ -322,6 +330,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne<QuestCampaign>().WithMany().HasForeignKey(x => x.CampaignId).OnDelete(DeleteBehavior.SetNull);
             e.Property(x => x.PeriodKey).HasMaxLength(48);
             e.HasIndex(x => new { x.ScheduleId, x.RanAt });
+        });
+
+        b.Entity<AssetProposal>(e =>
+        {
+            e.ToTable("asset_proposal");
+            e.HasOne(x => x.Submission).WithMany().HasForeignKey(x => x.SubmissionId);
+            e.HasOne<DataSource>().WithMany().HasForeignKey(x => x.DataSourceId);
+            e.HasOne<AssetTypeEntity>().WithMany().HasForeignKey(x => x.AssetTypeId);
+            e.HasOne<District>().WithMany().HasForeignKey(x => x.DistrictId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne<ExportRun>().WithMany().HasForeignKey(x => x.ExportRunId);
+            e.Property(x => x.Geom).HasColumnType("geography (point)");
+            e.Property(x => x.Genus).HasMaxLength(100);
+            e.Property(x => x.Species).HasMaxLength(100);
+            e.HasIndex(x => x.SubmissionId).IsUnique();
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.Geom).HasMethod("gist");
         });
 
         b.Entity<AttributeChange>(e =>

@@ -171,6 +171,45 @@ Without `districtId` and `cityId` in the target it applies to the schedule's cit
 (also for runs it missed while it was down, the last two days). Register an `IEventHandler<AssetSyncCompleted>` to react; the built-in one marks the district genus
 statistics as out of date.
 
+## Missing trees, reported problems and the automatic review
+
+Decisions in [ADR-0011](../../docs/adr/0011-new-tree-reports-and-automatic-review.md).
+
+**Problems on a tree.** A `condition_report` payload may contain `issues`: a list (each once) of `root_lift`, `trunk_damage`, `dead_branches`, `crown_damage`, `fungus`,
+`cavity`, `leaning`, `pests`, `vandalism`, next to the required `condition`. Approved, it is published as a second change (attribute `issues`).
+
+**Trees that are missing in the data.** Task type `report_new_tree`: the quest belongs to a **district**, not to an asset.
+
+```json
+POST /admin/quests
+{ "taskType": "report_new_tree", "taskConfig": { "dataSource": "de-muenster-trees" }, "maxCompletions": 5, "rewardPoints": 40,
+  "title": "Fehlt hier ein Baum?", "target": { "districtId": "…" } }        // or "cityId": one quest per active district
+```
+
+| Who | Call | Notes |
+|---|---|---|
+| player | `GET /quests/areas?lat&lon` | Quests of the districts the position lies in. `asset` is null, `area` names the district. `GET /quests/nearby` does not return them |
+| player | `POST /quests/{id}/claim`, `POST /claims/{id}/submit` | Photo required; `payload`: optional `genus`, `species`, `note`; `lat`/`lon` is the tree's position |
+| moderator | `GET /admin/proposals?status=` | The reported trees. Approve or reject the submission as usual |
+
+Errors: `outside_area` (not inside the district), `tree_already_known` (a tree or an open report within `Game:NewTreeMinDistanceMeters`, 5 m), `data_source_unknown`. An approved report is
+published with the other accepted changes: a feature at the reported position with `attribute = "new_tree"`, empty `external_id` and `new_value` = `{genus, species, note, photo_url}`.
+The points go to the quest's district; there is no card. Clients must accept `asset: null` in `QuestDto` and `AdminSubmissionDto` (see `area`).
+
+**Automatic review of photos (off by default).** After a submission with a photo, the API can ask the web app's photo verification (`POST /api/verify`, ADR-0002) and approve the
+submission when the verdict is a clear `approve`; `review` and `reject` leave it to a moderator (nothing is ever rejected automatically). The verdict, reasons and details are stored in `auto_review`
+and shown in `GET /admin/submissions` (`autoReview`; `reviewedBy` is null when the check approved it).
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `AutoReview:Enabled` | `false` | Switch it on |
+| `AutoReview:VerifyUrl` | | Full address of the web app's verification, e.g. `https://openquest.fun/api/verify` |
+| `AutoReview:TaskTypes` | `["photo"]` | Which task types are checked (only with a photo). A reported new tree changes the city's data: add `report_new_tree` only on purpose |
+| `AutoReview:TimeoutSeconds` | `90` | |
+
+The web app rate limits `/api/verify` per IP (10 per minute); answers like 429 or 5xx are retried with backoff by the outbox and end with the submission staying for a moderator.
+Swap the checker by registering another `ISubmissionAutoReviewer` (core) instead of the HTTP one.
+
 ## Admin panel
 
 The API serves a small admin panel at **`/panel/`** (static files in `apps/api/OpenQuest.Api/wwwroot/panel`, no build step, plain JavaScript modules,
@@ -267,5 +306,5 @@ approve  ->  transaction: change = accepted + outbox event (same commit)  ->  NO
 
 ## Not built yet
 
-Gamification beyond points, levels, the district leaderboard, cards and weekly quests (new-tree reports, badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
+Gamification beyond points, levels, the district leaderboard, cards, weekly quests and new-tree reports (badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
 account deletion (`user.deleted_at` is honored on login but there is no endpoint), street name enrichment, admin-created moderators (set `user.role` in the database for now).

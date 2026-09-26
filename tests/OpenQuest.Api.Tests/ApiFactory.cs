@@ -10,6 +10,7 @@ using NetTopologySuite.Geometries;
 using OpenQuest.Api.Data;
 using OpenQuest.Api.Storage;
 using OpenQuest.Core.Publishing;
+using OpenQuest.Core.Review;
 using OpenQuest.Core.Domain;
 using Testcontainers.PostgreSql;
 
@@ -41,6 +42,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero));
     public InMemoryBlobStore Storage { get; } = new();
     public ScriptedPublisher Publisher { get; } = new();
+    public ScriptedAutoReviewer AutoReviewer { get; } = new();
 
     public async Task InitializeAsync()
     {
@@ -68,6 +70,8 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         Set("Auth__Argon2TimeCost", "1");
         Set("Auth__RateLimitPerMinute", "100000");
         Set("Outbox__RetryBaseDelayMs", "200");
+        Set("AutoReview__Enabled", "true");   // the checker itself is scripted (see ConfigureWebHost); by default it only says "review"
+        Set("AutoReview__VerifyUrl", "http://localhost:1/api/verify");
         Set("Gamification__QuestScheduleIntervalSeconds", "86400"); // the tests start schedule runs themselves, the worker only ticks once at start
         Set("Cors__Origins", "http://localhost:3000,https://localhost,capacitor://localhost"); // web frontend and the phone app
         Set("Storage__AccessKey", "x");
@@ -106,6 +110,8 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             s.AddSingleton<IBlobReader>(Storage);
             s.AddSingleton<IBlobDeleter>(Storage);
             s.AddSingleton<IContributionPublisher>(Publisher);
+            s.RemoveAll<ISubmissionAutoReviewer>();
+            s.AddSingleton<ISubmissionAutoReviewer>(AutoReviewer);
         });
     }
 
@@ -219,5 +225,34 @@ public sealed class ScriptedPublisher : IContributionPublisher
         Interlocked.Exchange(ref _failNext, 0);
         lock (Batches) Batches.Add(batch);
         return Task.FromResult(new PublishResult("scripted://ok"));
+    }
+}
+
+/// <summary>
+/// Stands in for the photo verification. Without a script it answers "review" (a moderator decides), so tests that do not care are not affected.
+/// A test scripts the answer for its own tree by the tree's latitude (every test works on its own patch of the map).
+/// </summary>
+public sealed class ScriptedAutoReviewer : ISubmissionAutoReviewer
+{
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<double, Func<int, AutoReviewDecision>> _scripts = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<double, int> _attempts = new();
+    public System.Collections.Concurrent.ConcurrentQueue<AutoReviewRequest> Calls { get; } = new();
+
+    private static double Key(double lat) => Math.Round(lat, 4);
+
+    /// <summary>The answer for photos of the tree at this latitude; the function gets the attempt number (1, 2, ...) and may throw.</summary>
+    public void On(double expectedLat, Func<int, AutoReviewDecision> answer) => _scripts[Key(expectedLat)] = answer;
+    public void On(double expectedLat, AutoReviewVerdict verdict, params string[] reasons)
+        => On(expectedLat, _ => new AutoReviewDecision(verdict, reasons, "{\"scripted\":true}"));
+
+    public int AttemptsFor(double expectedLat) => _attempts.GetValueOrDefault(Key(expectedLat));
+
+    public Task<AutoReviewDecision> ReviewAsync(AutoReviewRequest request, CancellationToken ct)
+    {
+        Calls.Enqueue(request);
+        if (request.Expected is not { } expected || !_scripts.TryGetValue(Key(expected.Lat), out var script))
+            return Task.FromResult(new AutoReviewDecision(AutoReviewVerdict.Review, ["not_scripted"]));
+        var attempt = _attempts.AddOrUpdate(Key(expected.Lat), 1, (_, n) => n + 1);
+        return Task.FromResult(script(attempt));
     }
 }

@@ -24,11 +24,12 @@ public sealed class QuestClaimService(AppDbContext db, IQuestSlotLedger ledger, 
 
         if (!await ledger.LockQuestAsync(questId, ct)) return ServiceResult<Claim>.Fail(404, "quest_not_found");
         var quest = await db.Quests.Include(q => q.Asset).FirstAsync(q => q.Id == questId, ct);
+        var districtActive = quest.DistrictId is null || await db.Districts.AnyAsync(d => d.Id == quest.DistrictId && d.IsActive, ct);
 
         // Stale claims still hold a slot until swept; release them now so they neither block nor count.
         await ledger.ReleaseStaleClaimsAsync(quest, now, ct);
 
-        if (quest.Status is not (QuestStatus.Active or QuestStatus.Full) || quest.Asset.Status != AssetStatus.Active)
+        if (quest.Status is not (QuestStatus.Active or QuestStatus.Full) || quest.Asset is { Status: not AssetStatus.Active } || !districtActive)
             return ServiceResult<Claim>.Fail(409, "quest_unavailable");
         if ((quest.StartsAt is { } s && now < s) || (quest.EndsAt is { } e && now >= e))
             return ServiceResult<Claim>.Fail(409, "quest_not_open");

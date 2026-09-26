@@ -5,9 +5,13 @@ namespace OpenQuest.Api.Contracts;
 
 public record AssetDto(Guid Id, string AssetType, string ExternalId, double Lat, double Lon, JsonNode? Attributes);
 
+/// <summary>The district of a quest that has no asset (report a tree that is missing in the data): the player has to be inside it.</summary>
+public record QuestAreaDto(Guid DistrictId, string Name, double CentroidLat, double CentroidLon, string? Color);
+
+/// <summary><c>Asset</c> is null for a quest of a district (task type <c>report_new_tree</c>); <c>Area</c> is set for those.</summary>
 public record QuestDto(
     Guid Id, string Title, string? Description, string TaskType, JsonNode? TaskConfig,
-    int RewardPoints, int FreeSlots, int GeofenceRadiusM, DateTimeOffset? EndsAt, double? DistanceMeters, AssetDto Asset);
+    int RewardPoints, int FreeSlots, int GeofenceRadiusM, DateTimeOffset? EndsAt, double? DistanceMeters, AssetDto? Asset, QuestAreaDto? Area = null);
 
 public record ClaimDto(Guid Id, Guid QuestId, ClaimStatus Status, DateTimeOffset ClaimedAt, DateTimeOffset ExpiresAt);
 
@@ -60,8 +64,9 @@ public record ReviewRequest(bool Approved, string? Reason);
 public record AdminSubmissionDto(
     Guid Id, SubmissionStatus Status, DateTimeOffset SubmittedAt, string Username,
     Guid QuestId, string QuestTitle, string TaskType, JsonNode? TaskConfig,
-    AssetDto Asset, double ReportedLat, double ReportedLon, double DistanceMeters,
-    JsonNode? Payload, Guid? MediaId, string? RejectionReason, DateTimeOffset? ReviewedAt);
+    AssetDto? Asset, double ReportedLat, double ReportedLon, double DistanceMeters,
+    JsonNode? Payload, Guid? MediaId, string? RejectionReason, DateTimeOffset? ReviewedAt,
+    QuestAreaDto? Area = null, JsonNode? AutoReview = null, Guid? ReviewedBy = null);
 
 // ---- cities and districts ------------------------------------------------------------------------------------------
 

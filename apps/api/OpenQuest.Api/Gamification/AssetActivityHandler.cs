@@ -14,7 +14,7 @@ public sealed class AssetActivityHandler(AppDbContext db) : IEventHandler<Submis
     public async Task HandleAsync(IReadOnlyList<SubmissionApproved> events, CancellationToken ct)
     {
         var questIds = events.Select(e => e.QuestId).Distinct().ToList();
-        var assetIds = await db.Quests.AsNoTracking().Where(q => questIds.Contains(q.Id)).Select(q => q.AssetId).Distinct().ToArrayAsync(ct);
+        var assetIds = await db.Quests.AsNoTracking().Where(q => questIds.Contains(q.Id)).Where(q => q.AssetId != null).Select(q => q.AssetId!.Value).Distinct().ToArrayAsync(ct);   // a quest without asset verifies nothing
         if (assetIds.Length == 0) return;
 
         await db.Database.ExecuteSqlInterpolatedAsync($"""

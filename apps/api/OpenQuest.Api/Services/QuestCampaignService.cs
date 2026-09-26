@@ -41,6 +41,8 @@ public sealed class QuestCampaignService(
         var configJson = config.ToJsonString();
 
         var now = clock.GetUtcNow();
+        if (taskTypeEnum == TaskType.ReportNewTree) return await CreateAreaQuestsAsync(adminId, req, target, taskType.Id, config, configJson, now, ct);
+
         var assetIds = await SelectAssetsAsync(target, assetType.Id, taskType.Id, configJson, now, ct);
         if (assetIds.Count == 0) return ServiceResult<CreateQuestsResult>.Success(new CreateQuestsResult(0, null, []));
 
@@ -68,6 +70,45 @@ public sealed class QuestCampaignService(
             new CreateQuestsResult(quests.Count, campaign.Id, quests.Count <= 200 ? quests.Select(q => q.Id).ToList() : null));
     }
 
+    /// <summary>
+    /// A quest to report a tree that is missing in the data belongs to a district, not to an asset: one quest per selected district
+    /// (<c>target.districtId</c>, or every active district of <c>target.cityId</c>); <c>maxCompletions</c> is how many trees can be reported there.
+    /// </summary>
+    private async Task<ServiceResult<CreateQuestsResult>> CreateAreaQuestsAsync(
+        Guid adminId, CreateQuestsRequest req, QuestTarget target, Guid taskTypeId, JsonObject config, string configJson, DateTimeOffset now, CancellationToken ct)
+    {
+        var dataSourceKey = config["dataSource"]?.GetValue<string>();
+        if (!await db.DataSources.AnyAsync(d => d.Key == dataSourceKey, ct))
+            return Invalid(new() { ["taskConfig"] = [$"Unknown data source '{dataSourceKey}'."] });
+
+        var open = new[] { QuestStatus.Draft, QuestStatus.Active, QuestStatus.Paused, QuestStatus.Full };
+        var districts = await db.Districts.AsNoTracking()
+            .Where(d => d.IsActive && (target.DistrictId != null ? d.Id == target.DistrictId : d.CityId == target.CityId))
+            .Where(d => !db.Quests.Any(q => q.DistrictId == d.Id && q.TaskTypeId == taskTypeId && open.Contains(q.Status)
+                                            && (q.EndsAt == null || q.EndsAt > now) && EF.Functions.JsonContains(q.TaskConfig, configJson)))
+            .OrderBy(d => d.Name).Select(d => new { d.Id, d.Name }).Take(Math.Clamp(target.Limit ?? 500, 1, 500)).ToListAsync(ct);
+        if (districts.Count == 0) return ServiceResult<CreateQuestsResult>.Success(new CreateQuestsResult(0, null, []));
+
+        var title = string.IsNullOrWhiteSpace(req.Title) ? null : req.Title.Trim();
+        var campaign = new QuestCampaign
+        {
+            CreatedBy = adminId, Title = title ?? "Report a missing tree", Description = req.Description?.Trim(), CreatedAt = now,
+            AssetFilter = JsonSerializer.Serialize(target, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+        };
+        db.QuestCampaigns.Add(campaign);
+        var quests = districts.Select(d => new Quest
+        {
+            CampaignId = campaign.Id, AssetId = null, DistrictId = d.Id, TaskTypeId = taskTypeId, CreatedBy = adminId,
+            Title = title ?? $"A tree that is missing in {d.Name}", Description = req.Description?.Trim(), TaskConfig = configJson,
+            MaxCompletions = req.MaxCompletions, RewardPoints = req.RewardPoints,
+            GeofenceRadiusM = req.GeofenceRadiusM ?? game.Value.GeofenceMeters, ClaimTtlMinutes = req.ClaimTtlMinutes ?? game.Value.ClaimTimeoutMinutes,
+            Status = req.Status ?? QuestStatus.Active, StartsAt = req.StartsAt, EndsAt = req.EndsAt, CreatedAt = now,
+        }).ToList();
+        db.Quests.AddRange(quests);
+        await db.SaveChangesAsync(ct);
+        return ServiceResult<CreateQuestsResult>.Success(new CreateQuestsResult(quests.Count, campaign.Id, quests.Select(q => q.Id).ToList()));
+    }
+
     private Dictionary<string, string[]> Validate(CreateQuestsRequest req, QuestTarget t, out TaskType taskType, out AssetType assetType)
     {
         var errors = new Dictionary<string, string[]>();
@@ -86,6 +127,8 @@ public sealed class QuestCampaignService(
         if (t.AssetIds is not { Count: > 0 } && t.BBox is null && t.AttributeFilter is null && t.WithoutApprovedPhoto != true
             && string.IsNullOrWhiteSpace(t.WithOpenReport) && t.DistrictId is null && t.CityId is null && t.NotVerifiedForDays is null)
             errors["target"] = ["Select assets with assetIds, bbox, attributeFilter, withoutApprovedPhoto, withOpenReport, districtId, cityId or notVerifiedForDays."];
+        if (taskOk && taskType == TaskType.ReportNewTree && t.DistrictId is null && t.CityId is null)
+            errors["target"] = ["A quest to report new trees needs a district: give target.districtId or target.cityId."];
         if (t.NotVerifiedForDays is < 1 or > 3650) errors["target.notVerifiedForDays"] = ["Must be between 1 and 3650."];
         if (t.BBox is { } b && (b.MinLon >= b.MaxLon || b.MinLat >= b.MaxLat)) errors["target.bbox"] = ["Invalid bounding box."];
         return errors;

@@ -41,6 +41,12 @@ public static class PlayerEndpoints
             .WithName("NearbyQuests")
             .WithSummary("Open quests near a position, nearest first. Full quests and quests the user already holds are hidden.");
 
+        g.MapGet("/quests/areas", async (double lat, double lon, string? taskType, ClaimsPrincipal user,
+                IAreaQuests quests, CancellationToken ct) =>
+            ValidPosition(lat, lon) ? Results.Ok(await quests.FindAsync(lat, lon, taskType, user.GetUserId(), ct)) : InvalidPosition())
+            .WithName("AreaQuests")
+            .WithSummary("Quests of the districts the position lies in (task type report_new_tree: report a tree that is missing in the data). They have no asset; `area` names the district. The player claims and submits them like other quests, standing inside the district.");
+
         g.MapGet("/assets/nearby", async (double lat, double lon, double? radius, string? assetType, INearbyAssets assets, CancellationToken ct) =>
             ValidPosition(lat, lon) ? Results.Ok(await assets.FindAsync(lat, lon, radius, assetType, ct)) : InvalidPosition())
             .WithName("NearbyAssets")

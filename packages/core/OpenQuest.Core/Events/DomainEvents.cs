@@ -8,6 +8,12 @@ public interface IDomainEvent;
 /// <summary>A moderator accepted a change to an asset attribute: it has to reach the city's open data.</summary>
 public sealed record AttributeChangeAccepted(ApprovedContribution Contribution) : IDomainEvent;
 
+/// <summary>
+/// A player handed in a submission (it is pending). Extension point for everything that looks at a fresh submission, such as the
+/// automatic check (<see cref="OpenQuest.Core.Review.ISubmissionAutoReviewer"/>).
+/// </summary>
+public sealed record SubmissionSubmitted(Guid SubmissionId, Guid UserId, Guid QuestId, string TaskType, bool HasPhoto) : IDomainEvent;
+
 /// <summary>A submission was approved. Extension point for rewards (points, badges).</summary>
 public sealed record SubmissionApproved(Guid SubmissionId, Guid UserId, Guid QuestId, int RewardPoints) : IDomainEvent;
 

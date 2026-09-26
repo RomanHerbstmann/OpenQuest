@@ -80,7 +80,7 @@ public class StaleQuestTests(ApiFactory api)
     }
 
     private async Task<Guid[]> QuestAssetsOfAsync(HttpClient admin, Guid campaignId)
-        => await api.WithDb(async db => (await db.Quests.AsNoTracking().Where(q => q.CampaignId == campaignId).Select(q => q.AssetId).ToListAsync()).ToArray());
+        => await api.WithDb(async db => (await db.Quests.AsNoTracking().Where(q => q.CampaignId == campaignId).Select(q => q.AssetId!.Value).ToListAsync()).ToArray());
 
     /// <summary>A schedule that is due today: today's weekday, midnight in Berlin, open for a week.</summary>
     private object DueScheduleBody(Guid cityId, string name, object target, int rewardPoints = 25, string? weekday = null, string time = "00:00", int durationHours = 168)
