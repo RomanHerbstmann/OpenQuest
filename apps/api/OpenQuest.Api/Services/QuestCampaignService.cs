@@ -26,6 +26,8 @@ public sealed class QuestCampaignService(
     {
         var target = req.Target ?? new QuestTarget(null, null, null, null, null, null, null);
         var errors = Validate(req, target, out var taskTypeEnum, out var assetTypeDef);
+        if (target.DistrictId is { } districtId && !await db.Districts.AnyAsync(d => d.Id == districtId, ct)) errors["target.districtId"] = ["Unknown district."];
+        if (target.CityId is { } cityId && !await db.Cities.AnyAsync(c => c.Id == cityId, ct)) errors["target.cityId"] = ["Unknown city."];
         if (errors.Count > 0) return Invalid(errors);
 
         var taskType = await db.TaskTypes.AsNoTracking().FirstAsync(x => x.Key == taskTypeEnum.Key(), ct);
@@ -38,10 +40,10 @@ public sealed class QuestCampaignService(
         if (configProblems.Count > 0) return Invalid(new Dictionary<string, string[]> { ["taskConfig"] = [.. configProblems] });
         var configJson = config.ToJsonString();
 
-        var assetIds = await SelectAssetsAsync(target, assetType.Id, taskType.Id, configJson, ct);
+        var now = clock.GetUtcNow();
+        var assetIds = await SelectAssetsAsync(target, assetType.Id, taskType.Id, configJson, now, ct);
         if (assetIds.Count == 0) return ServiceResult<CreateQuestsResult>.Success(new CreateQuestsResult(0, null, []));
 
-        var now = clock.GetUtcNow();
         var title = string.IsNullOrWhiteSpace(req.Title) ? DefaultTitle(taskTypeEnum, config["attribute"]?.GetValue<string>()) : req.Title.Trim();
         var campaign = new QuestCampaign
         {
@@ -82,13 +84,14 @@ public sealed class QuestCampaignService(
         if (req.EndsAt is { } end && req.StartsAt is { } start && end <= start) errors["endsAt"] = ["Must be after startsAt."];
         if (req.Status is not (null or QuestStatus.Active or QuestStatus.Draft)) errors["status"] = ["Only draft or active when creating."];
         if (t.AssetIds is not { Count: > 0 } && t.BBox is null && t.AttributeFilter is null && t.WithoutApprovedPhoto != true
-            && string.IsNullOrWhiteSpace(t.WithOpenReport))
-            errors["target"] = ["Select assets with assetIds, bbox, attributeFilter, withoutApprovedPhoto or withOpenReport."];
+            && string.IsNullOrWhiteSpace(t.WithOpenReport) && t.DistrictId is null && t.CityId is null && t.NotVerifiedForDays is null)
+            errors["target"] = ["Select assets with assetIds, bbox, attributeFilter, withoutApprovedPhoto, withOpenReport, districtId, cityId or notVerifiedForDays."];
+        if (t.NotVerifiedForDays is < 1 or > 3650) errors["target.notVerifiedForDays"] = ["Must be between 1 and 3650."];
         if (t.BBox is { } b && (b.MinLon >= b.MaxLon || b.MinLat >= b.MaxLat)) errors["target.bbox"] = ["Invalid bounding box."];
         return errors;
     }
 
-    private async Task<List<Guid>> SelectAssetsAsync(QuestTarget t, Guid assetTypeId, Guid taskTypeId, string configJson, CancellationToken ct)
+    private async Task<List<Guid>> SelectAssetsAsync(QuestTarget t, Guid assetTypeId, Guid taskTypeId, string configJson, DateTimeOffset now, CancellationToken ct)
     {
         var limit = Math.Clamp(t.Limit ?? MaxQuestsPerRequest, 1, MaxQuestsPerRequest);
         var query = db.Assets.AsNoTracking().Where(a => a.Status == AssetStatus.Active && a.AssetTypeId == assetTypeId);
@@ -110,6 +113,20 @@ public sealed class QuestCampaignService(
             query = query.Where(a => !db.AttributeChanges.Any(c => c.AssetId == a.Id && c.AttributeKey == "photo_url"
                                                                    && (c.Status == ChangeStatus.Accepted || c.Status == ChangeStatus.Exported)));
 
+        if (t.DistrictId is { } districtId)
+            query = query.Where(a => db.Districts.Any(d => d.Id == districtId && d.Geom.Covers(a.Geom)));
+        if (t.CityId is { } cityId)
+            query = query.Where(a => db.Districts.Any(d => d.CityId == cityId && d.IsActive && d.Geom.Covers(a.Geom)));
+        if (t.NotVerifiedForDays is { } days)
+        {
+            var cutoff = now.AddDays(-days);
+            query = query.Where(a => !db.AssetActivities.Any(x => x.AssetId == a.Id && x.LastVerifiedAt >= cutoff));
+            // never verified first, then the longest unchecked
+            query = query.OrderBy(a => db.AssetActivities.Any(x => x.AssetId == a.Id) ? 1 : 0)
+                .ThenBy(a => db.AssetActivities.Where(x => x.AssetId == a.Id).Select(x => x.LastVerifiedAt).FirstOrDefault())
+                .ThenBy(a => a.Id);
+        }
+
         if (!string.IsNullOrWhiteSpace(t.WithOpenReport))
         {
             var category = t.WithOpenReport.Trim();
@@ -117,10 +134,11 @@ public sealed class QuestCampaignService(
                                                              && (category == "any" || r.Category == category)));
         }
 
-        // Don't create the same quest twice for an asset.
+        // Don't create the same quest twice for an asset. A quest whose end has passed is over, whatever its status says:
+        // recurring quests would otherwise never come back to an asset.
         var openStatuses = new[] { QuestStatus.Draft, QuestStatus.Active, QuestStatus.Paused, QuestStatus.Full };
         query = query.Where(a => !db.Quests.Any(q => q.AssetId == a.Id && q.TaskTypeId == taskTypeId
-                                                    && openStatuses.Contains(q.Status)
+                                                    && openStatuses.Contains(q.Status) && (q.EndsAt == null || q.EndsAt > now)
                                                     && EF.Functions.JsonContains(q.TaskConfig, configJson)));
         return await query.Select(a => a.Id).Take(limit).ToListAsync(ct);
     }

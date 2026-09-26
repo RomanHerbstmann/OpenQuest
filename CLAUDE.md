@@ -50,6 +50,7 @@ City ◄──────────── write-back: domain events → publi
 
 - **Import** is done only by the importer (`apps/importer`, [README](apps/importer/README.md)), **not by the .NET API**; the API only reads assets, data sources and sync runs. Assets are synced into our own database on a schedule, so the city's platform is not a runtime dependency of the game.
 - **Write-back** is done by the API and is **event-driven**: accepting a contribution publishes a domain event (transactional outbox); handlers push the change to open data right away, never on a timer ([ADR-0004](docs/adr/0004-event-driven-writeback.md)).
+- **Sync events and recurring quests:** the importer sends `pg_notify('sync_finished', run_id)` after every successful run; the API turns it into an `AssetSyncCompleted` event (a handler marks the district genus statistics as stale). Weekly quest schedules (`quest_schedule`, per city time zone, e.g. "trees not verified for a year, Sundays 08:00") are created by a worker that only checks the clock; one run per schedule and ISO week is guaranteed by a primary key ([ADR-0010](docs/adr/0010-recurring-quests-and-sync-events.md)).
 
 The importer's contract (the Python code is the source of truth):
 

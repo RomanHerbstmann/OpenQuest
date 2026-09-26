@@ -14,6 +14,7 @@ using OpenQuest.Api.Gamification;
 using OpenQuest.Api.Photos;
 using OpenQuest.Api.Publishing;
 using OpenQuest.Api.Queries;
+using OpenQuest.Api.Scheduling;
 using OpenQuest.Api.Services;
 using OpenQuest.Api.Startup;
 using OpenQuest.Api.Storage;
@@ -150,6 +151,11 @@ public static class ServiceRegistration
         // cards: the rarity of a card depends on how frequent the genus is in the district
         s.AddScoped<IDistrictGenusStats, DistrictGenusStats>();
         s.AddScoped<ICardCollection, CardCollection>();
+
+        // recurring quests: what players verified when (asset_activity), and the weekly schedules that use it
+        s.AddScoped<IQuestScheduleRunner, QuestScheduleRunner>();
+        s.AddScoped<IQuestScheduleAdmin, QuestScheduleAdmin>();
+        s.AddHostedService<QuestScheduleWorker>();
         return s;
     }
 
@@ -161,11 +167,14 @@ public static class ServiceRegistration
         s.AddSingleton<IEventDispatcher, EventDispatcher>();
         s.AddScoped<IEventPublisher, OutboxEventPublisher>();
         s.AddHostedService<OutboxProcessor>();
+        s.AddHostedService<SyncFinishedListener>();   // the importer's sync_finished notification becomes an AssetSyncCompleted event
 
         // Handlers: add one line per reaction to an event.
         s.AddScoped<IEventHandler<AttributeChangeAccepted>, PublishAcceptedChangesHandler>();
         s.AddScoped<IEventHandler<SubmissionApproved>, AwardPointsHandler>();
         s.AddScoped<IEventHandler<SubmissionApproved>, AwardCardHandler>();
+        s.AddScoped<IEventHandler<SubmissionApproved>, AssetActivityHandler>();
+        s.AddScoped<IEventHandler<AssetSyncCompleted>, InvalidateGenusStatsHandler>();
         return s;
     }
 
@@ -205,6 +214,7 @@ public static class ServiceRegistration
         app.MapDistrictAdmin();
         app.MapMedia();
         app.MapAdminQuests();
+        app.MapQuestSchedules();
         app.MapModeration();
         app.MapPublishing();
         app.MapSync();

@@ -127,6 +127,50 @@ was redrawn or changed, or when older than `Gamification:GenusStatsMaxAgeHours` 
 known genus (`MinSample`) do not have reliable statistics: nothing counts as scarce there. The thresholds and chances can be tuned per deployment (`Gamification:Rarity`,
 see `.env.example`); the defaults are in `RarityProfile.Default` in the core.
 
+## Recurring quests (weekly, for stale data)
+
+Players are sent to the assets nobody has looked at for a long time, on a rhythm ([ADR-0010](../../docs/adr/0010-recurring-quests-and-sync-events.md)). Two parts:
+
+**1. Selecting stale assets.** `asset_activity` records when a player last had an asset approved (`last_verified_at`, `verification_count`; no row = never). Quest targets
+(`POST /admin/quests`, and the schedules below) can use it, and places:
+
+| `target` field | Selects |
+|---|---|
+| `notVerifiedForDays: 365` | assets nobody verified for a year (or ever); with a `limit` the never-verified first, then the longest unchecked |
+| `districtId` | assets inside this district's outline |
+| `cityId` | assets inside any active district of the city |
+
+They combine with the other selectors (`attributeFilter`, `limit`, ...). A quest whose `endsAt` has passed no longer blocks a new quest of the same kind for that asset.
+
+**2. Weekly schedules.** A schedule is a template; every week on its weekday and time (**in the city's time zone**, week = Monday to Sunday) the API creates the quests, open for
+`durationHours`. `rewardPoints` is the bonus that makes the quest worth more than a normal one. A run happens once per schedule and week (restarts and several instances are safe);
+if the API was down at the time it catches up later in the same week as long as the window is still open.
+
+| Call | Notes |
+|---|---|
+| `POST /admin/quest-schedules` | Create. Body below. Checked by creating the quests once and rolling back (400/422 with the reasons) |
+| `GET /admin/quest-schedules`, `GET .../{id}` | With `nextRunAt` (null while paused) and `lastRun` |
+| `PUT /admin/quest-schedules/{id}` | Change the given fields; `isEnabled: false` pauses it |
+| `DELETE /admin/quest-schedules/{id}` | Deletes the schedule and its run history; created quests stay |
+| `GET /admin/quest-schedules/{id}/runs` | Runs, newest first: `periodKey` (`2026-W39`), `questsCreated`, `campaignId`, `error` |
+| `POST /admin/quest-schedules/{id}/preview` | `{ "wouldCreate": n }` right now, nothing saved |
+| `POST /admin/quest-schedules/{id}/run` | Create the quests now, additionally to the weekly runs (also when paused) |
+
+```json
+{
+  "name": "Sunday check", "cityId": "…", "weekday": "sunday", "time": "08:00", "durationHours": 24,
+  "taskType": "photo", "title": "Sunday check: when did you last see this tree?", "maxCompletions": 1, "rewardPoints": 30,
+  "target": { "notVerifiedForDays": 365, "limit": 50 }
+}
+```
+
+Without `districtId` and `cityId` in the target it applies to the schedule's city (its districts). A schedule only finds assets inside districts, so draw them first. Set
+`Gamification:QuestScheduleIntervalSeconds` (60) to change how often the worker checks the clock.
+
+**Sync events.** After every successful run the importer sends `pg_notify('sync_finished', run_id)`; the API listens and puts an `AssetSyncCompleted` event into the outbox
+(also for runs it missed while it was down, the last two days). Register an `IEventHandler<AssetSyncCompleted>` to react; the built-in one marks the district genus
+statistics as out of date.
+
 ## Admin panel
 
 The API serves a small admin panel at **`/panel/`** (static files in `apps/api/OpenQuest.Api/wwwroot/panel`, no build step, plain JavaScript modules,
@@ -223,5 +267,5 @@ approve  ->  transaction: change = accepted + outbox event (same commit)  ->  NO
 
 ## Not built yet
 
-Gamification beyond points, levels, the district leaderboard and cards (recurring quests, new-tree reports, badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
+Gamification beyond points, levels, the district leaderboard, cards and weekly quests (new-tree reports, badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
 account deletion (`user.deleted_at` is honored on login but there is no endpoint), street name enrichment, admin-created moderators (set `user.role` in the database for now).

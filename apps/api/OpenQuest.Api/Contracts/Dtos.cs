@@ -29,7 +29,13 @@ public record QuestTarget(
     bool? WithoutApprovedPhoto,
     /// <summary>Only assets with an open report from an external feed: a report category (e.g. "tree_damage") or "any".</summary>
     string? WithOpenReport,
-    int? Limit);
+    int? Limit,
+    /// <summary>Only assets inside this district's outline.</summary>
+    Guid? DistrictId = null,
+    /// <summary>Only assets inside any active district of this city.</summary>
+    Guid? CityId = null,
+    /// <summary>Only assets that no player verified for this many days (or never), the longest-unchecked first.</summary>
+    int? NotVerifiedForDays = null);
 
 public record CreateQuestsRequest(
     string TaskType,
@@ -117,3 +123,20 @@ public record AuthResponse(string Token, DateTimeOffset ExpiresAt, string Userna
 public record RegisterResponse(string Token, DateTimeOffset ExpiresAt, string Username, string Role, IReadOnlyList<string> RecoveryCodes);
 public record RecoverResponse(string Token, DateTimeOffset ExpiresAt, string Username, string Role, int RemainingRecoveryCodes);
 public record RecoveryCodesResponse(IReadOnlyList<string> RecoveryCodes);
+
+// ---- recurring quests -------------------------------------------------------------------------------------------------
+
+/// <summary>
+/// Template of a weekly quest run. <c>Weekday</c> is a day name ("sunday"), <c>Time</c> "HH:mm" in the city's time zone.
+/// <c>Target</c> selects the assets (see <see cref="QuestTarget"/>); without <c>districtId</c> and <c>cityId</c> it defaults to the schedule's city.
+/// </summary>
+public record QuestScheduleRequest(
+    string? Name, Guid? CityId, string? Weekday, string? Time, int? DurationHours, string? TaskType, string? Title, string? Description,
+    JsonObject? TaskConfig, int? MaxCompletions, int? RewardPoints, int? GeofenceRadiusM, int? ClaimTtlMinutes, QuestTarget? Target, bool? IsEnabled);
+
+public record QuestScheduleRunDto(string PeriodKey, DateTimeOffset RanAt, Guid? CampaignId, int QuestsCreated, string? Error);
+
+public record QuestScheduleDto(
+    Guid Id, string Name, Guid CityId, bool IsEnabled, string Weekday, string Time, int DurationHours, string TaskType, string? Title,
+    string? Description, JsonNode? TaskConfig, int MaxCompletions, int RewardPoints, int? GeofenceRadiusM, int? ClaimTtlMinutes,
+    QuestTarget Target, DateTimeOffset? NextRunAt, QuestScheduleRunDto? LastRun);

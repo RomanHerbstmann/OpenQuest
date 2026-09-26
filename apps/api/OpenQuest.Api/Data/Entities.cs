@@ -424,6 +424,65 @@ public enum OutboxStatus { Pending, Processed, Dead }
 /// Transactional outbox: domain events are written in the same transaction as the state change they describe
 /// and delivered to handlers afterwards (at least once). A database trigger notifies the processor on insert.
 /// </summary>
+/// <summary>
+/// When an asset was last checked by a player. Kept up to date by a handler on <c>SubmissionApproved</c> and derived from the
+/// approved submissions, so it can be recalculated at any time. Assets without a row were never verified.
+/// </summary>
+public class AssetActivity
+{
+    public Guid AssetId { get; set; }
+    public DateTimeOffset LastVerifiedAt { get; set; }
+    /// <summary>Number of approved submissions for the asset.</summary>
+    public int VerificationCount { get; set; }
+}
+
+/// <summary>
+/// A template for quests that are created again every week (for example "trees nobody looked at for a year, Sundays 08:00").
+/// The city gives the time zone; the weekday and time of day are meant in that zone.
+/// </summary>
+public class QuestSchedule
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    /// <summary>Unique, for the admin panel.</summary>
+    public string Name { get; set; } = "";
+    public Guid CityId { get; set; }
+    public bool IsEnabled { get; set; } = true;
+    public DayOfWeek Weekday { get; set; } = DayOfWeek.Sunday;
+    public TimeOnly TimeOfDay { get; set; } = new(8, 0);
+    /// <summary>How long the quests of one run stay open, counted from the scheduled moment.</summary>
+    public int DurationHours { get; set; } = 24;
+    /// <summary>Key of the task type ("photo", ...).</summary>
+    public string TaskType { get; set; } = "photo";
+    public string? Title { get; set; }
+    public string? Description { get; set; }
+    public string TaskConfig { get; set; } = "{}";
+    /// <summary>The <c>QuestTarget</c> as JSON; without a district or city it defaults to the schedule's city.</summary>
+    public string Target { get; set; } = "{}";
+    public int MaxCompletions { get; set; } = 1;
+    /// <summary>The bonus that makes the weekly quest worth more than a normal one.</summary>
+    public int RewardPoints { get; set; } = 20;
+    public int? GeofenceRadiusM { get; set; }
+    public int? ClaimTtlMinutes { get; set; }
+    public Guid CreatedBy { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>
+/// One run of a schedule for one period (ISO week, "2026-W39", or "manual:..." for a run on request). The primary key is what makes a
+/// run happen only once per period, also across restarts and several API instances.
+/// </summary>
+public class QuestScheduleRun
+{
+    public Guid ScheduleId { get; set; }
+    public string PeriodKey { get; set; } = "";
+    public DateTimeOffset RanAt { get; set; }
+    public Guid? CampaignId { get; set; }
+    public int QuestsCreated { get; set; }
+    /// <summary>Set when the run could not create quests (for example the template became invalid); the period is not retried.</summary>
+    public string? Error { get; set; }
+}
+
 public class OutboxMessage
 {
     public Guid Id { get; set; } = Guid.NewGuid();

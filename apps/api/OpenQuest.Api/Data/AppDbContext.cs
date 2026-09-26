@@ -30,6 +30,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DistrictPoint> DistrictPoints => Set<DistrictPoint>();
     public DbSet<DistrictGenusStat> DistrictGenusStats => Set<DistrictGenusStat>();
     public DbSet<Card> Cards => Set<Card>();
+    public DbSet<AssetActivity> AssetActivities => Set<AssetActivity>();
+    public DbSet<QuestSchedule> QuestSchedules => Set<QuestSchedule>();
+    public DbSet<QuestScheduleRun> QuestScheduleRuns => Set<QuestScheduleRun>();
     public DbSet<AttributeChange> AttributeChanges => Set<AttributeChange>();
     public DbSet<ExportRun> ExportRuns => Set<ExportRun>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -284,6 +287,41 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(x => new { x.UserId, x.CreatedAt });
             // One payout per submission and reason: makes the award handler idempotent.
             e.HasIndex(x => new { x.SubmissionId, x.Reason }).IsUnique().HasFilter("submission_id IS NOT NULL");
+        });
+
+        b.Entity<AssetActivity>(e =>
+        {
+            e.ToTable("asset_activity", t => t.HasCheckConstraint("ck_asset_activity_count", "verification_count >= 1"));
+            e.HasKey(x => x.AssetId);
+            e.HasOne<AssetEntity>().WithOne().HasForeignKey<AssetActivity>(x => x.AssetId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.LastVerifiedAt);
+        });
+
+        b.Entity<QuestSchedule>(e =>
+        {
+            e.ToTable("quest_schedule", t =>
+            {
+                t.HasCheckConstraint("ck_quest_schedule_duration", "duration_hours BETWEEN 1 AND 168");
+                t.HasCheckConstraint("ck_quest_schedule_weekday", "weekday BETWEEN 0 AND 6");
+            });
+            e.HasOne<City>().WithMany().HasForeignKey(x => x.CityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.Name).IsUnique();
+            e.Property(x => x.Name).HasMaxLength(128);
+            e.Property(x => x.TaskType).HasMaxLength(48);
+            e.Property(x => x.Title).HasMaxLength(200);
+            e.Property(x => x.TaskConfig).HasColumnType("jsonb");
+            e.Property(x => x.Target).HasColumnType("jsonb");
+        });
+
+        b.Entity<QuestScheduleRun>(e =>
+        {
+            e.ToTable("quest_schedule_run");
+            e.HasKey(x => new { x.ScheduleId, x.PeriodKey });
+            e.HasOne<QuestSchedule>().WithMany().HasForeignKey(x => x.ScheduleId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<QuestCampaign>().WithMany().HasForeignKey(x => x.CampaignId).OnDelete(DeleteBehavior.SetNull);
+            e.Property(x => x.PeriodKey).HasMaxLength(48);
+            e.HasIndex(x => new { x.ScheduleId, x.RanAt });
         });
 
         b.Entity<AttributeChange>(e =>
