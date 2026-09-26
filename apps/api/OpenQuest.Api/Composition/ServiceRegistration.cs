@@ -8,13 +8,16 @@ using OpenQuest.Api.Config;
 using OpenQuest.Api.Data;
 using OpenQuest.Api.Eventing;
 using OpenQuest.Api.Features;
+using OpenQuest.Api.Gamification;
 using OpenQuest.Api.Photos;
 using OpenQuest.Api.Publishing;
 using OpenQuest.Api.Queries;
 using OpenQuest.Api.Services;
 using OpenQuest.Api.Startup;
 using OpenQuest.Api.Storage;
+using OpenQuest.Core.Domain;
 using OpenQuest.Core.Events;
+using OpenQuest.Core.Rules;
 using OpenQuest.Core.Publishing;
 
 namespace OpenQuest.Api.Composition;
@@ -32,6 +35,7 @@ public static class ServiceRegistration
         s.Configure<JwtOptions>(c.GetSection(JwtOptions.Section));
         s.Configure<AdminOptions>(c.GetSection(AdminOptions.Section));
         s.Configure<GameOptions>(c.GetSection(GameOptions.Section));
+        s.Configure<GamificationOptions>(c.GetSection(GamificationOptions.Section));
         s.Configure<StorageOptions>(c.GetSection(StorageOptions.Section));
         s.Configure<OutboxOptions>(c.GetSection(OutboxOptions.Section));
         s.Configure<PublishingOptions>(c.GetSection(PublishingOptions.Section));
@@ -121,6 +125,18 @@ public static class ServiceRegistration
         return s;
     }
 
+    /// <summary>Points, levels and (later) leaderboards, cards and recurring quests. The rules live in the core.</summary>
+    public static IServiceCollection AddOpenQuestGamification(this IServiceCollection s)
+    {
+        s.AddSingleton(sp =>
+        {
+            var o = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GamificationOptions>>().Value;
+            return o.LevelThresholds.Length > 0 ? new GamificationProfile(new LevelCurve(o.LevelThresholds)) : GamificationProfile.Default;
+        });
+        s.AddScoped<IPlayerProgress, PlayerProgress>();
+        return s;
+    }
+
     /// <summary>Domain events with a transactional outbox: see <see cref="OutboxProcessor"/>.</summary>
     public static IServiceCollection AddOpenQuestEventing(this IServiceCollection s)
     {
@@ -132,6 +148,7 @@ public static class ServiceRegistration
 
         // Handlers: add one line per reaction to an event.
         s.AddScoped<IEventHandler<AttributeChangeAccepted>, PublishAcceptedChangesHandler>();
+        s.AddScoped<IEventHandler<SubmissionApproved>, AwardPointsHandler>();
         return s;
     }
 
@@ -165,6 +182,7 @@ public static class ServiceRegistration
         app.MapGet("/health", () => Results.Ok(new { status = "ok" })).WithTags("System");
         app.MapAuth();
         app.MapPlayer();
+        app.MapGamification();
         app.MapMedia();
         app.MapAdminQuests();
         app.MapModeration();

@@ -215,6 +215,21 @@ public class Media
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
+/// <summary>
+/// One line of the points ledger. Append-only: corrections are new lines (which may be negative), never edits.
+/// <see cref="User.TotalPoints"/> is a cache of the sum.
+/// </summary>
+public class PointTransaction
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    /// <summary>The submission that earned the points; unique per reason, so a redelivered event cannot pay twice.</summary>
+    public Guid? SubmissionId { get; set; }
+    public int Amount { get; set; }
+    public PointReason Reason { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
 public class AttributeChange
 {
     public Guid Id { get; set; } = Guid.NewGuid();

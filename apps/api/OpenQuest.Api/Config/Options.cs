@@ -37,6 +37,13 @@ public class GameOptions
     public double MaxNearbyRadiusMeters { get; set; } = 5000;
 }
 
+public class GamificationOptions
+{
+    public const string Section = "Gamification";
+    /// <summary>Points at which each level starts, ascending, first entry 0. Empty = the core's default curve.</summary>
+    public int[] LevelThresholds { get; set; } = [];
+}
+
 public class StorageOptions
 {
     public const string Section = "Storage";

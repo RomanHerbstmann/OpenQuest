@@ -55,6 +55,10 @@ public record AdminSubmissionDto(
     AssetDto Asset, double ReportedLat, double ReportedLon, double DistanceMeters,
     JsonNode? Payload, Guid? MediaId, string? RejectionReason, DateTimeOffset? ReviewedAt);
 
+public record LevelDto(int Level, int Current, int Required, int Percent, bool IsMaxLevel);
+public record PlayerProgressDto(int TotalPoints, LevelDto Level);
+public record PointTransactionDto(Guid Id, int Amount, PointReason Reason, Guid? SubmissionId, string? QuestTitle, DateTimeOffset CreatedAt);
+
 public record Credentials(string? Username, string? Password);
 public record RecoverRequest(string? Username, string? RecoveryCode, string? NewPassword);
 public record PasswordRequest(string? Password);

@@ -174,11 +174,11 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     /// <summary>Creates a quest for one asset via the admin API and returns the quest id.</summary>
     public async Task<Guid> CreateQuestAsync(HttpClient admin, Guid assetId, string taskType = "verify_attribute",
-        int maxCompletions = 1, object? taskConfig = null)
+        int maxCompletions = 1, object? taskConfig = null, int rewardPoints = 10)
     {
         var r = await admin.PostAsJsonAsync("/admin/quests", new
         {
-            taskType, maxCompletions, rewardPoints = 10,
+            taskType, maxCompletions, rewardPoints,
             taskConfig = taskConfig ?? (taskType is "verify_attribute" or "measure" ? new { attribute = "genus" } : null),
             target = new { assetIds = new[] { assetId } },
         });

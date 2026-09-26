@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Claim> Claims => Set<Claim>();
     public DbSet<Submission> Submissions => Set<Submission>();
     public DbSet<Media> Media => Set<Media>();
+    public DbSet<PointTransaction> PointTransactions => Set<PointTransaction>();
     public DbSet<AttributeChange> AttributeChanges => Set<AttributeChange>();
     public DbSet<ExportRun> ExportRuns => Set<ExportRun>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -36,6 +37,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         c.Properties<AssetStatus>().HaveConversion<SnakeEnumConverter<AssetStatus>>().HaveMaxLength(24);
         c.Properties<OutboxStatus>().HaveConversion<SnakeEnumConverter<OutboxStatus>>().HaveMaxLength(24);
         c.Properties<ChangeStatus>().HaveConversion<SnakeEnumConverter<ChangeStatus>>().HaveMaxLength(24);
+        c.Properties<PointReason>().HaveConversion<SnakeEnumConverter<PointReason>>().HaveMaxLength(24);
     }
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -177,6 +179,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Sha256).HasMaxLength(64);
             e.Property(x => x.Phash).HasMaxLength(16);
             e.Property(x => x.StorageKey).HasMaxLength(256);
+        });
+
+        b.Entity<PointTransaction>(e =>
+        {
+            e.ToTable("point_transaction", t => t.HasCheckConstraint("ck_point_transaction_amount", "amount <> 0"));
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId);
+            e.HasOne<Submission>().WithMany().HasForeignKey(x => x.SubmissionId);
+            e.HasIndex(x => new { x.UserId, x.CreatedAt });
+            // One payout per submission and reason: makes the award handler idempotent.
+            e.HasIndex(x => new { x.SubmissionId, x.Reason }).IsUnique().HasFilter("submission_id IS NOT NULL");
         });
 
         b.Entity<AttributeChange>(e =>

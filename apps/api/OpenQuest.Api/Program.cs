@@ -12,6 +12,7 @@ builder.Services
     .AddOpenQuestAuth(config, builder.Environment)
     .AddOpenQuestStorage()
     .AddOpenQuestGame()
+    .AddOpenQuestGamification()
     .AddOpenQuestEventing()
     .AddOpenQuestPublishing(config)
     .AddOpenQuestStartupTasks();

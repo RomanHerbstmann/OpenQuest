@@ -58,6 +58,8 @@ each run then creates and drops its own database.
 | Accept | `POST /quests/{id}/claim` | 409 `no_free_slots` / `already_claimed` / `quest_unavailable`. Claim expires after `claimTtlMinutes` (default 30). `POST /claims/{id}/cancel` |
 | Complete | `POST /claims/{id}/submit` (multipart) | fields `lat`, `lon`, `payload` (JSON text), `photo` (optional file) |
 | Status | `GET /me/claims` | Includes submission status and the moderator's rejection reason |
+| Progress | `GET /me` | Besides id, username and role: `totalPoints` and `level` (`level`, `current`, `required`, `percent`, `isMaxLevel`) |
+| Points | `GET /me/points?offset&limit` | The player's ledger, newest first: `amount`, `reason` (`quest_approved`), `submissionId`, `questTitle`, `createdAt` |
 
 `payload` per task type (JSON Schema is in `task_type.result_schema`):
 
@@ -123,5 +125,5 @@ approve  ->  transaction: change = accepted + outbox event (same commit)  ->  NO
 
 ## Not built yet
 
-Gamification (points ledger, badges, leaderboards; hook: handle `SubmissionApproved`), statistics, `media.captured_at` (EXIF time is dropped, not stored),
+Gamification beyond points and levels (district leaderboard, cards, recurring quests, badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
 account deletion (`user.deleted_at` is honored on login but there is no endpoint), street name enrichment, admin-created moderators (set `user.role` in the database for now).

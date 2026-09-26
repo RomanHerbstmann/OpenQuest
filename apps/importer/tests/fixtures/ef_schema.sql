@@ -641,3 +641,46 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926080544_AddGamificationPoints') THEN
+    CREATE TABLE point_transaction (
+        id uuid NOT NULL,
+        user_id uuid NOT NULL,
+        submission_id uuid,
+        amount integer NOT NULL,
+        reason character varying(24) NOT NULL,
+        created_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_point_transaction PRIMARY KEY (id),
+        CONSTRAINT ck_point_transaction_amount CHECK (amount <> 0),
+        CONSTRAINT fk_point_transaction_submission_submission_id FOREIGN KEY (submission_id) REFERENCES submission (id),
+        CONSTRAINT fk_point_transaction_user_user_id FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926080544_AddGamificationPoints') THEN
+    CREATE UNIQUE INDEX ix_point_transaction_submission_id_reason ON point_transaction (submission_id, reason) WHERE submission_id IS NOT NULL;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926080544_AddGamificationPoints') THEN
+    CREATE INDEX ix_point_transaction_user_id_created_at ON point_transaction (user_id, created_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926080544_AddGamificationPoints') THEN
+    INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
+    VALUES ('20260926080544_AddGamificationPoints', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+
