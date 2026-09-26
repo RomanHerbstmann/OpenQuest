@@ -175,23 +175,6 @@ More: [apps/api/README.md](apps/api/README.md).
 
 pnpm workspace (Node >= 20). Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`.
 
-### Frontend prototype (Next.js)
-
-The current frontend prototype lives in `src/` and uses Next.js, React, Tailwind CSS and Leaflet. It runs with fictional tree data and browser-local state. The verification and adapter packages below are not yet connected to the frontend.
-
-Requires Node.js 20.9 or newer:
-
-```bash
-pnpm install --frozen-lockfile
-pnpm dev        # http://localhost:3000
-pnpm typecheck
-pnpm build
-pnpm start      # serve the production build
-```
-
-For photo verification and evaluation, copy `.env.example` to `.env` and set `OPENROUTER_API_KEY`. The frontend demo does not require an API key.
-
-- `pnpm install`
 - `pnpm test`: all package tests (unit tests run offline)
 - `pnpm typecheck`: frontend and all packages
 - `LIVE=1 pnpm --filter @openquest/adapter-de-muenster test`: include live WFS smoke test
@@ -200,6 +183,20 @@ For photo verification and evaluation, copy `.env.example` to `.env` and set `OP
 - `pnpm --filter @openquest/dashboard start`: tree map with Jev search on http://localhost:8787 (`pnpm --filter @openquest/tree-search build-data` rebuilds the tree data)
 
 Packages so far: `packages/tree-verification` (photo verification, framework free), `packages/adapters/de-muenster` (Münster tree WFS as `NearbyTreeProvider`, street names, districts), `packages/adapters/de-nrw` (tree heights from the NRW nDOM50), `packages/tree-search` (Jev search over all trees + prebuilt data), `apps/dashboard` (tree map with Jev search). The C# core lives next to them in `packages/core/OpenQuest.Core`.
+
+### Frontend prototype (Next.js)
+
+The frontend prototype lives in `src/` and uses Next.js, React, Tailwind CSS and Leaflet. It shows Münster trees from a bundled snapshot plus the live WFS, with demo game state in browser-local storage. The map search (`src/app/api/tree-search`) queries all Münster trees through `packages/tree-search` (Jev with `OPENROUTER_API_KEY`, rule fallback without). Photo verification is not yet connected to the frontend.
+
+Requires Node.js 20.9 or newer. Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY` for photo verification, evaluation and Jev search (the Next.js app reads `.env` or `.env.local`; the demo also runs without a key).
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev        # http://localhost:3000
+pnpm typecheck
+pnpm build
+pnpm start      # serve the production build
+```
 
 ### Importer (Python)
 
