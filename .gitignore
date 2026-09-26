@@ -491,3 +491,4 @@ eval/out/
 .pytest_cache/
 *.egg-info/
 data/
+packages/tree-search/data/cache/

@@ -3,6 +3,10 @@ Hackathon-Projekt: öffentliche Daten der Stadt Münster analysieren, aufbereite
 
 Domain: [openquest.fun](https://openquest.fun)
 
+## Dashboard
+
+Alle Bäume auf einer Karte, Suche per Jev: [apps/dashboard](apps/dashboard/README.md) (`pnpm --filter @openquest/dashboard start`).
+
 ## Entscheidungen
 
 - [ADR-0001: Baumkataster direkt vom WFS beziehen, Rückkanal über GitHub und Open Data Koordination](docs/adr/0001-baumkataster-datenbezug-und-rueckkanal.md)
@@ -24,6 +28,11 @@ Domain: [openquest.fun](https://openquest.fun)
 ## Importer
 
 - [apps/importer/README.md](apps/importer/README.md): Open-Data-Import (Python), Adapter und Enricher
+
+## Daten
+
+- [Data sources: Herkunft, Lizenzen, Attribution aller Daten](docs/data-model/data-sources.md)
+- [Data model (ERD)](docs/data-model/erd.md)
 
 ## Recherche (Research Notes)
 
