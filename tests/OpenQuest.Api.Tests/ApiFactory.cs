@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Time.Testing;
 using NetTopologySuite.Geometries;
 using OpenQuest.Api.Data;
+using OpenQuest.Api.Publishing;
 using OpenQuest.Api.Storage;
 using OpenQuest.Core.Publishing;
 using OpenQuest.Core.Review;
@@ -42,6 +43,8 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 9, 25, 12, 0, 0, TimeSpan.Zero));
     public InMemoryBlobStore Storage { get; } = new();
     public ScriptedPublisher Publisher { get; } = new();
+    /// <summary>Publishing to open data is off by default (ADR-0014); the tests that look at the feed run with it on, the ones about "off" switch it.</summary>
+    public SwitchablePublishingGate PublishingGate { get; } = new() { Enabled = true };
     public ScriptedAutoReviewer AutoReviewer { get; } = new();
 
     public async Task InitializeAsync()
@@ -110,6 +113,8 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             s.AddSingleton<IBlobReader>(Storage);
             s.AddSingleton<IBlobDeleter>(Storage);
             s.AddSingleton<IContributionPublisher>(Publisher);
+            s.RemoveAll<IPublishingGate>();
+            s.AddSingleton<IPublishingGate>(PublishingGate);
             s.RemoveAll<ISubmissionAutoReviewer>();
             s.AddSingleton<ISubmissionAutoReviewer>(AutoReviewer);
         });
@@ -255,4 +260,10 @@ public sealed class ScriptedAutoReviewer : ISubmissionAutoReviewer
         var attempt = _attempts.AddOrUpdate(Key(expected.Lat), 1, (_, n) => n + 1);
         return Task.FromResult(script(attempt));
     }
+}
+
+public sealed class SwitchablePublishingGate : IPublishingGate
+{
+    public volatile bool _enabled;
+    public bool Enabled { get => _enabled; set => _enabled = value; }
 }

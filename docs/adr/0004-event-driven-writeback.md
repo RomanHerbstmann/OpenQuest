@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | Accepted |
+| Status | Accepted; **switched off by default since [ADR-0014](0014-open-data-is-read-only-and-data-origin.md)** (`Publishing:Enabled`) |
 | Date | 2026-09-25 |
 | Decider | Backend developer (hackathon team) |
 | Related | [ADR-0001](0001-baumkataster-datenbezug-und-rueckkanal.md) (return channel), [ADR-0003](0003-backend-dotnet.md), [ERD](../data-model/erd.md) |

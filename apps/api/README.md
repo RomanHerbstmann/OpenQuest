@@ -284,19 +284,42 @@ The API does not import anything; a separate importer loads the city's data set 
 
 ## Data flow back to the city (event-driven)
 
-Player results never overwrite asset data. A submission proposes an `attribute_change`; **the moment a moderator approves it,
-the change is pushed to open data** ([ADR-0004](../../docs/adr/0004-event-driven-writeback.md)); nobody has to export anything:
+Player results never overwrite asset data. A submission proposes an `attribute_change`; when a moderator approves it, it is **accepted and kept in our database as user data**.
+**Publishing to open data is switched off** (`Publishing:Enabled=false`, the default): the city does not take updates this way ([ADR-0014](../../docs/adr/0014-open-data-is-read-only-and-data-origin.md)).
+The mechanism of [ADR-0004](../../docs/adr/0004-event-driven-writeback.md) is still there and can be switched on:
 
 ```
-approve  ->  transaction: change = accepted + outbox event (same commit)  ->  NOTIFY  ->  handler  ->  publishers
-                                                                                     |-> public feed  /open-data/{dataSource}/changes.geojson | .csv   (always)
-                                                                                     '-> GitHub repository file                                     (if configured)
+approve  ->  transaction: change = accepted + outbox event (same commit)  ->  NOTIFY  ->  handler  --(only if Publishing:Enabled)-->  publishers
+                                                                                     |-> public feed  /open-data/{dataSource}/changes.geojson | .csv
+                                                                                     '-> GitHub repository file                        (if configured)
 ```
 
-- The feed URL is stable, public, carries the required attribution, and is meant to be linked by the city (see ADR-0001).
-- Delivery is retried with backoff if a channel fails; `GET /admin/outbox` shows pending / dead messages,
-  `POST /admin/publications/retry` re-emits events for accepted-but-unpublished changes.
+- While it is off the handler does nothing; changes stay `accepted` (not `exported`) and the game keeps using them. `GET /admin/publications/status` says whether it is on and how many accepted
+  changes and reported trees are kept (`acceptedNotPublished`) or were sent out (`published`). `POST /admin/publications/retry` answers `409 publishing_disabled` while it is off; after switching it
+  on it publishes everything that was accepted meanwhile.
+- When it is on: the feed URL is stable, public and carries the required attribution (see ADR-0001); delivery is retried with backoff if a channel fails; `GET /admin/outbox` shows pending / dead messages.
 - Rejected submissions publish nothing. Other parts of the system can react to `SubmissionApproved` / `SubmissionRejected` (rewards later) by registering a handler.
+
+## Open data and user data (where does a value come from?)
+
+The city's data and what players contributed are kept apart on purpose ([ADR-0014](../../docs/adr/0014-open-data-is-read-only-and-data-origin.md)):
+
+| Layer | Where | Origin |
+|---|---|---|
+| The city's data | `asset.attributes` (written only by the importer, replaced by every sync) | `open_data` |
+| Accepted player changes | `attribute_change` with status `accepted` / `exported` (attribute, old value, new value, who, when) | `user` |
+| Trees players reported as missing | `asset_proposal` with status `accepted` / `exported`; not an asset | `user` |
+
+An asset's `attributes` never contain player data. Endpoints (players, logged in):
+
+| Call | Notes |
+|---|---|
+| `GET /assets/{id}` | `attributes` (open data), `source` (data source with license and attribution), `contributions` (the latest accepted change per attribute: value, `previousValue`, `acceptedAt`, `username`, `submissionId`, `outdated`) and `effective`: the value shown per attribute with its `origin` (`open_data` or `user`), plus `contributedBy` / `contributedAt` for user values |
+| `GET /assets/nearby`, `GET /quests/nearby` | every asset carries `origin` (always `open_data`), `dataSource` and its `contributions` |
+| `GET /assets/reported?lat&lon&radius` | trees that players reported and a moderator accepted (`origin: "user"`, position, genus, species, note, photo, who) |
+
+Which value wins for an attribute (`AttributeProvenance` in the core): the latest accepted contribution, unless the city has the same value now (then it is simply open data) or changed the attribute
+after the contribution (`outdated: true`: the city's newer value wins). So an import never overwrites what players found out, and a player never overrides a newer value of the city.
 
 ## Code structure
 

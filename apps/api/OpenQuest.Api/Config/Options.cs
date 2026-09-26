@@ -121,6 +121,12 @@ public class OutboxOptions
 public class PublishingOptions
 {
     public const string Section = "Publishing";
+    /// <summary>
+    /// Push accepted changes and reported trees to open data (public feed, GitHub) as soon as a moderator approves them (ADR-0004). <b>Off by default</b>
+    /// (ADR-0014): the city does not take updates this way. Accepted changes then stay in our own database, marked as user data, and are still used by the game.
+    /// Switching it on and calling <c>POST /admin/publications/retry</c> publishes everything that was accepted meanwhile.
+    /// </summary>
+    public bool Enabled { get; set; }
     public GitHubPublishingOptions GitHub { get; set; } = new();
 }
 

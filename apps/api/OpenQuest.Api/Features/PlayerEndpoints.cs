@@ -1,3 +1,4 @@
+using OpenQuest.Api.Assets;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
@@ -46,6 +47,17 @@ public static class PlayerEndpoints
             ValidPosition(lat, lon) ? Results.Ok(await quests.FindAsync(lat, lon, taskType, user.GetUserId(), ct)) : InvalidPosition())
             .WithName("AreaQuests")
             .WithSummary("Quests of the districts the position lies in (task type report_new_tree: report a tree that is missing in the data). They have no asset; `area` names the district. The player claims and submits them like other quests, standing inside the district.");
+
+        g.MapGet("/assets/{id:guid}", async (Guid id, IAssetProvenance provenance, CancellationToken ct) =>
+            await provenance.DetailAsync(id, ct) is { } asset ? Results.Ok(asset) : Results.NotFound())
+            .WithName("GetAsset")
+            .WithSummary("One asset with its origins told apart: `attributes` are what the city delivered (open data), `contributions` what players found out and a moderator accepted, `effective` the value shown per attribute with `origin` = open_data or user.")
+            .WithDescription("Player contributions never change the city's attributes. A contribution stops winning when the city has the same value (then it is open data) or changed the attribute after it (`outdated`).");
+
+        g.MapGet("/assets/reported", async (double lat, double lon, double? radius, IAssetProvenance provenance, CancellationToken ct) =>
+            ValidPosition(lat, lon) ? Results.Ok(await provenance.ReportedTreesAsync(lat, lon, radius, ct)) : InvalidPosition())
+            .WithName("ReportedTrees")
+            .WithSummary("Trees that players reported as missing in the data and a moderator accepted, nearest first. Origin is always `user`: they are not in the city's data.");
 
         g.MapGet("/assets/nearby", async (double lat, double lon, double? radius, string? assetType, INearbyAssets assets, CancellationToken ct) =>
             ValidPosition(lat, lon) ? Results.Ok(await assets.FindAsync(lat, lon, radius, assetType, ct)) : InvalidPosition())

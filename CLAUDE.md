@@ -45,11 +45,11 @@ The single most important architectural rule: **nothing outside an adapter packa
 ```
 City open data ──► Importer (Python): adapter + enrichers ──► PostGIS ──► API (.NET) ──► Web app / Admin panel
                                                                            │
-City ◄──────────── write-back: domain events → published changes ◄────────┘  (approved contributions)
+City ✗  no write-back by default (Publishing:Enabled=false, ADR-0014)  ◄──┘  approved contributions stay in our database as user data
 ```
 
 - **Import** is done only by the importer (`apps/importer`, [README](apps/importer/README.md)), **not by the .NET API**; the API only reads assets, data sources and sync runs. Assets are synced into our own database on a schedule, so the city's platform is not a runtime dependency of the game.
-- **Write-back** is done by the API and is **event-driven**: accepting a contribution publishes a domain event (transactional outbox); handlers push the change to open data right away, never on a timer ([ADR-0004](docs/adr/0004-event-driven-writeback.md)).
+- **Write-back** (currently **off**, see below) is done by the API and is **event-driven**: accepting a contribution publishes a domain event (transactional outbox); handlers push the change to open data right away, never on a timer ([ADR-0004](docs/adr/0004-event-driven-writeback.md)); `Publishing:Enabled` switches it on.
 - **Sync events and recurring quests:** the importer sends `pg_notify('sync_finished', run_id)` after every successful run; the API turns it into an `AssetSyncCompleted` event (a handler marks the district genus statistics as stale). Weekly quest schedules (`quest_schedule`, per city time zone, e.g. "trees not verified for a year, Sundays 08:00") are created by a worker that only checks the clock; one run per schedule and ISO week is guaranteed by a primary key ([ADR-0010](docs/adr/0010-recurring-quests-and-sync-events.md)).
 - **New trees and automatic review:** a `report_new_tree` quest belongs to a district (no asset); the report becomes an `asset_proposal` and is published with the other accepted changes as attribute `new_tree` (assets stay the importer's). `condition_report` can list `issues`. An optional automatic check (`ISubmissionAutoReviewer`, HTTP to the web app's `/api/verify`, `AutoReview:*`) approves submissions only on a clear verdict and never rejects ([ADR-0011](docs/adr/0011-new-tree-reports-and-automatic-review.md)).
 
@@ -78,7 +78,7 @@ Decided in [ADR-0001](docs/adr/0001-baumkataster-datenbezug-und-rueckkanal.md), 
 - **Enrichment:** the Münster adapter adds `street_name` (street directory WFS `odstrasseserv`, join over `str_schl`), `district` and `quarter` (Stadtbezirke / Stadtteile GeoJSON from the portal, point in polygon). The enricher `de_nrw.alleen` marks trees in legally protected avenues (`avenue_id`, `avenue_name`). The enricher `de_nrw.ndom_height` adds `height_m` from the **nDOM50 of Geobasis NRW** (95th percentile of the object height within 2.5 m of the tree point; not a measured tree height).
 - **Snapshots:** the importer syncs on start and then daily. It stores every download unchanged (reference files and enrichment results included) and keeps the history (`SYNC_RUN`, `ASSET_SNAPSHOT`). If the WFS schema changes, the sync fails loudly.
 - **License:** Münster data (trees, streets, districts, quarters) dl-de/by-2.0, attribution required; nDOM dl-de/zero-2.0 (no conditions, we still credit Geobasis NRW). Use the attribution text from ADR-0001 in the app, README and every published file. No city logos or coat of arms, nothing that looks official.
-- **Write-back:** the portal cannot be written to. Approved contributions go back as a published cleaned dataset (GitHub) plus a message to the city's open data coordination (see ADR-0001).
+- **Write-back is off** (`Publishing:Enabled=false`, [ADR-0014](docs/adr/0014-open-data-is-read-only-and-data-origin.md)): the city does not take updates this way. Approved contributions stay in our database as **user data**, kept apart from the city's **open data** (`asset.attributes` only ever contains what the importer delivered; player changes are `attribute_change`, reported trees `asset_proposal`; `GET /assets/{id}` tells the origin per attribute). The publishing code (feed, GitHub, ADR-0001/0004) stays and can be switched on.
 
 ## Data model
 

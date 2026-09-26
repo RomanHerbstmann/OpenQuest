@@ -3,7 +3,32 @@ using OpenQuest.Core.Domain;
 
 namespace OpenQuest.Api.Contracts;
 
-public record AssetDto(Guid Id, string AssetType, string ExternalId, double Lat, double Lon, JsonNode? Attributes);
+/// <summary>
+/// An asset as the city delivered it: <c>Attributes</c> are open data (<c>Origin</c> is always "open_data") and never contain player contributions. What players found out and a
+/// moderator accepted is in <c>Contributions</c> (only on some endpoints), so clients can tell the two apart. <c>DataSource</c> is the key of the data source it comes from.
+/// </summary>
+public record AssetDto(
+    Guid Id, string AssetType, string ExternalId, double Lat, double Lon, JsonNode? Attributes,
+    string Origin = "open_data", string? DataSource = null, IReadOnlyList<UserContributionDto>? Contributions = null);
+
+/// <summary>An accepted player contribution to an attribute of an asset (the latest per attribute). <c>Outdated</c>: the city changed the attribute after it, the city's value wins.</summary>
+public record UserContributionDto(
+    string Attribute, JsonNode? Value, JsonNode? PreviousValue, DateTimeOffset AcceptedAt, Guid SubmissionId, string Username, bool Outdated);
+
+/// <summary>The value the game shows for an attribute and where it comes from: <c>Origin</c> is "open_data" (the city) or "user" (a player, accepted by a moderator).</summary>
+public record EffectiveAttributeDto(string Attribute, JsonNode? Value, string Origin, DateTimeOffset? ContributedAt, string? ContributedBy);
+
+public record DataSourceInfoDto(string Key, string Name, string? License, string? Attribution, string? SourceUrl);
+
+/// <summary>One asset with everything told apart: the city's attributes, the accepted contributions of players, and the value shown per attribute with its origin.</summary>
+public record AssetDetailDto(
+    Guid Id, string AssetType, string ExternalId, double Lat, double Lon, JsonNode? Attributes, DataSourceInfoDto Source,
+    IReadOnlyList<UserContributionDto> Contributions, IReadOnlyList<EffectiveAttributeDto> Effective);
+
+/// <summary>A tree a player reported as missing in the data (origin "user"), accepted by a moderator. It is not an asset: the city's data does not have it.</summary>
+public record ReportedTreeDto(
+    Guid Id, string Origin, double Lat, double Lon, string? Genus, string? Species, string? Note, string? PhotoUrl, Guid? DistrictId,
+    string DataSource, string Username, DateTimeOffset AcceptedAt);
 
 /// <summary>The district of a quest that has no asset (report a tree that is missing in the data): the player has to be inside it.</summary>
 public record QuestAreaDto(Guid DistrictId, string Name, double CentroidLat, double CentroidLon, string? Color);

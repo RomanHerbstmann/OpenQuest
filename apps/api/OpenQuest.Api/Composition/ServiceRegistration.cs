@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenQuest.Api.AutoReview;
+using OpenQuest.Api.Assets;
 using OpenQuest.Api.Auth;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Cards;
@@ -122,6 +123,7 @@ public static class ServiceRegistration
         s.AddScoped<INearbyQuests, NearbyQuests>();
         s.AddScoped<IAreaQuests, AreaQuests>();
         s.AddScoped<INearbyAssets, NearbyAssets>();
+        s.AddScoped<IAssetProvenance, AssetProvenance>();
         s.AddScoped<IPlayerClaims, PlayerClaims>();
         s.AddScoped<IModerationQueue, ModerationQueue>();
         s.AddScoped<IQuestOverview, QuestOverview>();
@@ -204,6 +206,7 @@ public static class ServiceRegistration
             s.AddHttpClient<GitHubContributionPublisher>(h => h.DefaultRequestHeaders.UserAgent.ParseAdd("OpenQuest/0.1"));
             s.AddTransient<IContributionPublisher>(sp => sp.GetRequiredService<GitHubContributionPublisher>());
         }
+        s.AddSingleton<IPublishingGate, ConfigPublishingGate>();
         s.AddSingleton<IPublishedFeed, BlobPublishedFeed>();
         s.AddScoped<IChangeRepublisher, ChangeRepublisher>();
         return s;

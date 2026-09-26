@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using OpenQuest.Api.Config;
 using OpenQuest.Api.Data;
+using OpenQuest.Core.Domain;
 using OpenQuest.Api.Publishing;
 using OpenQuest.Api.Storage;
 using OpenQuest.Api.Queries;
@@ -28,10 +31,26 @@ public static class PublishingEndpoints
             Results.Ok(await overview.ListRunsAsync(Math.Clamp(limit ?? 50, 1, 200), ct)))
             .WithName("ListPublications").WithSummary("Publication runs (one per delivered batch of accepted changes).");
 
-        admin.MapPost("/publications/retry", async (IChangeRepublisher republisher, CancellationToken ct) =>
-            Results.Ok(new { requeued = await republisher.RequeueAsync(ct) }))
+        admin.MapPost("/publications/retry", async (IChangeRepublisher republisher, IPublishingGate gate, CancellationToken ct) =>
+            !gate.Enabled
+                ? Results.Json(new { error = "publishing_disabled", message = "Publishing to open data is switched off (Publishing:Enabled). Accepted changes stay in the database." }, statusCode: 409)
+                : Results.Ok(new { requeued = await republisher.RequeueAsync(ct) }))
             .WithName("RetryPublications")
-            .WithSummary("Re-emits events for accepted changes that were not published yet (for example after dead outbox messages).");
+            .WithSummary("Re-emits events for accepted changes that were not published yet (for example after dead outbox messages, or after publishing was switched on). 409 publishing_disabled while it is off.");
+
+        admin.MapGet("/publications/status", async (IPublishingGate gate, IOptions<PublishingOptions> options, AppDbContext db, CancellationToken ct) =>
+            Results.Ok(new
+            {
+                enabled = gate.Enabled,
+                githubConfigured = !string.IsNullOrWhiteSpace(options.Value.GitHub.Token),
+                // accepted by a moderator, kept as user data, not sent anywhere
+                acceptedNotPublished = await db.AttributeChanges.CountAsync(c => c.Status == ChangeStatus.Accepted, ct)
+                                       + await db.AssetProposals.CountAsync(p => p.Status == ChangeStatus.Accepted, ct),
+                published = await db.AttributeChanges.CountAsync(c => c.Status == ChangeStatus.Exported, ct)
+                            + await db.AssetProposals.CountAsync(p => p.Status == ChangeStatus.Exported, ct),
+            }))
+            .WithName("PublicationStatus")
+            .WithSummary("Whether publishing to open data is on, and how many accepted changes and reported trees are kept as user data (accepted) or were sent out (published).");
 
         admin.MapGet("/outbox", async (IPublicationOverview overview, CancellationToken ct) =>
             Results.Ok(await overview.OutboxStatusAsync(ct)))

@@ -34,18 +34,26 @@ public static class ApprovedContributionMapper
 }
 
 /// <summary>
-/// The moment a moderator accepts a change, it is pushed to every configured publisher. This is what keeps the city's
+/// The moment a moderator accepts a change, it is pushed to every configured publisher (only when <c>Publishing:Enabled</c>, off by default). This is what keeps the city's
 /// open data current: no schedule, no manual export. Idempotent: changes that are already exported are skipped, so a
 /// redelivered event does no harm.
 /// </summary>
 public sealed class PublishAcceptedChangesHandler(
     AppDbContext db,
+    IPublishingGate gate,
     IEnumerable<IContributionPublisher> publishers,
     TimeProvider clock,
     ILogger<PublishAcceptedChangesHandler> log) : IEventHandler<AttributeChangeAccepted>
 {
     public async Task HandleAsync(IReadOnlyList<AttributeChangeAccepted> events, CancellationToken ct)
     {
+        if (!gate.Enabled)
+        {
+            // Publishing is off (ADR-0014): the changes stay accepted, in our database, and the game keeps using them. Nothing is lost:
+            // once it is switched on, POST /admin/publications/retry publishes everything that was accepted meanwhile.
+            log.LogDebug("Publishing to open data is off; {Count} accepted change(s) stay in the database.", events.Count);
+            return;
+        }
         var ids = events.Select(e => e.Contribution.ChangeId).Distinct().ToList();
         var pending = await Query().Where(c => ids.Contains(c.Id) && c.Status == ChangeStatus.Accepted).ToListAsync(ct);
         var pendingProposals = await Proposals().Where(p => ids.Contains(p.Id) && p.Status == ChangeStatus.Accepted).ToListAsync(ct);

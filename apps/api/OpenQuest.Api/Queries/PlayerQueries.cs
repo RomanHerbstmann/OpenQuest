@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Geometries;
+using OpenQuest.Api.Assets;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Contracts;
 using OpenQuest.Api.Data;
@@ -43,7 +44,7 @@ public static class Mapping
             asset is null || assetTypeKey is null ? null : ToDto(asset, assetTypeKey), area);
 }
 
-public sealed class NearbyQuests(AppDbContext db, TimeProvider clock, IOptions<GameOptions> game) : INearbyQuests
+public sealed class NearbyQuests(AppDbContext db, TimeProvider clock, IOptions<GameOptions> game, IAssetProvenance provenance) : INearbyQuests
 {
     private static readonly GeometryFactory Wgs84 = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(4326);
 
@@ -67,7 +68,10 @@ public sealed class NearbyQuests(AppDbContext db, TimeProvider clock, IOptions<G
             .Take(o.MaxNearbyResults)
             .ToListAsync(ct);
 
-        return rows.Select(x => Mapping.ToQuestDto(x.Quest, x.TaskType, x.Asset, x.AssetType, Math.Round(x.Distance, 1))).ToList();
+        var quests = rows.Select(x => Mapping.ToQuestDto(x.Quest, x.TaskType, x.Asset, x.AssetType, Math.Round(x.Distance, 1))).ToList();
+        // tell what the city delivered from what players contributed
+        var annotated = (await provenance.AnnotateAsync(quests.Where(q => q.Asset is not null).Select(q => q.Asset!).ToList(), ct)).ToDictionary(a => a.Id);
+        return quests.Select(q => q.Asset is { } a && annotated.TryGetValue(a.Id, out var withOrigin) ? q with { Asset = withOrigin } : q).ToList();
     }
 }
 
@@ -95,7 +99,7 @@ public sealed class AreaQuests(AppDbContext db, TimeProvider clock, IOptions<Gam
     }
 }
 
-public sealed class NearbyAssets(AppDbContext db, IOptions<GameOptions> game) : INearbyAssets
+public sealed class NearbyAssets(AppDbContext db, IOptions<GameOptions> game, IAssetProvenance provenance) : INearbyAssets
 {
     private static readonly GeometryFactory Wgs84 = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(4326);
 
@@ -111,7 +115,7 @@ public sealed class NearbyAssets(AppDbContext db, IOptions<GameOptions> game) : 
             .Take(o.MaxNearbyResults)
             .Select(a => new { Asset = a, Type = a.AssetType.Key })
             .ToListAsync(ct);
-        return rows.Select(x => Mapping.ToDto(x.Asset, x.Type)).ToList();
+        return await provenance.AnnotateAsync(rows.Select(x => Mapping.ToDto(x.Asset, x.Type)).ToList(), ct);
     }
 }
 
