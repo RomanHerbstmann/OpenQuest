@@ -89,8 +89,23 @@ public record DistrictRankingDto(int Rank, Guid DistrictId, string Key, string N
 
 public record PlayerRankingDto(int Rank, Guid UserId, string Username, string? DisplayName, int Points);
 
+// ---- cards ----------------------------------------------------------------------------------------------------------
+
+public record CardDto(
+    Guid Id, string Genus, Rarity Rarity, Frequency Frequency, double? Share, IReadOnlyList<string> Reasons,
+    Guid? DistrictId, string? DistrictName, Guid AssetId, double Lat, double Lon, DateTimeOffset ObtainedAt);
+
+public record CollectionEntryDto(string Genus, int Count, Rarity BestRarity, DateTimeOffset FirstObtainedAt);
+
+/// <summary>The player's tree book: every genus collected so far with the best rarity, and totals. <c>ByRarity</c> has all four rarities.</summary>
+public record CollectionDto(int TotalCards, int DistinctGenera, IReadOnlyDictionary<string, int> ByRarity, IReadOnlyList<CollectionEntryDto> Genera);
+
+public record GenusStatDto(string Genus, int TreeCount, double Share, Frequency Frequency);
+
+public record GenusStatsDto(Guid DistrictId, int KnownGenusTrees, int GenusCount, DateTimeOffset? CalculatedAt, IReadOnlyList<GenusStatDto> Genera);
+
 public record LevelDto(int Level, int Current, int Required, int Percent, bool IsMaxLevel);
-public record PlayerProgressDto(int TotalPoints, LevelDto Level);
+public record PlayerProgressDto(int TotalPoints, LevelDto Level, int CardCount);
 public record PointTransactionDto(Guid Id, int Amount, PointReason Reason, Guid? SubmissionId, string? QuestTitle, DateTimeOffset CreatedAt);
 
 public record Credentials(string? Username, string? Password);

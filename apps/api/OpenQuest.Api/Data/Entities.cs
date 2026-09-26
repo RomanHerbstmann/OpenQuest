@@ -255,11 +255,46 @@ public class District
     /// <summary>Cache of the ledger sum of this district (like <see cref="User.TotalPoints"/>).</summary>
     public int TotalPoints { get; set; }
     public Polygon Geom { get; set; } = null!;
+    /// <summary>Trees with a known genus inside the district, when the genus statistics were last calculated (see <see cref="DistrictGenusStat"/>).</summary>
+    public int KnownGenusTrees { get; set; }
+    public DateTimeOffset? GenusStatsAt { get; set; }
     public double CentroidLat { get; set; }
     public double CentroidLon { get; set; }
     public Guid? CreatedBy { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>How many trees of a genus stand in a district. Recalculated from the assets; the basis for how rare a card of that genus is there.</summary>
+public class DistrictGenusStat
+{
+    public Guid DistrictId { get; set; }
+    public string Genus { get; set; } = "";
+    public int TreeCount { get; set; }
+}
+
+/// <summary>
+/// A collected tree card. One per approved submission (unique), so a redelivered event cannot hand out a second card.
+/// The rarity is rolled from the submission's id and the frequency of the genus in the district at that time.
+/// </summary>
+public class Card
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public Guid SubmissionId { get; set; }
+    public Guid AssetId { get; set; }
+    /// <summary>The district the tree lies in; null if none (or the district was deleted).</summary>
+    public Guid? DistrictId { get; set; }
+    /// <summary>Latin genus, e.g. "Tilia".</summary>
+    public string Genus { get; set; } = "";
+    public Rarity Rarity { get; set; }
+    /// <summary>How frequent the genus was in the district (before the boosts).</summary>
+    public Frequency Frequency { get; set; }
+    /// <summary>Share of the genus among the district's trees with a known genus at that time; null if the tree lies in no district.</summary>
+    public double? Share { get; set; }
+    /// <summary>JSON array of reason codes: scarce_in_district, new_to_district, new_information, condition_fact.</summary>
+    public string Reasons { get; set; } = "[]";
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
 /// <summary>One corner of a district outline. <see cref="Position"/> is the order in which the corners are connected; the last connects back to the first.</summary>

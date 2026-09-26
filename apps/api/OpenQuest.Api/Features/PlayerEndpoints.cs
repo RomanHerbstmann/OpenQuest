@@ -29,7 +29,7 @@ public static class PlayerEndpoints
                 return Results.Ok(new
                 {
                     id = user.GetUserId(), username = user.FindFirst("unique_name")?.Value, role = user.FindFirst("role")?.Value,
-                    totalPoints = p.TotalPoints, level = p.Level,
+                    totalPoints = p.TotalPoints, level = p.Level, cardCount = p.CardCount,
                 });
             })
             .WithName("Me")
