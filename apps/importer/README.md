@@ -56,6 +56,7 @@ Commands (run in `apps/importer`, or pass `--config`):
 | `openquest-importer check [--wait SECONDS]` | Checks that the API has set up the database schema |
 | `openquest-importer sync SOURCE…` / `sync --all` | Syncs the given sources from `importer.toml` |
 | `openquest-importer sync SOURCE --force` | Applies a sync even if it removes more than `max_removal_ratio` of the assets |
+| `openquest-importer sync SOURCE --accept-schema-change` | Imports even if the source's fields changed (a sync normally fails then); the run records the new `schema_hash`. Afterwards update `expected_fields` in the adapter |
 | `openquest-importer adapters` | Lists installed adapters and enrichers |
 
 `DATABASE_URL` overrides the database URL and `OPENQUEST_SNAPSHOT_DIR` the snapshot directory from `importer.toml`. Locally, snapshots are stored in `data/snapshots/` at the repository root (git-ignored).
