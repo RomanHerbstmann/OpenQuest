@@ -18,6 +18,12 @@ flowchart LR
   subgraph nrw["Geobasis NRW (dl-de/zero-2.0)"]
     NDOM["nDOM50 WCS<br/>object height above ground"]
   end
+  subgraph more["More sources (importer, #17)"]
+    SNRW["Straßen.NRW trees<br/>dl-de/zero-2.0"]
+    O311["Mängelmelder Open311<br/>dl-de/by-2.0"]
+    DWD["DWD soil moisture<br/>GeoNutzV"]
+    ALL["Alleenkataster NRW<br/>dl-de/zero-2.0"]
+  end
   subgraph osm["OpenStreetMap (ODbL)"]
     OVP["Overpass API<br/>natural=tree"]
     TILES["Raster tiles<br/>tile.openstreetmap.org"]
@@ -31,6 +37,7 @@ flowchart LR
   GEO --> ADM
   NDOM --> NRWA["adapter-de-nrw"]
   WFS & STR & GEO & NDOM --> IMP["apps/importer<br/>(Python)"]
+  SNRW & O311 & DWD & ALL --> IMP
   IMP --> DB["PostGIS<br/>ASSET"]
   ADM --> TS["tree-search<br/>data/trees.json"]
   NRWA --> TS
@@ -55,6 +62,11 @@ flowchart LR
 | 7 | **Base map** | OpenStreetMap contributors | Raster tiles `https://tile.openstreetmap.org/{z}/{x}/{y}.png` ([tile usage policy](https://operations.osmfoundation.org/policies/tiles/)) | ODbL / tiles CC BY-SA, **attribution required** | `apps/dashboard` | Live |
 | 8 | **Player contributions**: photos, GPS position, timestamps, model assessments | OpenQuest players | App upload (`apps/api`, `MEDIA`, `SUBMISSION`) | Own data; license for publication still to be decided (proposal: CC BY 4.0 or dl-de/by-2.0 compatible) | `tree-verification` → `proposedChanges` → `ATTRIBUTE_CHANGE` / export | Continuous |
 | 9 | **Evaluation photos** (42, hand checked) | Wikimedia Commons authors (per file in `eval/samples.json`) | Commons API, downloaded to `eval/images` (gitignored) | Per file (mostly CC BY / CC BY-SA), attribution per file | `eval/` only, never shipped | Manual |
+| 10 | **Trees along federal and state roads** ("Fachschale Baum", all NRW, clipped to Münster: 2,314 trees; German names mapped to genera, 101 `ambiguous_genus`) | Straßen.NRW | CSV `https://opendata.strassen.nrw.de/FS_Baum/OpenData2025BaumDaten.csv` | [dl-de/zero-2.0](https://www.govdata.de/dl-de/zero-2-0), no conditions (we still credit it) | `apps/importer` adapter `de_nrw.strassen_trees` (+ nDOM, district, quarter) | At import |
+| 11 | **Natural monuments** (351, with official height, trunk circumference, crown; 294 with genus) | Stadt Münster, Amt für Grünflächen, Umwelt und Nachhaltigkeit | WMS `naturschutz_serv` (GetFeatureInfo GML + HTML), [overview](https://www.stadt-muenster.de/gruen/naturschutz/schutzgebiete-und-naturdenkmale) | **not stated: source disabled**, do not publish until the city confirms a license | `apps/importer` adapter `de_muenster.natural_monuments` (asset type `natural_monument`) | Disabled |
+| 12 | **Citizen reports** on trees and oak processionary moth (Mängelmelder, Open311; last 90 days, ~200 reports) | Stadt Münster via Beteiligung NRW | Open311 `https://beteiligung.nrw.de/api/rest/public/open311/v2/beteiligung/1003255` | dl-de/by-2.0, **attribution required** | `apps/importer` adapter `open311.reports` (`asset_report`, linked to the nearest tree within 25 m) | Per import; e-mail addresses and phone numbers are removed, texts are admin only |
+| 13 | **Soil moisture and evaporation**, daily (AMBAV model), station 1766 Münster/Osnabrück | Deutscher Wetterdienst | `https://opendata.dwd.de/climate_environment/CDC/derived_germany/soil/daily/recent/` | [GeoNutzV](https://www.gesetze-im-internet.de/geonutzv/), **attribution required** ("Quelle: Deutscher Wetterdienst") | `apps/importer` adapter `dwd.soil_daily` (`environment_reading`) | Per import |
+| 14 | **Protected avenues** (Alleenkataster NRW: 3,366 city trees in 22 avenues) | LANUK NRW (LINFOS) | WFS (LINFOS) | [dl-de/zero-2.0](https://www.govdata.de/dl-de/zero-2-0) | `apps/importer` enricher `de_nrw.alleen` (`avenue_id`, `avenue_name`) | Per import |
 
 ### Derived data
 
@@ -74,7 +86,7 @@ flowchart LR
 
 Shown in the app footer / map attribution, and required in every export:
 
-> Baumdaten: Stadt Münster, Digitales Baumkataster, [dl-de/by-2-0](https://www.govdata.de/dl-de/by-2-0) · Straßen und Stadtteile: Stadt Münster, dl-de/by-2-0 · Höhen: Geobasis NRW, nDOM50, [dl-de/zero-2-0](https://www.govdata.de/dl-de/zero-2-0) · Karte und Vergleichsbäume: © [OpenStreetMap](https://www.openstreetmap.org/copyright)-Mitwirkende · Daten verändert und angereichert durch OpenQuest.
+> Baumdaten: Stadt Münster, Digitales Baumkataster, [dl-de/by-2-0](https://www.govdata.de/dl-de/by-2-0) · Bäume an Bundes- und Landesstraßen: Straßen.NRW, Fachschale Baum, dl-de/zero-2-0 · Meldungen: Stadt Münster, Mängelmelder, dl-de/by-2-0 · Bodenfeuchte: Quelle: Deutscher Wetterdienst · Alleen: LANUK NRW, Alleenkataster, dl-de/zero-2-0 · Straßen und Stadtteile: Stadt Münster, dl-de/by-2-0 · Höhen: Geobasis NRW, nDOM50, [dl-de/zero-2-0](https://www.govdata.de/dl-de/zero-2-0) · Karte und Vergleichsbäume: © [OpenStreetMap](https://www.openstreetmap.org/copyright)-Mitwirkende · Daten verändert und angereichert durch OpenQuest.
 
 Rules from the Münster terms of use: no city logos or coat of arms, no official looking design, no impression that the city endorses the app.
 
