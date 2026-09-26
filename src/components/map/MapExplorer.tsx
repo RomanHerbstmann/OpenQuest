@@ -17,6 +17,7 @@ import { liveText } from '@/i18n/liveGame';
 import { api, ApiError } from '@/lib/api';
 import { contributionsFromObservations } from '@/lib/districts';
 import { levelProgress } from '@/lib/levels';
+import { currentPosition, locationSupported } from '@/lib/position';
 import { loadObservations, OBSERVATIONS_STORAGE_KEY } from '@/lib/observations';
 import { claimPoints, mergeQuestTrees } from '@/lib/quests';
 import { useNearbyQuests } from '@/lib/useNearbyQuests';
@@ -100,13 +101,11 @@ export function MapExplorer() {
   }, [live]);
 
   const locate = useCallback((silent = false) => {
-    if (!navigator.geolocation) { if (!silent) setLocationMessage('Standort ist hier nicht verfügbar. Du kannst die Karte frei erkunden.'); return; }
+    if (!locationSupported()) { if (!silent) setLocationMessage('Standort ist hier nicht verfügbar. Du kannst die Karte frei erkunden.'); return; }
     if (!silent) setLocationMessage('Standort wird gesucht …');
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => { setUserPosition({ lat: coords.latitude, lng: coords.longitude }); setLocateTick((tick) => tick + 1); if (!silent) setLocationMessage('Dein Standort wird auf der Karte angezeigt.'); },
-      () => { if (!silent) setLocationMessage('Standort nicht verfügbar. Du kannst die Karte frei erkunden.'); },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+    currentPosition()
+      .then((position) => { setUserPosition(position); setLocateTick((tick) => tick + 1); if (!silent) setLocationMessage('Dein Standort wird auf der Karte angezeigt.'); })
+      .catch(() => { if (!silent) setLocationMessage('Standort nicht verfügbar. Du kannst die Karte frei erkunden.'); });
   }, []);
 
   // Quests are about the player's surroundings: locate once when live mode starts.

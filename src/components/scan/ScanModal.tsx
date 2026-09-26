@@ -9,7 +9,9 @@ import { cardArtBySpecies } from '@/data/cardArt';
 import { species } from '@/data/species';
 import { liveText } from '@/i18n/liveGame';
 import { api, ApiError, type SubmitResult } from '@/lib/api';
+import { PhotoCancelled, PhotoPermissionDenied, pickPhoto, takePhoto } from '@/lib/camera';
 import { recordScanObservation } from '@/lib/observations';
+import { isNativeApp } from '@/lib/platform';
 import { recognizeTreeForPrototype, type ScanResult } from '@/lib/treeScan';
 import { formatPercent, genusLabel, reasonMessage, verdictText, type SpeciesName } from '@/lib/verificationText';
 import type { Tree } from '@/types/tree';
@@ -38,6 +40,9 @@ export function ScanModal({ tree, onClose, onSubmitted, onCancelClaim }: {
   const [submission, setSubmission] = useState<Submission>({ state: 'idle' });
   const [cancelling, setCancelling] = useState(false);
   const { progress, ready, addScannedCard, recordDiscovery } = usePlayer();
+  // Inside the phone app the native camera replaces the browser camera (getUserMedia): no live preview in the page, the phone's own camera app takes the photo.
+  const native = isNativeApp();
+  const nativeOpened = useRef(false);
   const [stage, setStage] = useState<Stage>('camera');
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState('');
@@ -73,7 +78,7 @@ export function ScanModal({ tree, onClose, onSubmitted, onCancelClaim }: {
   }, [onClose]);
 
   useEffect(() => {
-    if (stage !== 'camera') return;
+    if (stage !== 'camera' || native) return;
     let active = true;
     setCameraReady(false);
     setCameraError('');
@@ -121,7 +126,7 @@ export function ScanModal({ tree, onClose, onSubmitted, onCancelClaim }: {
     };
   }, [stage]);
 
-  const processImage = async (image: Blob, capturedAt: Date) => {
+  const processImage = async (image: Blob, capturedAt?: Date) => {
     if (!image.type.startsWith('image/') || image.size === 0 || image.size > 15 * 1024 * 1024) {
       setScanError('Bitte wähle ein Bild mit höchstens 15 MB aus.');
       return;
@@ -210,6 +215,28 @@ export function ScanModal({ tree, onClose, onSubmitted, onCancelClaim }: {
     }, 'image/jpeg', 0.85);
   };
 
+  // A photo just taken counts as taken now; the library gives no file date, so the verifier cannot flag old pictures there.
+  const nativePhoto = async (choose: () => Promise<Blob>, capturedAt?: Date) => {
+    setScanError('');
+    try {
+      await processImage(await choose(), capturedAt);
+    } catch (error) {
+      if (error instanceof PhotoCancelled) return;
+      setScanError(error instanceof PhotoPermissionDenied
+        ? 'Der Zugriff auf Kamera oder Fotos ist nicht erlaubt. Bitte erlaube ihn in den Einstellungen deines Handys.'
+        : 'Das Foto konnte nicht aufgenommen werden. Bitte versuche es erneut.');
+    }
+  };
+
+  // Opening the scan opens the camera right away, once. After cancelling, the buttons below are still there.
+  useEffect(() => {
+    if (native && stage === 'camera' && !nativeOpened.current) {
+      nativeOpened.current = true;
+      void nativePhoto(takePhoto, new Date());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [native, stage]);
+
   const onPhotoSelected = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     // Gallery pictures keep their file date, which lets the verifier flag old photos.
@@ -286,7 +313,18 @@ export function ScanModal({ tree, onClose, onSubmitted, onCancelClaim }: {
       <header className="scan-header"><div><p className="eyebrow">OPENQUEST / ENTDECKEN</p><h2 id="scan-title">{title}</h2></div><button ref={closeRef} type="button" className="scan-close" onClick={onClose} aria-label="Scan schließen"><X size={21} /></button></header>
       <div className="scan-progress-steps" aria-label="Scan-Fortschritt"><span className="active">01 AUFNEHMEN</span><span className={stage === 'camera' ? '' : 'active'}>02 ERKENNEN</span><span className={stage === 'result' || stage === 'saved' ? 'active' : ''}>03 SAMMELN</span></div>
 
-      {stage === 'camera' && <>
+      {stage === 'camera' && native && <>
+        <div className="scan-viewfinder">
+          <div className="scan-corners" aria-hidden="true" />
+          <div className="scan-camera-message"><Camera size={28} /><span>Die Kamera deines Handys öffnet sich.</span></div>
+        </div>
+        <p className="scan-help">{tree ? `Fotografiere den Baum bei ${tree.area}.` : 'Fotografiere einen Baum oder wähle ein vorhandenes Foto.'}</p>
+        {scanError && <p className="scan-error" role="alert">{scanError}</p>}
+        <button type="button" className="scan-primary" onClick={() => void nativePhoto(takePhoto, new Date())}><Camera size={19} /> Foto aufnehmen</button>
+        <button type="button" className="scan-secondary" onClick={() => void nativePhoto(pickPhoto)}><ImagePlus size={18} /> Bild auswählen</button>
+      </>}
+
+      {stage === 'camera' && !native && <>
         <div className="scan-viewfinder">
           <video ref={videoRef} autoPlay muted playsInline aria-hidden="true" onLoadedMetadata={() => setCameraReady(true)} />
           <div className="scan-corners" aria-hidden="true" />
