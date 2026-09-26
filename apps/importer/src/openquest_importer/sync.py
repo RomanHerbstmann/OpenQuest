@@ -147,6 +147,24 @@ def run_sync(
         conn.commit()
 
 
+SYNC_FINISHED_CHANNEL = "sync_finished"
+
+
+def mark_succeeded(conn: psycopg.Connection, run_id: UUID, created: int, updated: int, removed: int) -> None:
+    """Records the run as succeeded and announces it on the ``sync_finished`` channel (payload: the run id).
+
+    The API listens on that channel and turns the notification into an ``AssetSyncCompleted`` event, so that whatever
+    depends on the asset data (statistics, recurring quests) reacts right after a sync instead of polling. PostgreSQL delivers
+    the notification only when the transaction commits, i.e. together with the run's changes; the caller commits.
+    """
+    conn.execute(
+        "UPDATE sync_run SET status = 'succeeded', finished_at = now(),"
+        " assets_created = %s, assets_updated = %s, assets_removed = %s WHERE id = %s",
+        (created, updated, removed, run_id),
+    )
+    conn.execute("SELECT pg_notify(%s, %s)", (SYNC_FINISHED_CHANNEL, str(run_id)))
+
+
 def _asset_type(conn: psycopg.Connection, key: str) -> tuple[UUID, dict[str, Any]]:
     row = conn.execute("SELECT id, attribute_schema FROM asset_type WHERE key = %s", (key,)).fetchone()
     conn.commit()
@@ -224,11 +242,7 @@ def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
 
     # All asset changes and the run's success are committed together.
     _apply(conn, run_id, source_id, asset_type_id, result)
-    conn.execute(
-        "UPDATE sync_run SET status = 'succeeded', finished_at = now(),"
-        " assets_created = %s, assets_updated = %s, assets_removed = %s WHERE id = %s",
-        (len(result.created), len(result.updated), len(result.removed), run_id),
-    )
+    mark_succeeded(conn, run_id, len(result.created), len(result.updated), len(result.removed))
     conn.commit()
 
     report = SyncReport(

@@ -16,7 +16,7 @@ import psycopg
 
 from openquest_importer.adapters.base import ParsedReadings, ParsedReports, ReportAdapter
 from openquest_importer.config import SourceConfig
-from openquest_importer.sync import SyncReport
+from openquest_importer.sync import SyncReport, mark_succeeded
 
 log = logging.getLogger(__name__)
 
@@ -161,9 +161,5 @@ def apply_readings(conn: psycopg.Connection, source: SourceConfig, run_id: UUID,
 
 
 def _finish(conn: psycopg.Connection, run_id: UUID, created: int, updated: int) -> None:
-    conn.execute(
-        "UPDATE sync_run SET status = 'succeeded', finished_at = now(),"
-        " assets_created = %s, assets_updated = %s, assets_removed = 0 WHERE id = %s",
-        (created, updated, run_id),
-    )
+    mark_succeeded(conn, run_id, created, updated, 0)
     conn.commit()

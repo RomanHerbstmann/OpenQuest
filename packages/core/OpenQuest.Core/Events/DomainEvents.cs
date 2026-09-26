@@ -14,6 +14,16 @@ public sealed record SubmissionApproved(Guid SubmissionId, Guid UserId, Guid Que
 public sealed record SubmissionRejected(Guid SubmissionId, Guid UserId, Guid QuestId, string Reason) : IDomainEvent;
 
 /// <summary>
+/// The importer finished a sync run of a data source successfully and committed its changes. Extension point for everything
+/// that depends on the asset data (statistics, recurring quests) so that it does not have to poll.
+/// </summary>
+public sealed record AssetSyncCompleted(
+    Guid RunId, Guid DataSourceId, string DataSourceKey, int AssetsCreated, int AssetsUpdated, int AssetsRemoved) : IDomainEvent
+{
+    public bool ChangedAssets => AssetsCreated + AssetsUpdated + AssetsRemoved > 0;
+}
+
+/// <summary>
 /// Publishes an event as part of the caller's unit of work: it becomes visible to handlers only if the caller's
 /// transaction commits (transactional outbox), and is delivered at least once.
 /// </summary>

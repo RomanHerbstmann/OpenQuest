@@ -68,6 +68,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         Set("Auth__Argon2TimeCost", "1");
         Set("Auth__RateLimitPerMinute", "100000");
         Set("Outbox__RetryBaseDelayMs", "200");
+        Set("Gamification__QuestScheduleIntervalSeconds", "86400"); // the tests start schedule runs themselves, the worker only ticks once at start
         Set("Cors__Origins", "http://localhost:3000,https://localhost,capacitor://localhost"); // web frontend and the phone app
         Set("Storage__AccessKey", "x");
         Set("Storage__SecretKey", "x");

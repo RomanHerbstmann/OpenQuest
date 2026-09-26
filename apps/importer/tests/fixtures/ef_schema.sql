@@ -1017,3 +1017,133 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    CREATE TABLE asset_activity (
+        asset_id uuid NOT NULL,
+        last_verified_at timestamp with time zone NOT NULL,
+        verification_count integer NOT NULL,
+        CONSTRAINT pk_asset_activity PRIMARY KEY (asset_id),
+        CONSTRAINT ck_asset_activity_count CHECK (verification_count >= 1),
+        CONSTRAINT fk_asset_activity_asset_asset_id FOREIGN KEY (asset_id) REFERENCES asset (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    CREATE TABLE quest_schedule (
+        id uuid NOT NULL,
+        name character varying(128) NOT NULL,
+        city_id uuid NOT NULL,
+        is_enabled boolean NOT NULL,
+        weekday integer NOT NULL,
+        time_of_day time without time zone NOT NULL,
+        duration_hours integer NOT NULL,
+        task_type character varying(48) NOT NULL,
+        title character varying(200),
+        description text,
+        task_config jsonb NOT NULL,
+        target jsonb NOT NULL,
+        max_completions integer NOT NULL,
+        reward_points integer NOT NULL,
+        geofence_radius_m integer,
+        claim_ttl_minutes integer,
+        created_by uuid NOT NULL,
+        created_at timestamp with time zone NOT NULL,
+        updated_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_quest_schedule PRIMARY KEY (id),
+        CONSTRAINT ck_quest_schedule_duration CHECK (duration_hours BETWEEN 1 AND 168),
+        CONSTRAINT ck_quest_schedule_weekday CHECK (weekday BETWEEN 0 AND 6),
+        CONSTRAINT fk_quest_schedule_city_city_id FOREIGN KEY (city_id) REFERENCES city (id) ON DELETE RESTRICT,
+        CONSTRAINT fk_quest_schedule_user_created_by FOREIGN KEY (created_by) REFERENCES "user" (id) ON DELETE RESTRICT
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    CREATE TABLE quest_schedule_run (
+        schedule_id uuid NOT NULL,
+        period_key character varying(48) NOT NULL,
+        ran_at timestamp with time zone NOT NULL,
+        campaign_id uuid,
+        quests_created integer NOT NULL,
+        error text,
+        CONSTRAINT pk_quest_schedule_run PRIMARY KEY (schedule_id, period_key),
+        CONSTRAINT fk_quest_schedule_run_quest_campaign_campaign_id FOREIGN KEY (campaign_id) REFERENCES quest_campaign (id) ON DELETE SET NULL,
+        CONSTRAINT fk_quest_schedule_run_quest_schedule_schedule_id FOREIGN KEY (schedule_id) REFERENCES quest_schedule (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    CREATE INDEX ix_asset_activity_last_verified_at ON asset_activity (last_verified_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    CREATE INDEX ix_quest_schedule_city_id ON quest_schedule (city_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    CREATE INDEX ix_quest_schedule_created_by ON quest_schedule (created_by);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    CREATE UNIQUE INDEX ix_quest_schedule_name ON quest_schedule (name);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    CREATE INDEX ix_quest_schedule_run_campaign_id ON quest_schedule_run (campaign_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    CREATE INDEX ix_quest_schedule_run_schedule_id_ran_at ON quest_schedule_run (schedule_id, ran_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+
+                    INSERT INTO asset_activity (asset_id, last_verified_at, verification_count)
+                    SELECT q.asset_id, max(s.reviewed_at), count(*)
+                    FROM submission s
+                    JOIN claim c ON c.id = s.claim_id
+                    JOIN quest q ON q.id = c.quest_id
+                    WHERE s.status = 'approved' AND s.reviewed_at IS NOT NULL
+                    GROUP BY q.asset_id;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926103512_AddStaleQuests') THEN
+    INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
+    VALUES ('20260926103512_AddStaleQuests', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+

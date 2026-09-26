@@ -49,6 +49,8 @@ public class GamificationOptions
     public double OverlapToleranceRatio { get; set; } = 0.001;
     /// <summary>The genus statistics of a district (how frequent each genus is) are recalculated when older than this, or when the district was redrawn.</summary>
     public int GenusStatsMaxAgeHours { get; set; } = 24;
+    /// <summary>How often the worker checks whether a weekly quest schedule is due. The runs themselves happen once per week.</summary>
+    public int QuestScheduleIntervalSeconds { get; set; } = 60;
     /// <summary>Overrides for the card rarity rule; whatever is not set keeps the core's default.</summary>
     public RarityOptions Rarity { get; set; } = new();
 }

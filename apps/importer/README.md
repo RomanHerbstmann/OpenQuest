@@ -73,6 +73,9 @@ Commands (run in `apps/importer`, or pass `--config`):
 | `openquest-importer sync SOURCE --accept-schema-change` | Imports even if the source's fields changed (a sync normally fails then); the run records the new `schema_hash`. Afterwards update `expected_fields` in the adapter |
 | `openquest-importer adapters` | Lists installed adapters and enrichers |
 
+After every successful run (assets, reports and readings alike) the importer sends `pg_notify('sync_finished', <sync_run id>)` in the same transaction as the run's result
+(`mark_succeeded` in `sync.py`). The API listens and turns it into an event; failed runs send nothing.
+
 `DATABASE_URL` overrides the database URL and `OPENQUEST_SNAPSHOT_DIR` the snapshot directory from `importer.toml`. Locally, snapshots are stored in `data/snapshots/` at the repository root (git-ignored).
 
 ## Münster tree adapter

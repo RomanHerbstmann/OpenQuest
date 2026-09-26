@@ -181,3 +181,28 @@ def test_database_prepared_by_api_is_accepted(db_url):
 
     with psycopg.connect(db_url) as conn:
         assert schema_problems(conn) == []
+
+
+def announcements(url):
+    """Opens a second connection that listens for ``sync_finished``; returns a function that collects the payloads so far."""
+    listener = psycopg.connect(url, autocommit=True)
+    listener.execute("LISTEN sync_finished")
+    return listener, lambda: [n.payload for n in listener.notifies(timeout=0.5)]
+
+
+def test_a_finished_sync_is_announced_with_its_run_id(db_url, sample_collection, write_collection, store):
+    listener, received = announcements(db_url)
+    with listener, psycopg.connect(db_url) as conn:
+        report = sync(conn, write_collection(sample_collection), store)
+        assert received() == [str(report.run_id)]
+
+
+def test_a_failed_sync_is_not_announced(db_url, sample_collection, write_collection, store):
+    listener, received = announcements(db_url)
+    with listener, psycopg.connect(db_url) as conn:
+        sync(conn, write_collection(sample_collection, "v1.geojson"), store)
+        assert len(received()) == 1
+        broken = {**sample_collection, "features": sample_collection["features"][:2]}  # would remove most trees
+        with pytest.raises(RemovalGuardError):
+            sync(conn, write_collection(broken, "v2.geojson"), store)
+        assert received() == []
