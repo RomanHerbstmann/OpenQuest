@@ -1,3 +1,5 @@
+import { aggregateAssessment } from "./assess/aggregate.ts";
+import { buildProposals } from "./assess/proposals.ts";
 import { resolveConfig, type VerificationConfig } from "./config.ts";
 import { fuse } from "./decide/fusion.ts";
 import { askJev, createJevClient, type JevAnswers, type JevClient } from "./decide/jev.ts";
@@ -73,10 +75,23 @@ export async function verifyTreePhoto(input: VerificationInput, deps: VerifierDe
     jevFailed = !res.answers;
   }
 
-  const fused = fuse({ pre, vision, geo, jev, jevFailed, expected: input.expected }, config);
+  const assessment = vision ? aggregateAssessment(vision.observations, jev, config.jevWeight) : null;
+  const fused = fuse({ pre, vision, geo, jev, jevFailed, expected: input.expected, assessment }, config);
+  const proposedChanges = buildProposals({
+    verdict: fused.verdict,
+    inventory: fused.inventory,
+    assessment: fused.treePresent.value || fused.inventory === "tree_missing" ? assessment : null,
+    genusSuggestion: fused.genusSuggestion,
+    genus: fused.genus,
+    playerPosition: input.playerPosition,
+    capturedAt: input.capturedAt ?? new Date(),
+    minConfidence: config.minProposalConfidence,
+  });
 
   return {
     ...fused,
+    assessment,
+    proposedChanges,
     signals: {
       distanceToExpectedM: pre.distanceToExpectedM,
       geofenceRadiusM: pre.geofenceRadiusM,
@@ -98,4 +113,6 @@ export { normalizeGenus } from "./vision/ensemble.ts";
 export { createOpenRouterClient, type OpenRouterClient } from "./vision/openrouter.ts";
 export type { VisionObservation } from "./vision/schema.ts";
 export type { JevAnswers, JevClient } from "./decide/jev.ts";
+export type { TreeAssessment, SafetyFlag, Voted, Finding } from "./assess/aggregate.ts";
+export type { ProposedChange, InventoryStatus } from "./assess/proposals.ts";
 export type * from "./types.ts";

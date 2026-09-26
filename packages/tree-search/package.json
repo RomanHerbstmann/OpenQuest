@@ -1,0 +1,24 @@
+{
+  "name": "@openquest/tree-search",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./data/trees.json": "./data/trees.json"
+  },
+  "scripts": {
+    "build-data": "tsx scripts/build-data.ts",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@openquest/adapter-de-muenster": "workspace:*",
+    "@openquest/adapter-de-nrw": "workspace:*",
+    "@typesafe-ai/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "undici": "^7.30.0",
+    "vitest": "^3.2.0"
+  }
+}

@@ -506,3 +506,4 @@ dist/
 eval/images/
 eval/out/
 .DS_Store
+packages/tree-search/data/cache/

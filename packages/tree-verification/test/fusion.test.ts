@@ -5,7 +5,8 @@ import type { GeoContext } from "../src/geo/context.ts";
 import type { EnsembleResult } from "../src/vision/ensemble.ts";
 import { aggregateGenus, treeProbability } from "../src/vision/ensemble.ts";
 import type { VisionObservation } from "../src/vision/schema.ts";
-import { config, obs, TREE_POS } from "./helpers.ts";
+import { aggregateAssessment } from "../src/assess/aggregate.ts";
+import { assessment, config, obs, TREE_POS } from "./helpers.ts";
 
 const noGeo: GeoContext = { trees: [], genusDistribution: [], failedProviders: [] };
 
@@ -117,6 +118,43 @@ describe("fuse", () => {
     const r = fuse(input({ jevFailed: true }), config);
     expect(r.verdict).toBe("approve");
     expect(codes(r)).toContain("jev_unavailable");
+  });
+});
+
+describe("fuse: assessment and inventory", () => {
+  it("turns a stump at the target into a tree_missing report instead of a reject", () => {
+    const stump = obs({ tree_present: "no", tree_present_confidence: 0.95, main_subject: "tree_stump", genus_candidates: [], assessment: assessment({ site_state: "stump" }) });
+    const v = vision([stump, stump]);
+    const r = fuse(input({ vision: v, assessment: aggregateAssessment(v.observations) }), config);
+    expect(r.verdict).toBe("review");
+    expect(r.inventory).toBe("tree_missing");
+    expect(r.targetMatch?.value).toBe("tree_missing");
+    expect(codes(r)).toContain("tree_missing");
+  });
+
+  it("still rejects a stump photo without a target", () => {
+    const stump = obs({ tree_present: "no", tree_present_confidence: 0.95, genus_candidates: [], assessment: assessment({ site_state: "stump" }) });
+    const v = vision([stump, stump]);
+    expect(fuse(input({ vision: v, assessment: aggregateAssessment(v.observations), expected: undefined }), config).verdict).toBe("reject");
+  });
+
+  it("sends hazards to review", () => {
+    const fungi = obs({ assessment: assessment({ fungi_on_trunk: true }) });
+    const v = vision([fungi, obs()]);
+    const r = fuse(input({ vision: v, assessment: aggregateAssessment(v.observations) }), config);
+    expect(r.verdict).toBe("review");
+    expect(codes(r)).toContain("safety_concern");
+  });
+
+  it("detects new tree candidates in free photo mode", () => {
+    const far = { ...noGeo, trees: [{ source: "city", position: TREE_POS, genus: "Acer", distanceM: 30 }] };
+    const r = fuse(input({ expected: undefined, geo: far }), config);
+    expect(r.inventory).toBe("new_tree_candidate");
+    expect(r.verdict).toBe("review");
+    const close = { ...noGeo, trees: [{ source: "city", position: TREE_POS, genus: "Tilia", distanceM: 5 }] };
+    expect(fuse(input({ expected: undefined, geo: close }), config)).toMatchObject({ inventory: "confirmed", verdict: "approve" });
+    const broken = { ...noGeo, failedProviders: ["city"] };
+    expect(fuse(input({ expected: undefined, geo: broken }), config).inventory).toBe("unknown");
   });
 });
 

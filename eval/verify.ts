@@ -61,6 +61,15 @@ if (values.json) {
   if (result.targetMatch) console.log(`target:       ${result.targetMatch.value} (p=${result.targetMatch.probability.toFixed(2)})`);
   console.log(`genus:        ${result.genus.value ?? "-"} ${result.genus.alternatives.map((g) => `${g.genus} ${(g.probability * 100).toFixed(0)}%`).join(", ")}`);
   if (result.genusSuggestion) console.log(`suggestion:   genus=${result.genusSuggestion.genus}`);
+  const a = result.assessment;
+  if (a) {
+    console.log(`inventory:    ${result.inventory}`);
+    console.log(`condition:    vitality=${a.vitality.value} crown=${a.crownDensity.value} age=${a.ageClass.value} phenology=${a.phenology.value}`);
+    if (a.damage.length || a.pests.length) console.log(`findings:     ${[...a.damage, ...a.pests].map((f) => `${f.value} ${(f.confidence * 100).toFixed(0)}%`).join(", ")}`);
+    if (a.safetyFlags.length) console.log(`SAFETY:       ${a.safetyFlags.map((f) => `${f.value} ${(f.confidence * 100).toFixed(0)}%`).join(", ")}`);
+    console.log(`tree pit:     ${a.treePit.visible ? `${a.treePit.surface.value}${a.treePit.wateringBag ? ", watering bag" : ""}${a.treePit.stakes ? ", stakes" : ""}` : "not visible"}`);
+  }
+  console.log(`proposals:    ${result.proposedChanges.map((c) => `${c.key}=${JSON.stringify(c.value)}${c.requiresReview ? " (review)" : ""}`).join("; ") || "-"}`);
   console.log(`reasons:      ${result.reasons.map((r) => `${r.code}${r.detail ? ` (${r.detail})` : ""}`).join("; ")}`);
   console.log(`nearby trees: ${result.signals.nearbyTrees.slice(0, 5).map((t) => `${t.genus ?? "?"}@${t.distanceM?.toFixed(0)}m[${t.source}]`).join(", ") || "-"}`);
   console.log(`models:       ${result.models.map((m) => `${m.model}${m.ok ? "" : " FAILED"} ${(m.latencyMs / 1000).toFixed(1)}s`).join(", ")}`);

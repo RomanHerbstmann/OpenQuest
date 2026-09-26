@@ -274,6 +274,70 @@ namespace OpenQuest.Api.Data.Migrations
                     b.ToTable("attribute_change", (string)null);
                 });
 
+            modelBuilder.Entity("OpenQuest.Api.Data.City", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<double?>("CenterLat")
+                        .HasColumnType("double precision")
+                        .HasColumnName("center_lat");
+
+                    b.Property<double?>("CenterLon")
+                        .HasColumnType("double precision")
+                        .HasColumnName("center_lon");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("country_code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<int?>("DefaultZoom")
+                        .HasColumnType("integer")
+                        .HasColumnName("default_zoom");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Timezone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("timezone");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_city");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_city_key");
+
+                    b.ToTable("city", (string)null);
+                });
+
             modelBuilder.Entity("OpenQuest.Api.Data.Claim", b =>
                 {
                     b.Property<Guid>("Id")
@@ -391,6 +455,130 @@ namespace OpenQuest.Api.Data.Migrations
                         .HasDatabaseName("ix_data_source_key");
 
                     b.ToTable("data_source", (string)null);
+                });
+
+            modelBuilder.Entity("OpenQuest.Api.Data.District", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<double>("CentroidLat")
+                        .HasColumnType("double precision")
+                        .HasColumnName("centroid_lat");
+
+                    b.Property<double>("CentroidLon")
+                        .HasColumnType("double precision")
+                        .HasColumnName("centroid_lon");
+
+                    b.Property<Guid>("CityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("city_id");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("description");
+
+                    b.Property<Polygon>("Geom")
+                        .IsRequired()
+                        .HasColumnType("geography (polygon)")
+                        .HasColumnName("geom");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("TotalPoints")
+                        .HasColumnType("integer")
+                        .HasColumnName("total_points");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_district");
+
+                    b.HasIndex("CreatedBy")
+                        .HasDatabaseName("ix_district_created_by");
+
+                    b.HasIndex("Geom")
+                        .HasDatabaseName("ix_district_geom");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Geom"), "gist");
+
+                    b.HasIndex("CityId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_district_city_id_key");
+
+                    b.HasIndex("CityId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_district_city_id_name");
+
+                    b.ToTable("district", (string)null);
+                });
+
+            modelBuilder.Entity("OpenQuest.Api.Data.DistrictPoint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("DistrictId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("district_id");
+
+                    b.Property<double>("Lat")
+                        .HasColumnType("double precision")
+                        .HasColumnName("lat");
+
+                    b.Property<double>("Lon")
+                        .HasColumnType("double precision")
+                        .HasColumnName("lon");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer")
+                        .HasColumnName("position");
+
+                    b.HasKey("Id")
+                        .HasName("pk_district_point");
+
+                    b.HasIndex("DistrictId", "Position")
+                        .IsUnique()
+                        .HasDatabaseName("ix_district_point_district_id_position");
+
+                    b.ToTable("district_point", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_district_point_position", "position >= 0");
+                        });
                 });
 
             modelBuilder.Entity("OpenQuest.Api.Data.ExportRun", b =>
@@ -560,6 +748,59 @@ namespace OpenQuest.Api.Data.Migrations
                         .HasFilter("status = 'pending'");
 
                     b.ToTable("outbox_message", (string)null);
+                });
+
+            modelBuilder.Entity("OpenQuest.Api.Data.PointTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("integer")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("DistrictId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("district_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid?>("SubmissionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("submission_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_point_transaction");
+
+                    b.HasIndex("DistrictId", "CreatedAt")
+                        .HasDatabaseName("ix_point_transaction_district_id_created_at");
+
+                    b.HasIndex("SubmissionId", "Reason")
+                        .IsUnique()
+                        .HasDatabaseName("ix_point_transaction_submission_id_reason")
+                        .HasFilter("submission_id IS NOT NULL");
+
+                    b.HasIndex("UserId", "CreatedAt")
+                        .HasDatabaseName("ix_point_transaction_user_id_created_at");
+
+                    b.ToTable("point_transaction", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_point_transaction_amount", "amount <> 0");
+                        });
                 });
 
             modelBuilder.Entity("OpenQuest.Api.Data.Quest", b =>
@@ -1054,6 +1295,33 @@ namespace OpenQuest.Api.Data.Migrations
                     b.Navigation("Quest");
                 });
 
+            modelBuilder.Entity("OpenQuest.Api.Data.District", b =>
+                {
+                    b.HasOne("OpenQuest.Api.Data.City", "City")
+                        .WithMany()
+                        .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_district_city_city_id");
+
+                    b.HasOne("OpenQuest.Api.Data.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .HasConstraintName("fk_district_user_created_by");
+
+                    b.Navigation("City");
+                });
+
+            modelBuilder.Entity("OpenQuest.Api.Data.DistrictPoint", b =>
+                {
+                    b.HasOne("OpenQuest.Api.Data.District", null)
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_district_point_district_district_id");
+                });
+
             modelBuilder.Entity("OpenQuest.Api.Data.ExportRun", b =>
                 {
                     b.HasOne("OpenQuest.Api.Data.User", null)
@@ -1081,6 +1349,27 @@ namespace OpenQuest.Api.Data.Migrations
                         .HasConstraintName("fk_media_submissions_submission_id");
 
                     b.Navigation("Submission");
+                });
+
+            modelBuilder.Entity("OpenQuest.Api.Data.PointTransaction", b =>
+                {
+                    b.HasOne("OpenQuest.Api.Data.District", null)
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_point_transaction_district_district_id");
+
+                    b.HasOne("OpenQuest.Api.Data.Submission", null)
+                        .WithMany()
+                        .HasForeignKey("SubmissionId")
+                        .HasConstraintName("fk_point_transaction_submission_submission_id");
+
+                    b.HasOne("OpenQuest.Api.Data.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_point_transaction_user_user_id");
                 });
 
             modelBuilder.Entity("OpenQuest.Api.Data.Quest", b =>

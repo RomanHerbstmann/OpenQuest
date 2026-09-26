@@ -1,13 +1,16 @@
 import { choice, noul, TypeSafeClient, type Questions } from "@typesafe-ai/sdk";
 import type { GeoContext } from "../geo/context.ts";
 import type { ExpectedTree, GenusEstimate, ModelCall } from "../types.ts";
-import type { VisionObservation } from "../vision/schema.ts";
+import { PHENOLOGY, type VisionObservation } from "../vision/schema.ts";
 
 export interface JevAnswers {
   treePresent: number;
   targetMatch?: { choice: "expected_tree" | "different_tree" | "no_tree" | "uncertain"; confidence: number; probabilities: Record<string, number> };
   genus: { choice: string; confidence: number; probabilities: Record<string, number> };
   verdict: { choice: "approve" | "review" | "reject"; confidence: number; probabilities: Record<string, number> };
+  vitality?: { choice: string; confidence: number; probabilities: Record<string, number> };
+  phenology?: { choice: string; confidence: number; probabilities: Record<string, number> };
+  safetyConcern?: number;
 }
 
 /** The subset of the TypeSafe client we use; lets tests inject a fake. */
@@ -61,6 +64,19 @@ export function buildJevState(input: JevInput) {
       image_quality: o.image_quality,
       quality_issues: o.quality_issues.filter((q) => q !== "none"),
       description: o.scene_description,
+      assessment: o.assessment
+        ? {
+            site_state: o.assessment.site_state,
+            vitality: o.assessment.vitality,
+            crown_density: o.assessment.crown_density,
+            damage: o.assessment.damage.filter((d) => d !== "none"),
+            fungi_on_trunk: o.assessment.fungi_on_trunk,
+            pests: o.assessment.pests.filter((p) => p !== "none"),
+            drought_stress: o.assessment.drought_stress,
+            phenology: o.assessment.phenology,
+            notes: o.assessment.notes,
+          }
+        : null,
     })),
     combined_genus_vote: input.ensembleGenus.slice(0, 5).map((g) => `${g.genus} ${(g.probability * 100).toFixed(0)}%`),
   };
@@ -89,6 +105,20 @@ export function buildJevQuestions(input: JevInput): Questions {
       reject: "no tree, a picture of a screen or print, or clearly not the target",
     }),
   };
+  if (input.observations.some((o) => o.assessment && o.assessment.site_state === "tree_present")) {
+    questions.vitality = choice("How vital is the main tree according to the models' observations (Roloff scale)?", {
+      healthy: "full, even crown",
+      slightly_damaged: "somewhat thin crown or some dead twigs",
+      clearly_damaged: "sparse crown, dead branches, larger wounds",
+      severely_damaged_or_dead: "mostly dead or dying",
+      not_assessable: "leafless, close-up, or evidence insufficient",
+    });
+    questions.phenology = choice("Which seasonal stage does the main tree show?", Object.fromEntries(PHENOLOGY.map((p) => [p, null])));
+    questions.safety_concern = noul(
+      "Do the observations indicate a possible hazard a city tree inspector should check (fungal fruiting bodies, large cavity or crack, dangerous lean, broken hanging branch, oak processionary moth nests, dead tree)?",
+    );
+  }
+
   // Without an expected genus there is nothing to compare; Jev would guess "different_tree".
   if (input.expected?.genus) {
     questions.target_match = choice("Is the photographed tree the expected target tree?", {
@@ -113,6 +143,9 @@ export async function askJev(client: JevClient, model: string, input: JevInput):
       genus: pick<string>("genus")!,
       verdict: pick<"approve" | "review" | "reject">("verdict")!,
       targetMatch: pick("target_match"),
+      vitality: pick<string>("vitality"),
+      phenology: pick<string>("phenology"),
+      safetyConcern: a.safety_concern?.noul,
     };
     if (!answers.genus || !answers.verdict) throw new Error("incomplete Jev answer");
     return { answers, call: { model, stage: "jev", ok: true, latencyMs: Date.now() - started, costUsd: res.usage.cost ?? 0 } };

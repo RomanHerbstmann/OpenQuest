@@ -27,6 +27,7 @@ export interface VerificationInput {
   image: VerificationImage;
   playerPosition?: PlayerPosition;
   expected?: ExpectedTree;
+  /** Used for timeliness checks and as timestamp of observations (phenology). Defaults to now. */
   capturedAt?: Date;
   /** Overrides `config.geofenceRadiusM` (QUEST.geofence_radius_m). */
   geofenceRadiusM?: number;
@@ -68,12 +69,14 @@ export type ReasonCode =
   | "poor_image_quality"
   | "genus_mismatch"
   | "possibly_neighbor_tree"
-  | "no_known_tree_nearby"
   | "vision_unavailable"
   | "jev_unavailable"
   | "jev_disagrees"
   | "tree_confirmed"
-  | "genus_confirmed";
+  | "genus_confirmed"
+  | "tree_missing"
+  | "new_tree_candidate"
+  | "safety_concern";
 
 export interface Reason {
   code: ReasonCode;
@@ -101,7 +104,13 @@ export interface TreeVerificationResult {
   /** Final probability that the photo shows a real tree as main subject. */
   treePresent: { value: boolean; probability: number };
   /** Only set when an expected tree was given. */
-  targetMatch?: { value: "expected_tree" | "different_tree" | "no_tree" | "uncertain"; probability: number };
+  targetMatch?: { value: "expected_tree" | "different_tree" | "no_tree" | "tree_missing" | "uncertain"; probability: number };
+  /** Inventory check against the city data: tree confirmed, gone, or not yet recorded. */
+  inventory: import("./assess/proposals.ts").InventoryStatus;
+  /** Condition, tree pit, phenology, hazards. `null` when no model could assess the tree. */
+  assessment: import("./assess/aggregate.ts").TreeAssessment | null;
+  /** Everything this photo proposes to record; becomes ATTRIBUTE_CHANGE rows / observations. */
+  proposedChanges: import("./assess/proposals.ts").ProposedChange[];
   genus: { value: string | null; probability: number; alternatives: GenusEstimate[] };
   /** Proposed genus for assets without a usable genus (feeds ATTRIBUTE_CHANGE). */
   genusSuggestion?: GenusEstimate;

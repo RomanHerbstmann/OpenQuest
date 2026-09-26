@@ -9,7 +9,10 @@
     "genus": "Tilia",
     "expect": "approve",
     "group": "tilia",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/tilia-2.jpg",
@@ -21,7 +24,10 @@
     "genus": "Tilia",
     "expect": "approve",
     "group": "tilia",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/quercus-1.jpg",
@@ -45,7 +51,10 @@
     "genus": "Quercus",
     "expect": "approve",
     "group": "quercus",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/acer-1.jpg",
@@ -57,7 +66,10 @@
     "genus": "Acer",
     "expect": "approve",
     "group": "acer",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/platanus-1.jpg",
@@ -69,7 +81,10 @@
     "genus": "Platanus",
     "expect": "approve",
     "group": "platanus",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/platanus-2.jpg",
@@ -81,7 +96,10 @@
     "genus": "Platanus",
     "expect": "approve",
     "group": "platanus",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/betula-1.jpg",
@@ -93,7 +111,10 @@
     "genus": "Betula",
     "expect": "approve",
     "group": "betula",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/betula-2.jpg",
@@ -105,7 +126,10 @@
     "genus": "Betula",
     "expect": "approve",
     "group": "betula",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/carpinus-1.jpg",
@@ -129,7 +153,10 @@
     "genus": "Aesculus",
     "expect": "approve",
     "group": "aesculus",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/aesculus-2.jpg",
@@ -141,7 +168,10 @@
     "genus": "Aesculus",
     "expect": "approve",
     "group": "aesculus",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/fraxinus-1.jpg",
@@ -177,7 +207,10 @@
     "genus": null,
     "expect": "approve",
     "group": "winter",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/winter-2.jpg",
@@ -189,7 +222,10 @@
     "genus": null,
     "expect": "approve",
     "group": "winter",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "safety": false
+    }
   },
   {
     "file": "images/hedge-1.jpg",
@@ -261,7 +297,10 @@
     "genus": null,
     "expect": "not_approve",
     "group": "stump",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "inventory": "tree_missing"
+    }
   },
   {
     "file": "images/stump-2.jpg",
@@ -273,7 +312,10 @@
     "genus": null,
     "expect": "not_approve",
     "group": "stump",
-    "reviewed": true
+    "reviewed": true,
+    "labels": {
+      "inventory": "tree_missing"
+    }
   },
   {
     "file": "images/painting-1.jpg",
@@ -298,5 +340,273 @@
     "expect": "not_approve",
     "group": "painting",
     "reviewed": true
+  },
+  {
+    "file": "images/fungi-1.jpg",
+    "title": "File:Bracket fungus on a dead tree trunk - geograph.org.uk - 6580487.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3ABracket_fungus_on_a_dead_tree_trunk_-_geograph.org.uk_-_6580487.jpg",
+    "author": "Humphrey Bolton",
+    "license": "CC BY-SA 2.0",
+    "tree": true,
+    "genus": null,
+    "expect": "not_approve",
+    "group": "fungi",
+    "reviewed": true,
+    "labels": {
+      "safety": true
+    }
+  },
+  {
+    "file": "images/fungi-2.jpg",
+    "title": "File:Bracket fungus inside tree trunk - geograph.org.uk - 7186308.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3ABracket_fungus_inside_tree_trunk_-_geograph.org.uk_-_7186308.jpg",
+    "author": "Alan Hughes",
+    "license": "CC BY-SA 2.0",
+    "tree": true,
+    "genus": null,
+    "expect": "not_approve",
+    "group": "fungi",
+    "reviewed": true,
+    "labels": {
+      "safety": true
+    }
+  },
+  {
+    "file": "images/fungi-3.jpg",
+    "title": "File:View of a large bracket fungus on a storm-damaged tree trunk in Valentines Park - geograph.org.uk - 4969642.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AView_of_a_large_bracket_fungus_on_a_storm-damaged_tree_trunk_in_Valentines_Park_-_geograph.org.uk_-_4969642.jpg",
+    "author": "Robert Lamb",
+    "license": "CC BY-SA 2.0",
+    "tree": true,
+    "genus": null,
+    "expect": "not_approve",
+    "group": "fungi",
+    "reviewed": true,
+    "labels": {
+      "safety": true
+    }
+  },
+  {
+    "file": "images/oakmoth-1.jpg",
+    "title": "File:Thaumetopoea processionea caterpillars nest.JPG",
+    "source": "https://commons.wikimedia.org/wiki/File%3AThaumetopoea_processionea_caterpillars_nest.JPG",
+    "author": "Falko Seyffarth (\"FWHS\")",
+    "license": "CC BY-SA 3.0",
+    "tree": true,
+    "genus": "Quercus",
+    "expect": "not_approve",
+    "group": "oakmoth",
+    "reviewed": true,
+    "labels": {
+      "safety": true,
+      "pest": "oak_processionary_nests"
+    }
+  },
+  {
+    "file": "images/oakmoth-3.jpg",
+    "title": "File:Eichen-Prozessionsspinner-Ziemetshausen-Nest-6.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AEichen-Prozessionsspinner-Ziemetshausen-Nest-6.jpg",
+    "author": "Riquix",
+    "license": "CC BY-SA 4.0",
+    "tree": true,
+    "genus": "Quercus",
+    "expect": "not_approve",
+    "group": "oakmoth",
+    "reviewed": true,
+    "labels": {
+      "safety": true,
+      "pest": "oak_processionary_nests"
+    }
+  },
+  {
+    "file": "images/leafminer-2.jpg",
+    "title": "File:Horse chestnut tree with leaf miner damage, Headington Hill Park - geograph.org.uk - 1399538.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AHorse_chestnut_tree_with_leaf_miner_damage%2C_Headington_Hill_Park_-_geograph.org.uk_-_1399538.jpg",
+    "author": "David Hawgood",
+    "license": "CC BY-SA 2.0",
+    "tree": true,
+    "genus": "Aesculus",
+    "expect": "approve",
+    "group": "leafminer",
+    "reviewed": true,
+    "labels": {
+      "pest": "leaf_miner_damage",
+      "safety": false
+    }
+  },
+  {
+    "file": "images/leafminer-3.jpg",
+    "title": "File:Horse Chestnut with leaf miner damage - geograph.org.uk - 957167.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AHorse_Chestnut_with_leaf_miner_damage_-_geograph.org.uk_-_957167.jpg",
+    "author": "David Hawgood",
+    "license": "CC BY-SA 2.0",
+    "tree": true,
+    "genus": "Aesculus",
+    "expect": "approve",
+    "group": "leafminer",
+    "reviewed": true,
+    "labels": {
+      "pest": "leaf_miner_damage",
+      "safety": false
+    }
+  },
+  {
+    "file": "images/wateringbag-1.jpg",
+    "title": "File:Dornbirn-Tree Watering Bag-Tree irrigation-01ASD.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3ADornbirn-Tree_Watering_Bag-Tree_irrigation-01ASD.jpg",
+    "author": "Asurnipal",
+    "license": "CC BY-SA 4.0",
+    "tree": true,
+    "genus": null,
+    "expect": "approve",
+    "group": "wateringbag",
+    "reviewed": true,
+    "labels": {
+      "watering_bag": true,
+      "age_class": "young",
+      "safety": false
+    }
+  },
+  {
+    "file": "images/wateringbag-4.jpg",
+    "title": "File:A newly planted tree with a watering bag.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AA_newly_planted_tree_with_a_watering_bag.jpg",
+    "author": "Gogerr",
+    "license": "CC BY-SA 4.0",
+    "tree": true,
+    "genus": null,
+    "expect": "approve",
+    "group": "wateringbag",
+    "reviewed": true,
+    "labels": {
+      "watering_bag": true,
+      "age_class": "young",
+      "safety": false
+    }
+  },
+  {
+    "file": "images/autumn-1.jpg",
+    "title": "File:Birch with autumn foliage in Drakenbergsparken 02.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3ABirch_with_autumn_foliage_in_Drakenbergsparken_02.jpg",
+    "author": "ThibautRe",
+    "license": "CC BY-SA 4.0",
+    "tree": true,
+    "genus": null,
+    "expect": "approve",
+    "group": "autumn",
+    "reviewed": true,
+    "labels": {
+      "phenology": "autumn_coloring",
+      "safety": false
+    }
+  },
+  {
+    "file": "images/autumn-2.jpg",
+    "title": "File:Oak tree in autumn foliage - geograph.org.uk - 1588316.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AOak_tree_in_autumn_foliage_-_geograph.org.uk_-_1588316.jpg",
+    "author": "Evelyn Simak",
+    "license": "CC BY-SA 2.0",
+    "tree": true,
+    "genus": null,
+    "expect": "approve",
+    "group": "autumn",
+    "reviewed": true,
+    "labels": {
+      "phenology": "autumn_coloring",
+      "safety": false
+    }
+  },
+  {
+    "file": "images/flowering-1.jpg",
+    "title": "File:Flowering horse chestnut tree in Lysekil 2.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AFlowering_horse_chestnut_tree_in_Lysekil_2.jpg",
+    "author": "W.carter",
+    "license": "CC BY-SA 4.0",
+    "tree": true,
+    "genus": "Aesculus",
+    "expect": "approve",
+    "group": "flowering",
+    "reviewed": true,
+    "labels": {
+      "phenology": "flowering",
+      "safety": false
+    }
+  },
+  {
+    "file": "images/flowering-3.jpg",
+    "title": "File:Flowering horse chestnut tree in Lysekil 1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AFlowering_horse_chestnut_tree_in_Lysekil_1.jpg",
+    "author": "W.carter",
+    "license": "CC BY-SA 4.0",
+    "tree": true,
+    "genus": "Aesculus",
+    "expect": "approve",
+    "group": "flowering",
+    "reviewed": true,
+    "labels": {
+      "phenology": "flowering",
+      "safety": false
+    }
+  },
+  {
+    "file": "images/dead-1.jpg",
+    "title": "File:Dead Vlei Tree central.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3ADead_Vlei_Tree_central.jpg",
+    "author": "Daniel Kraft",
+    "license": "CC BY-SA 3.0",
+    "tree": true,
+    "genus": null,
+    "expect": "not_approve",
+    "group": "dead",
+    "reviewed": true,
+    "labels": {
+      "vitality": "severely_damaged_or_dead",
+      "safety": true
+    }
+  },
+  {
+    "file": "images/cavity-1.jpg",
+    "title": "File:Two holes and green leaves on the bark of a tree trunk in the forest in Luang Prabang Laos.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3ATwo_holes_and_green_leaves_on_the_bark_of_a_tree_trunk_in_the_forest_in_Luang_Prabang_Laos.jpg",
+    "author": "Basile Morin",
+    "license": "CC BY-SA 4.0",
+    "tree": true,
+    "genus": null,
+    "expect": "not_approve",
+    "group": "cavity",
+    "reviewed": true,
+    "labels": {
+      "safety": true
+    }
+  },
+  {
+    "file": "images/mistletoe-1.jpg",
+    "title": "File:Viscum album apple-tree 2011 G1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AViscum_album_apple-tree_2011_G1.jpg",
+    "author": "George Chernilevsky",
+    "license": "Public domain",
+    "tree": true,
+    "genus": null,
+    "expect": "approve",
+    "group": "mistletoe",
+    "reviewed": true,
+    "labels": {
+      "pest": "mistletoe"
+    }
+  },
+  {
+    "file": "images/mistletoe-2.jpg",
+    "title": "File:Mistletoe-apple-tree.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File%3AMistletoe-apple-tree.jpg",
+    "author": "Kreuzschnabel",
+    "license": "CC BY-SA 3.0",
+    "tree": true,
+    "genus": null,
+    "expect": "approve",
+    "group": "mistletoe",
+    "reviewed": true,
+    "labels": {
+      "pest": "mistletoe"
+    }
   }
 ]

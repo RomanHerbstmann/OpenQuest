@@ -46,9 +46,11 @@ describe("buildJevQuestions", () => {
       geo: { trees: [], genusDistribution: [{ genus: "Acer", count: 2 }], failedProviders: [] },
     };
     const q = buildJevQuestions({ ...base, expected: { position: TREE_POS, genus: "Quercus" } });
-    expect(Object.keys(q)).toEqual(["tree_present", "genus", "verdict", "target_match"]);
+    expect(Object.keys(q)).toEqual(["tree_present", "genus", "verdict", "vitality", "phenology", "safety_concern", "target_match"]);
     expect(Object.keys((q.genus as { criteria: object }).criteria)).toEqual(["Tilia", "Quercus", "Acer", "other", "unknown"]);
     expect(Object.keys(buildJevQuestions(base))).not.toContain("target_match");
+    const noTree = { ...base, observations: [obs({ assessment: undefined })] };
+    expect(Object.keys(buildJevQuestions(noTree))).toEqual(["tree_present", "genus", "verdict"]);
   });
 });
 
@@ -76,6 +78,9 @@ describe("verifyTreePhoto", () => {
     expect(r.models.map((m) => m.stage)).toEqual(["vision", "vision", "jev"]);
     expect(r.costUsd).toBeCloseTo(0.00402);
     expect(r.signals.nearbyTrees).toHaveLength(1);
+    expect(r.inventory).toBe("confirmed");
+    expect(r.assessment?.vitality.value).toBe("healthy");
+    expect(r.proposedChanges.map((c) => c.key)).toEqual(["vitality", "condition", "tree_pit", "phenology", "age_class"]);
   });
 
   it("skips paid calls when the player is outside the geofence", async () => {

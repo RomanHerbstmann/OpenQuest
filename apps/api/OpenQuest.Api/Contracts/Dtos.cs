@@ -55,6 +55,44 @@ public record AdminSubmissionDto(
     AssetDto Asset, double ReportedLat, double ReportedLon, double DistanceMeters,
     JsonNode? Payload, Guid? MediaId, string? RejectionReason, DateTimeOffset? ReviewedAt);
 
+// ---- cities and districts ------------------------------------------------------------------------------------------
+
+public record CityRequest(string? Key, string? Name, string? CountryCode, double? CenterLat, double? CenterLon, int? DefaultZoom, string? Timezone, bool? IsActive);
+
+public record CityDto(
+    Guid Id, string Key, string Name, string? CountryCode, double? CenterLat, double? CenterLon, int? DefaultZoom,
+    string Timezone, bool IsActive, int DistrictCount);
+
+/// <summary><c>Geometry</c> is a GeoJSON Polygon (or a Feature holding one): coordinates are [lon, lat], the ring may be closed or open, the order of the points is kept.</summary>
+public record DistrictRequest(string? Key, string? Name, string? Description, string? Color, bool? IsActive, JsonNode? Geometry);
+
+/// <summary>Body of PUT .../geometry and of the dry run: a GeoJSON Polygon; <c>DistrictId</c> excludes that district from the overlap check when redrawing it.</summary>
+public record GeometryRequest(JsonNode? Geometry, Guid? DistrictId);
+
+public record DistrictImportRequest(JsonNode? GeoJson, string? NameProperty, string? KeyProperty, string? DescriptionProperty);
+
+/// <summary><c>Geometry</c> is a GeoJSON Polygon with the points in their drawn order (only when asked for). Rank and contributors are only filled on the detail endpoint.</summary>
+public record DistrictDto(
+    Guid Id, Guid CityId, string Key, string Name, string? Description, string? Color, bool IsActive, int TotalPoints,
+    double CentroidLat, double CentroidLon, int PointCount, JsonNode? Geometry, int? Rank = null, int? Contributors = null);
+
+/// <summary>One problem with a drawn shape. Edge indices count the points of the ring (0 = edge from the first to the second point).</summary>
+public record GeometryProblemDto(
+    string Code, string Message, int? EdgeA = null, int? EdgeB = null, double? Lat = null, double? Lon = null,
+    Guid? DistrictId = null, string? DistrictName = null, double? OverlapRatio = null);
+
+public record GeometryCheckDto(bool Valid, int PointCount, double? CentroidLat, double? CentroidLon, IReadOnlyList<GeometryProblemDto> Problems);
+
+public record ImportResultDto(int Created, IReadOnlyList<DistrictDto> Districts);
+
+public record DistrictRankingDto(int Rank, Guid DistrictId, string Key, string Name, string? Color, int Points, int Contributors, int Contributions);
+
+public record PlayerRankingDto(int Rank, Guid UserId, string Username, string? DisplayName, int Points);
+
+public record LevelDto(int Level, int Current, int Required, int Percent, bool IsMaxLevel);
+public record PlayerProgressDto(int TotalPoints, LevelDto Level);
+public record PointTransactionDto(Guid Id, int Amount, PointReason Reason, Guid? SubmissionId, string? QuestTitle, DateTimeOffset CreatedAt);
+
 public record Credentials(string? Username, string? Password);
 public record RecoverRequest(string? Username, string? RecoveryCode, string? NewPassword);
 public record PasswordRequest(string? Password);
