@@ -151,7 +151,8 @@ class NdomHeightEnricher(Enricher):
                 for cx, cy in cells
             }
             for future in as_completed(futures):
-                cell = futures[future]
+                # pop: a finished future holds its raster; keeping all of them grows to gigabytes.
+                cell = futures.pop(future)
                 try:
                     raster = future.result()
                 except Exception as exc:  # collected; successful cells are still cached
