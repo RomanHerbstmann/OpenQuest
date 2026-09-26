@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using OpenQuest.Api.Auth;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Contracts;
+using OpenQuest.Api.Gamification;
 using OpenQuest.Api.Queries;
 using OpenQuest.Api.Services;
 
@@ -22,9 +23,17 @@ public static class PlayerEndpoints
     {
         var g = app.MapGroup("").RequireAuthorization().WithTags("Player");
 
-        g.MapGet("/me", (ClaimsPrincipal user) =>
-                Results.Ok(new { id = user.GetUserId(), username = user.FindFirst("unique_name")?.Value, role = user.FindFirst("role")?.Value }))
-            .WithName("Me");
+        g.MapGet("/me", async (ClaimsPrincipal user, IPlayerProgress progress, CancellationToken ct) =>
+            {
+                var p = await progress.GetAsync(user.GetUserId(), ct);
+                return Results.Ok(new
+                {
+                    id = user.GetUserId(), username = user.FindFirst("unique_name")?.Value, role = user.FindFirst("role")?.Value,
+                    totalPoints = p.TotalPoints, level = p.Level,
+                });
+            })
+            .WithName("Me")
+            .WithSummary("The signed-in user with total points and level progress (level, current, required, percent).");
 
         g.MapGet("/quests/nearby", async (double lat, double lon, double? radius, string? taskType, ClaimsPrincipal user,
                 INearbyQuests quests, CancellationToken ct) =>

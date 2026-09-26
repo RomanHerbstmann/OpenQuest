@@ -22,6 +22,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Claim> Claims => Set<Claim>();
     public DbSet<Submission> Submissions => Set<Submission>();
     public DbSet<Media> Media => Set<Media>();
+    public DbSet<PointTransaction> PointTransactions => Set<PointTransaction>();
+    public DbSet<City> Cities => Set<City>();
+    public DbSet<District> Districts => Set<District>();
+    public DbSet<DistrictPoint> DistrictPoints => Set<DistrictPoint>();
     public DbSet<AttributeChange> AttributeChanges => Set<AttributeChange>();
     public DbSet<ExportRun> ExportRuns => Set<ExportRun>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -36,6 +40,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         c.Properties<AssetStatus>().HaveConversion<SnakeEnumConverter<AssetStatus>>().HaveMaxLength(24);
         c.Properties<OutboxStatus>().HaveConversion<SnakeEnumConverter<OutboxStatus>>().HaveMaxLength(24);
         c.Properties<ChangeStatus>().HaveConversion<SnakeEnumConverter<ChangeStatus>>().HaveMaxLength(24);
+        c.Properties<PointReason>().HaveConversion<SnakeEnumConverter<PointReason>>().HaveMaxLength(24);
     }
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -177,6 +182,51 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.Sha256).HasMaxLength(64);
             e.Property(x => x.Phash).HasMaxLength(16);
             e.Property(x => x.StorageKey).HasMaxLength(256);
+        });
+
+        b.Entity<City>(e =>
+        {
+            e.ToTable("city");
+            e.HasIndex(x => x.Key).IsUnique();
+            e.Property(x => x.Key).HasMaxLength(64);
+            e.Property(x => x.Name).HasMaxLength(128);
+            e.Property(x => x.CountryCode).HasMaxLength(2);
+            e.Property(x => x.Timezone).HasMaxLength(64);
+        });
+
+        b.Entity<District>(e =>
+        {
+            e.ToTable("district");
+            e.HasOne(x => x.City).WithMany().HasForeignKey(x => x.CityId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedBy);
+            e.HasIndex(x => new { x.CityId, x.Key }).IsUnique();
+            e.HasIndex(x => new { x.CityId, x.Name }).IsUnique();
+            e.Property(x => x.Key).HasMaxLength(64);
+            e.Property(x => x.Name).HasMaxLength(128);
+            e.Property(x => x.Description).HasMaxLength(2000);
+            e.Property(x => x.Color).HasMaxLength(7);
+            e.Property(x => x.Geom).HasColumnType("geography (polygon)");
+            e.HasIndex(x => x.Geom).HasMethod("gist");
+        });
+
+        b.Entity<DistrictPoint>(e =>
+        {
+            e.ToTable("district_point", t => t.HasCheckConstraint("ck_district_point_position", "position >= 0"));
+            e.HasOne<District>().WithMany().HasForeignKey(x => x.DistrictId).OnDelete(DeleteBehavior.Cascade);
+            // The order of the corners is what turns the points into a polygon.
+            e.HasIndex(x => new { x.DistrictId, x.Position }).IsUnique();
+        });
+
+        b.Entity<PointTransaction>(e =>
+        {
+            e.ToTable("point_transaction", t => t.HasCheckConstraint("ck_point_transaction_amount", "amount <> 0"));
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId);
+            e.HasOne<Submission>().WithMany().HasForeignKey(x => x.SubmissionId);
+            e.HasOne<District>().WithMany().HasForeignKey(x => x.DistrictId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.DistrictId, x.CreatedAt });
+            e.HasIndex(x => new { x.UserId, x.CreatedAt });
+            // One payout per submission and reason: makes the award handler idempotent.
+            e.HasIndex(x => new { x.SubmissionId, x.Reason }).IsUnique().HasFilter("submission_id IS NOT NULL");
         });
 
         b.Entity<AttributeChange>(e =>

@@ -38,6 +38,8 @@ def build_parser() -> argparse.ArgumentParser:
     sync.add_argument("--all", action="store_true", help="sync all configured sources")
     sync.add_argument("--force", action="store_true",
                       help="apply the sync even if it removes more assets than max_removal_ratio")
+    sync.add_argument("--accept-schema-change", action="store_true",
+                      help="import even if the source's fields differ from what the adapter expects")
 
     commands.add_parser("adapters", help="list installed adapters and enrichers")
     return parser
@@ -99,7 +101,8 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 enrichers = [(e.name, create_enricher(e.name, e.options, config.cache_dir)) for e in source.enrichers]
                 report = run_sync(conn, source, create_adapter(source.adapter, source.options), store,
-                                  enrichers=enrichers, force=args.force)
+                                  enrichers=enrichers, force=args.force,
+                                  accept_schema_change=args.accept_schema_change)
             except Exception as exc:  # report and continue with the other sources
                 log.error("%s: %s", key, exc)
                 failed += 1

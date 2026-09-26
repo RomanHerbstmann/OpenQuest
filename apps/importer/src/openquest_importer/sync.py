@@ -69,11 +69,14 @@ def run_sync(
     *,
     enrichers: Sequence[tuple[str, Enricher]] = (),
     force: bool = False,
+    accept_schema_change: bool = False,
 ) -> SyncReport:
     """Sync one data source.
 
     ``enrichers`` are ``(name, enricher)`` pairs run after parsing, in order.
-    ``force`` skips the removal guard.
+    ``force`` skips the removal guard. ``accept_schema_change`` imports even if the
+    source's fields differ from what the adapter expects (the run still records the
+    new ``schema_hash``); the adapter's ``expected_fields`` should then be updated.
     """
     source_id = _upsert_data_source(conn, source)
     type_row = conn.execute(
@@ -100,7 +103,7 @@ def run_sync(
         log.info("Sync %s of %s started", run_id, source.key)
         try:
             report = _run(conn, source, adapter, store, run_id, source_id,
-                          asset_type_id, attribute_schema, enrichers, force)
+                          asset_type_id, attribute_schema, enrichers, force, accept_schema_change)
         except Exception as exc:
             conn.rollback()
             conn.execute(
@@ -117,7 +120,7 @@ def run_sync(
 
 
 def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
-         attribute_schema, enrichers, force) -> SyncReport:
+         attribute_schema, enrichers, force, accept_schema_change) -> SyncReport:
     snapshot = adapter.fetch()
     key = store.save(source.key, snapshot)
     conn.execute("UPDATE sync_run SET snapshot_key = %s WHERE id = %s", (key, run_id))
@@ -133,10 +136,12 @@ def _run(conn, source, adapter, store, run_id, source_id, asset_type_id,
     if parsed.fields != adapter.expected_fields:
         unexpected = sorted(parsed.fields - adapter.expected_fields)
         missing = sorted(adapter.expected_fields - parsed.fields)
-        raise SchemaChangedError(
-            f"Source fields changed (unexpected: {unexpected or 'none'}, missing: {missing or 'none'}). "
-            "Check the source and update the adapter."
-        )
+        message = f"Source fields changed (unexpected: {unexpected or 'none'}, missing: {missing or 'none'})."
+        if not accept_schema_change:
+            raise SchemaChangedError(
+                message + " Check the source and update the adapter, or run with --accept-schema-change."
+            )
+        log.warning("%s Continuing because the schema change was accepted; update the adapter's expected fields.", message)
 
     if enrichers:
         # Store what every enricher used next to the download, so the sync

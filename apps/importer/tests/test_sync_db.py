@@ -97,6 +97,25 @@ def test_schema_change_fails_loudly(db_url, sample_collection, write_collection,
         assert conn.execute("SELECT count(*) FROM asset").fetchone()[0] == 0
 
 
+def test_schema_change_can_be_accepted_explicitly(db_url, sample_collection, write_collection, store):
+    with psycopg.connect(db_url) as conn:
+        sync(conn, write_collection(sample_collection, "before.geojson"), store)
+        old_hash = conn.execute("SELECT schema_hash FROM sync_run").fetchone()[0]
+
+        sample_collection["features"][0]["properties"]["pflanzjahr"] = "1990"
+        changed = write_collection(sample_collection, "after.geojson")
+        with pytest.raises(SchemaChangedError, match="--accept-schema-change"):
+            sync(conn, changed, store)
+
+        report = sync(conn, changed, store, accept_schema_change=True)
+        assert report.record_count == 12
+        status, new_hash = conn.execute(
+            "SELECT status, schema_hash FROM sync_run WHERE id = %s", (report.run_id,)).fetchone()
+        assert status == "succeeded" and new_hash != old_hash
+        # the failed attempt is still on record
+        assert conn.execute("SELECT count(*) FROM sync_run WHERE status = 'failed'").fetchone()[0] == 1
+
+
 def test_removal_guard_protects_against_truncated_download(db_url, sample_collection, write_collection, store):
     with psycopg.connect(db_url) as conn:
         sync(conn, write_collection(sample_collection, "full.geojson"), store)
