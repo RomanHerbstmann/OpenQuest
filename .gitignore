@@ -485,3 +485,9 @@ dist/
 .env.local
 eval/images/
 eval/out/
+
+# Importer (Python): virtualenv, test cache, local snapshots and caches
+.venv/
+.pytest_cache/
+*.egg-info/
+data/

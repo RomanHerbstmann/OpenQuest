@@ -68,7 +68,7 @@ erDiagram
         timestamptz started_at "= fetched_at of the snapshot"
         timestamptz finished_at
         varchar status "running | succeeded | failed"
-        varchar snapshot_key "full raw download in S3 / MinIO"
+        varchar snapshot_key "raw download (or manifest incl. reference data)"
         varchar schema_hash "source fields; a change fails the run"
         int record_count "records in the download"
         int assets_created
@@ -99,7 +99,7 @@ erDiagram
         uuid id PK
         uuid asset_type_id FK
         uuid data_source_id FK
-        varchar external_id "UK with data_source_id"
+        varchar external_id "UK with data_source_id; own id if the source has none"
         geography geom "PostGIS, WGS84 (4326)"
         jsonb attributes "normalized, validated by attribute_schema"
         jsonb raw "original source record"
@@ -275,10 +275,18 @@ Alternative considered: one table per asset type (`tree`, `bench`, …). Rejecte
 
 Every import is a `SYNC_RUN` (it is the snapshot in the sense of [ADR-0001](../adr/0001-baumkataster-datenbezug-und-rueckkanal.md): `snapshot_id` = `SYNC_RUN.id`, `fetched_at` = `SYNC_RUN.started_at`). History is kept on two levels:
 
-- **Full download:** the unchanged file from the source is stored in object storage (`SYNC_RUN.snapshot_key`). Every snapshot can be reloaded exactly as it was.
+- **Full download:** the unchanged file from the source is stored in object storage (`SYNC_RUN.snapshot_key`). Every snapshot can be reloaded exactly as it was. Keys are content hashes, so identical downloads share one file. If the adapter needs reference data to parse the source (Münster: street list and district polygons), those files are stored too and `snapshot_key` points to a small manifest listing all files.
 - **Changes per asset:** `ASSET_SNAPSHOT` gets a row only when an asset was created, changed (`source_hash` differs) or disappeared at the source. A daily sync of 43k unchanged trees therefore adds no rows, and the state of any asset at any sync can still be reconstructed.
 
 `ASSET` itself always holds the current state. `SYNC_RUN.schema_hash` records the source's field list; if it changes unexpectedly, the run fails loudly instead of importing broken data.
+
+### Asset identity
+
+`ASSET.id` is our own id and never changes. Sources with stable ids of their own store them in `external_id` and are matched by it; sources without (Münster) are matched spatially. Each adapter declares its strategy. Details and reasoning: [ADR-0006](../adr/0006-eigene-asset-id-und-raeumliches-matching.md).
+
+### Enrichers
+
+Data that is keyed by location rather than by the source (e.g. heights from a state-wide surface model) is added by **enrichers**. They run after the adapter, are configured per data source and set attributes that must exist in the asset type's schema. What an enricher used is stored in the sync's snapshot (`SYNC_RUN.snapshot_key`), so the result stays reproducible. No extra tables: the values live in `ASSET.attributes` like everything else.
 
 ### Where city-specific things live
 
@@ -328,24 +336,30 @@ Analysis of the CSV export (43,114 rows):
 
 Findings that affect the model:
 
-- **No id column.** The adapter has to derive a stable `external_id`. On re-sync, points that moved slightly must be matched to the existing asset by nearest neighbour within a small radius (e.g. 1 m), otherwise quests and photos lose their tree. **Question for Stadt Münster:** is there an internal tree number we could get in the export?
-  - **Open point, to be settled in ADR-0001:** the ADR hashes coordinate (EPSG:25832, rounded to 0.1 m) + `str_schl` + `baumgruppe`. Including the genus means a tree gets a new id as soon as the city adopts a genus correction made by players, which cuts it off from its quests and photos. Recommendation for OpenQuest: hash the coordinate only.
+- **No id column.** Decided in [ADR-0006](../adr/0006-eigene-asset-id-und-raeumliches-matching.md): we assign our own id (`ASSET.id`) and store it in `external_id` as well (required and unique per source in the API's schema; exports reference assets by it). On re-sync, records are matched to existing assets by identical record first, then by nearest position within 1 m. **Question for Stadt Münster:** is there an internal tree number we could get in the export? With it, the adapter would switch to matching by `external_id`.
 - **Only the genus, not the species.** Top genera: Tilia 10,279 · Quercus 8,199 · Acer 5,324 · Carpinus 3,448.
 - **Unknown / placeholder genus:** 2,832 × `Baum Amt62` and 103 empty values. The adapter normalizes these to `genus = null` (raw value stays in `raw`). These ~2,900 trees are ideal targets for first `verify_attribute` quests.
-- Street keys are padded to 5 digits and resolved to street names via the WFS `odstrasseserv`; district and quarter come from the portal's GeoJSON (see ADR-0001, adapter concern).
+- **Enrichment** (done in the adapter, reference files are part of the snapshot):
+  - `street_name`: `str_schl` joined to the street directory WFS `odstrasseserv` (layer `ms:Strassen`). 42,878 of 43,114 trees (99.45 %) get a name; the rest have no key (14) or a key missing from the directory (mostly `00713`: 124, `06995`: 57).
+  - `district`: point in polygon against the 6 Stadtbezirke from the portal (`stadtbezirke-muenster.geojson`, field `NAME_STADT`). All trees get a district; the result matches PostGIS `ST_Contains` for every tree.
+  - `quarter`: point in polygon against the 45 Stadtteile (statistical districts, `stadtteile-statistische-bezirke-muenster.geojson`, field `NAME_STATI`).
+  - `height_m`: object height above ground from the **nDOM50 surface model of Geobasis NRW** (WCS, 0.5 m grid, dl-de/zero-2.0), 95th percentile within 2.5 m of the tree point; same method as `packages/adapters/de-nrw` in PR #7. Added by the enricher `de_nrw.ndom_height`, which is not tied to Münster and can be switched on for any data source in NRW. It is the height *at the inventory point*, not a measured tree height: trees next to buildings can pick up the building, values below 2 m usually mean a young, pruned or missing tree.
 - The ADR also flags near-duplicates (< 1 m apart) and data quality issues. These go into `attributes.quality_flags`.
 
-Proposed `attribute_schema` for `ASSET_TYPE = tree` (first version):
+`attribute_schema` for `ASSET_TYPE = tree` (defined in `AssetType.Tree`, `packages/core/OpenQuest.Core/Domain/AssetType.cs`, seeded by the API; abridged):
 
 ```json
 {
   "type": "object",
   "properties": {
     "genus":        { "type": ["string", "null"], "description": "Latin genus, e.g. Tilia" },
+    "genus_raw":    { "type": ["string", "null"], "description": "Genus exactly as delivered by the source" },
     "species":      { "type": ["string", "null"], "description": "Latin species, not in Münster data yet" },
     "street_key":   { "type": ["string", "null"], "description": "5 digits, zero-padded" },
     "street_name":  { "type": ["string", "null"] },
     "district":     { "type": ["string", "null"], "description": "Stadtbezirk" },
+    "quarter":      { "type": ["string", "null"], "description": "Stadtteil (statistical district)" },
+    "height_m":     { "type": ["number", "null"], "description": "Object height above ground at the tree point (nDOM); not a measured tree height" },
     "quality_flags": { "type": "array", "items": { "enum": ["placeholder_genus", "near_duplicate", "typo_corrected"] } },
     "trunk_circumference_cm": { "type": ["number", "null"] },
     "condition":    { "enum": ["good", "damaged", "dead", "gone", null] },

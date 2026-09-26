@@ -9,6 +9,7 @@ Domain: [openquest.fun](https://openquest.fun)
 - [ADR-0002: Tree photo verification with a vision ensemble, Jev and geo context](docs/adr/0002-tree-photo-verification.md)
 - [ADR-0003: Backend in .NET 10](docs/adr/0003-backend-dotnet.md)
 - [ADR-0004: Event-driven write-back to open data](docs/adr/0004-event-driven-writeback.md)
+- [ADR-0006: Eigene Asset-ID und räumliches Matching beim Import](docs/adr/0006-eigene-asset-id-und-raeumliches-matching.md)
 
 ## Datenmodell
 
@@ -17,6 +18,10 @@ Domain: [openquest.fun](https://openquest.fun)
 ## Backend
 
 - [apps/api/README.md](apps/api/README.md): starten, API-Überblick, Tests
+
+## Importer
+
+- [apps/importer/README.md](apps/importer/README.md): Open-Data-Import (Python), Adapter und Enricher
 
 ## Recherche (Research Notes)
 

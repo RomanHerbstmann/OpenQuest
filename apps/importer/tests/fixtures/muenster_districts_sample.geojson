@@ -1,0 +1,84 @@
+{
+ "type": "FeatureCollection",
+ "name": "stadtbezirke-muenster",
+ "crs": {
+  "type": "name",
+  "properties": {
+   "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+  }
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "STADTBEZIR": "1 Mitte",
+    "NR_STADTBE": "1",
+    "NAME_STADT": "Mitte"
+   },
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       7.6,
+       51.94
+      ],
+      [
+       7.635,
+       51.94
+      ],
+      [
+       7.635,
+       51.99
+      ],
+      [
+       7.6,
+       51.99
+      ],
+      [
+       7.6,
+       51.94
+      ]
+     ]
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "STADTBEZIR": "7 Münster-Ost",
+    "NR_STADTBE": "7",
+    "NAME_STADT": "Münster-Ost"
+   },
+   "geometry": {
+    "type": "MultiPolygon",
+    "coordinates": [
+     [
+      [
+       [
+        7.635,
+        51.94
+       ],
+       [
+        7.66,
+        51.94
+       ],
+       [
+        7.66,
+        51.99
+       ],
+       [
+        7.635,
+        51.99
+       ],
+       [
+        7.635,
+        51.94
+       ]
+      ]
+     ]
+    ]
+   }
+  }
+ ]
+}

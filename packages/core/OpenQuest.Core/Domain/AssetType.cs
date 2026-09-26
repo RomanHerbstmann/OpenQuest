@@ -17,6 +17,8 @@ public sealed record AssetType(
           "street_key":{"type":["string","null"],"description":"5 digits, zero-padded"},
           "street_name":{"type":["string","null"]},
           "district":{"type":["string","null"],"description":"Stadtbezirk"},
+          "quarter":{"type":["string","null"],"description":"Stadtteil (statistical district)"},
+          "height_m":{"type":["number","null"],"description":"Object height above ground at the tree point in metres (nDOM, 95th percentile within 2.5 m); not a measured tree height"},
           "trunk_circumference_cm":{"type":["number","null"]},
           "condition":{"enum":["good","damaged","dead","gone",null]},
           "photo_url":{"type":["string","null"]},
