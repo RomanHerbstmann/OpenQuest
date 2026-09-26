@@ -16,6 +16,8 @@
     "eval": "tsx --env-file=.env eval/run.ts"
   },
   "dependencies": {
+    "@openquest/adapter-de-muenster": "workspace:*",
+    "@openquest/tree-verification": "workspace:*",
     "@openquest/tree-search": "workspace:*",
     "next": "latest",
     "react": "latest",
@@ -24,8 +26,6 @@
     "lucide-react": "latest"
   },
   "devDependencies": {
-    "@openquest/adapter-de-muenster": "workspace:*",
-    "@openquest/tree-verification": "workspace:*",
     "@types/node": "^24.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",

@@ -52,3 +52,30 @@ export function observationsToGeoJson(items: Observation[]) {
     })),
   }, null, 2);
 }
+
+/** Stores a photo scan of a quest tree so it shows up in the review queue (admin) with the verifier's outcome. */
+export function recordScanObservation(entry: {
+  treeId: string | null;
+  lat: number;
+  lng: number;
+  accuracyMeters: number | null;
+  suggestedSpecies: string | null;
+  reviewStatus: Extract<ReviewStatus, 'verified' | 'needs_review'>;
+  reviewNote: string;
+}) {
+  const now = new Date().toISOString();
+  const observation: Observation = {
+    id: `scan-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+    action: 'exists',
+    observedAt: now,
+    source: 'local',
+    ...entry,
+    ...(entry.reviewStatus === 'verified' ? { reviewedAt: now } : {}),
+  };
+  try {
+    saveObservations([...loadObservations(), observation]);
+  } catch {
+    // A full or blocked localStorage must not break the scan result.
+  }
+  return observation;
+}

@@ -26,7 +26,8 @@ Open `http://localhost:3000`. For a production build, run `pnpm build` followed 
 - Bottom navigation and initial missions, collection and profile screens.
 - Design 2.0 visual system across the map, tree profile, scan, collection, missions, profile and admin dashboard: floating navigation, richer motion, clearer status and a premium card presentation. A searchable nature lexicon at `/lexicon` contains 13 species/group portraits with leaf, bark, fruit, season and habitat cues. These are editorial prototype notes; they are not measured facts about an individual tree. Tree profiles and the card viewer link to the corresponding portrait.
 - Shared player context with local progress and level calculation.
-- Camera scan prototype in the collection and tree details: capture or choose a photo, see a scan animation and an explicitly labeled demo species response, correct the species, and save one card per species in browser `localStorage`. A mobile camera-picker fallback is available if the live preview fails. The photo itself is not stored or sent to a server. The recognition seam is `src/lib/mockScan.ts`.
+- Camera scan in the collection and tree details: capture or choose a photo, see a scan animation and save one card per species in browser `localStorage`. A mobile camera-picker fallback is available if the live preview fails. Photos are checked by the real tree photo verification (see below); the presentation Festtanne keeps its scripted demo answer.
+- Tree photo verification: `src/lib/treeScan.ts` downscales the photo in the browser to about 1024 px JPEG (this drops EXIF and GPS tags), adds the browser position and the quest tree, and posts it to `POST /api/verify`. The route runs `@openquest/tree-verification` with the Münster WFS and OSM as neighbor tree sources. The scan dialog shows the verdict, the detected genus with probability, a hint on a genus mismatch and the reasons in German. XP and the card are only granted on `approve`; `review` is queued as an observation with status `needs_review` for the admin demo; `reject` grants nothing. The photo is not stored.
 - The Baumbuch lists only species with a supplied card image, shows the shared Ahorn artwork once, and can be filtered to collected cards. Species without card art remain available in the nature lexicon.
 - Natural language search above the map (for example "die größten Birken in Hiltrup") over all 43,114 Münster trees via `POST /api/tree-search`. It uses Jev when `OPENROUTER_API_KEY` is set in `.env` or `.env.local` and falls back to rules otherwise. Matches are drawn as a separate map layer, the top 25 are numbered.
 - Admin review demo at `/admin` with eight sample reports, search, status filters, map context, review notes, local decisions and CSV/GeoJSON export.
@@ -36,6 +37,16 @@ Quest completion is not implemented yet. Phase 3 will add questions, locally sto
 For the stage demo, click **Festtanne scannen** on the map, then scan the small tree or select a photo. The test response proposes Festtanne, reveals its supplied full-art card, and adds it to the Baumbuch after confirmation. The pin is positioned on the OpenStreetMap building for Hafenweg 7; it is a presentation prop, not a public tree or territory contribution.
 
 Territory ownership is a demo preview: only project-verified observations of distinct trees count once per player and district if the tree was observed within the last 30 days. The unique leader holds the district; a tie leaves it contested. Fictional rival contributions populate the leaderboard. Future player observations can join the scoring once mission submission and review are connected. Existing collection progress does not count as verified territory points.
+
+### Photo verification API
+
+Put `OPENROUTER_API_KEY` into `.env.local` (never commit it). Without the key `/api/verify` answers `503` and the app falls back to the demo answer and says so in the dialog.
+
+`POST /api/verify` takes `multipart/form-data`: `image` (JPEG, PNG or WebP, max 5 MB), optional `lat`, `lon`, `accuracy` (player position, meters) and either `treeId` (a quest tree from `src/data/trees.ts`) or `expectedLat`, `expectedLon`, `expectedGenus`. Optional `capturedAt` (ISO time) lets old gallery photos go to review. The server strips JPEG/PNG metadata before verification and allows 10 requests per minute and IP (in memory), because every call costs OpenRouter credits. The response is `{ expected, result }` with the full `TreeVerificationResult`; errors are `{ error, message }`.
+
+```bash
+curl -F image=@eval/images/platanus-2.jpg -F lat=51.964258 -F lon=7.627308 -F accuracy=8 -F treeId=ms-004 http://localhost:3000/api/verify
+```
 
 The admin area is a local demo without authentication or a backend. Review decisions only update browser `localStorage`; they never change official city data. Public deployment requires access control, server-side persistence and review rules.
 
