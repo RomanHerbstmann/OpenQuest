@@ -26,6 +26,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<City> Cities => Set<City>();
     public DbSet<District> Districts => Set<District>();
     public DbSet<DistrictPoint> DistrictPoints => Set<DistrictPoint>();
+    public DbSet<DistrictGenusStat> DistrictGenusStats => Set<DistrictGenusStat>();
+    public DbSet<Card> Cards => Set<Card>();
     public DbSet<AttributeChange> AttributeChanges => Set<AttributeChange>();
     public DbSet<ExportRun> ExportRuns => Set<ExportRun>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -41,6 +43,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         c.Properties<OutboxStatus>().HaveConversion<SnakeEnumConverter<OutboxStatus>>().HaveMaxLength(24);
         c.Properties<ChangeStatus>().HaveConversion<SnakeEnumConverter<ChangeStatus>>().HaveMaxLength(24);
         c.Properties<PointReason>().HaveConversion<SnakeEnumConverter<PointReason>>().HaveMaxLength(24);
+        c.Properties<Rarity>().HaveConversion<SnakeEnumConverter<Rarity>>().HaveMaxLength(24);
+        c.Properties<Frequency>().HaveConversion<SnakeEnumConverter<Frequency>>().HaveMaxLength(24);
     }
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -215,6 +219,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne<District>().WithMany().HasForeignKey(x => x.DistrictId).OnDelete(DeleteBehavior.Cascade);
             // The order of the corners is what turns the points into a polygon.
             e.HasIndex(x => new { x.DistrictId, x.Position }).IsUnique();
+        });
+
+        b.Entity<DistrictGenusStat>(e =>
+        {
+            e.ToTable("district_genus_stat");
+            e.HasKey(x => new { x.DistrictId, x.Genus });
+            e.HasOne<District>().WithMany().HasForeignKey(x => x.DistrictId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.Genus).HasMaxLength(128);
+        });
+
+        b.Entity<Card>(e =>
+        {
+            e.ToTable("card");
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId);
+            e.HasOne<Submission>().WithMany().HasForeignKey(x => x.SubmissionId);
+            e.HasOne<AssetEntity>().WithMany().HasForeignKey(x => x.AssetId);
+            e.HasOne<District>().WithMany().HasForeignKey(x => x.DistrictId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => x.SubmissionId).IsUnique();
+            e.HasIndex(x => new { x.UserId, x.CreatedAt });
+            e.HasIndex(x => new { x.UserId, x.Genus });
+            e.Property(x => x.Genus).HasMaxLength(128);
+            e.Property(x => x.Reasons).HasColumnType("jsonb");
         });
 
         b.Entity<PointTransaction>(e =>

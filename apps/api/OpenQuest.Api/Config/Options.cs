@@ -47,6 +47,39 @@ public class GamificationOptions
     /// tolerated, because neighbouring outlines from different sources rarely match to the last decimal.
     /// </summary>
     public double OverlapToleranceRatio { get; set; } = 0.001;
+    /// <summary>The genus statistics of a district (how frequent each genus is) are recalculated when older than this, or when the district was redrawn.</summary>
+    public int GenusStatsMaxAgeHours { get; set; } = 24;
+    /// <summary>Overrides for the card rarity rule; whatever is not set keeps the core's default.</summary>
+    public RarityOptions Rarity { get; set; } = new();
+}
+
+/// <summary>Configuration of <see cref="OpenQuest.Core.Domain.RarityProfile"/>. Weights per frequency class: [common, uncommon, rare, legendary].</summary>
+public class RarityOptions
+{
+    public double? AbundantShare { get; set; }
+    public double? CommonShare { get; set; }
+    public double? ScarceShare { get; set; }
+    public int? MinSample { get; set; }
+    public int? NewInformationBoost { get; set; }
+    public int? ConditionFactBoost { get; set; }
+    /// <summary>Key: Abundant, Common, Scarce or VeryScarce; value: four chances that add up to 1.</summary>
+    public Dictionary<string, double[]> Weights { get; set; } = new();
+
+    public OpenQuest.Core.Domain.RarityProfile ToProfile()
+    {
+        var d = OpenQuest.Core.Domain.RarityProfile.Default;
+        var weights = d.Weights.ToDictionary(kv => kv.Key, kv => kv.Value);
+        foreach (var (name, values) in Weights)
+        {
+            if (!Enum.TryParse<OpenQuest.Core.Domain.Frequency>(name, ignoreCase: true, out var frequency))
+                throw new InvalidOperationException($"Gamification:Rarity:Weights: unknown frequency '{name}' (Abundant, Common, Scarce, VeryScarce).");
+            if (values.Length != 4) throw new InvalidOperationException($"Gamification:Rarity:Weights:{name} needs four values: common, uncommon, rare, legendary.");
+            weights[frequency] = new OpenQuest.Core.Domain.RarityWeights(values[0], values[1], values[2], values[3]);
+        }
+        return new OpenQuest.Core.Domain.RarityProfile(
+            AbundantShare ?? d.AbundantShare, CommonShare ?? d.CommonShare, ScarceShare ?? d.ScarceShare, MinSample ?? d.MinSample,
+            weights, NewInformationBoost ?? d.NewInformationBoost, ConditionFactBoost ?? d.ConditionFactBoost).Validated();
+    }
 }
 
 public class StorageOptions

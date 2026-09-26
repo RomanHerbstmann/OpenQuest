@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenQuest.Api.Auth;
 using OpenQuest.Api.Config;
+using OpenQuest.Api.Cards;
 using OpenQuest.Api.Data;
 using OpenQuest.Api.Districts;
 using OpenQuest.Api.Eventing;
@@ -132,7 +133,8 @@ public static class ServiceRegistration
         s.AddSingleton(sp =>
         {
             var o = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GamificationOptions>>().Value;
-            return o.LevelThresholds.Length > 0 ? new GamificationProfile(new LevelCurve(o.LevelThresholds)) : GamificationProfile.Default;
+            var levels = o.LevelThresholds.Length > 0 ? new LevelCurve(o.LevelThresholds) : LevelCurve.Default;
+            return new GamificationProfile(levels, o.Rarity.ToProfile());
         });
         s.AddScoped<IPlayerProgress, PlayerProgress>();
 
@@ -143,6 +145,10 @@ public static class ServiceRegistration
         s.AddScoped<IDistrictDirectory, DistrictDirectory>();
         s.AddScoped<IDistrictLocator, DistrictLocator>();
         s.AddScoped<ILeaderboards, Leaderboards>();
+
+        // cards: the rarity of a card depends on how frequent the genus is in the district
+        s.AddScoped<IDistrictGenusStats, DistrictGenusStats>();
+        s.AddScoped<ICardCollection, CardCollection>();
         return s;
     }
 
@@ -158,6 +164,7 @@ public static class ServiceRegistration
         // Handlers: add one line per reaction to an event.
         s.AddScoped<IEventHandler<AttributeChangeAccepted>, PublishAcceptedChangesHandler>();
         s.AddScoped<IEventHandler<SubmissionApproved>, AwardPointsHandler>();
+        s.AddScoped<IEventHandler<SubmissionApproved>, AwardCardHandler>();
         return s;
     }
 
@@ -193,6 +200,7 @@ public static class ServiceRegistration
         app.MapPlayer();
         app.MapGamification();
         app.MapCities();
+        app.MapCards();
         app.MapDistrictAdmin();
         app.MapMedia();
         app.MapAdminQuests();

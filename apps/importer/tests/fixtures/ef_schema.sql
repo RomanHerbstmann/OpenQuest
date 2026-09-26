@@ -819,3 +819,100 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    ALTER TABLE district ADD genus_stats_at timestamp with time zone;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    ALTER TABLE district ADD known_genus_trees integer NOT NULL DEFAULT 0;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    CREATE TABLE card (
+        id uuid NOT NULL,
+        user_id uuid NOT NULL,
+        submission_id uuid NOT NULL,
+        asset_id uuid NOT NULL,
+        district_id uuid,
+        genus character varying(128) NOT NULL,
+        rarity character varying(24) NOT NULL,
+        frequency character varying(24) NOT NULL,
+        share double precision,
+        reasons jsonb NOT NULL,
+        created_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_card PRIMARY KEY (id),
+        CONSTRAINT fk_card_asset_asset_id FOREIGN KEY (asset_id) REFERENCES asset (id) ON DELETE CASCADE,
+        CONSTRAINT fk_card_district_district_id FOREIGN KEY (district_id) REFERENCES district (id) ON DELETE SET NULL,
+        CONSTRAINT fk_card_submission_submission_id FOREIGN KEY (submission_id) REFERENCES submission (id) ON DELETE CASCADE,
+        CONSTRAINT fk_card_user_user_id FOREIGN KEY (user_id) REFERENCES "user" (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    CREATE TABLE district_genus_stat (
+        district_id uuid NOT NULL,
+        genus character varying(128) NOT NULL,
+        tree_count integer NOT NULL,
+        CONSTRAINT pk_district_genus_stat PRIMARY KEY (district_id, genus),
+        CONSTRAINT fk_district_genus_stat_district_district_id FOREIGN KEY (district_id) REFERENCES district (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    CREATE INDEX ix_card_asset_id ON card (asset_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    CREATE INDEX ix_card_district_id ON card (district_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    CREATE UNIQUE INDEX ix_card_submission_id ON card (submission_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    CREATE INDEX ix_card_user_id_created_at ON card (user_id, created_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    CREATE INDEX ix_card_user_id_genus ON card (user_id, genus);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926094746_AddCards') THEN
+    INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
+    VALUES ('20260926094746_AddCards', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+

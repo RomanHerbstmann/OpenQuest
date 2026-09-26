@@ -58,7 +58,8 @@ each run then creates and drops its own database.
 | Accept | `POST /quests/{id}/claim` | 409 `no_free_slots` / `already_claimed` / `quest_unavailable`. Claim expires after `claimTtlMinutes` (default 30). `POST /claims/{id}/cancel` |
 | Complete | `POST /claims/{id}/submit` (multipart) | fields `lat`, `lon`, `payload` (JSON text), `photo` (optional file) |
 | Status | `GET /me/claims` | Includes submission status and the moderator's rejection reason |
-| Progress | `GET /me` | Besides id, username and role: `totalPoints` and `level` (`level`, `current`, `required`, `percent`, `isMaxLevel`) |
+| Progress | `GET /me` | Besides id, username and role: `totalPoints`, `level` (`level`, `current`, `required`, `percent`, `isMaxLevel`) and `cardCount` |
+| Cards | `GET /me/cards?offset&limit`, `GET /me/collection` | The player's tree cards (newest first) and the tree book, see "Tree cards" below |
 | Points | `GET /me/points?offset&limit` | The player's ledger, newest first: `amount`, `reason` (`quest_approved`), `submissionId`, `questTitle`, `createdAt` |
 
 `payload` per task type (JSON Schema is in `task_type.result_schema`):
@@ -101,6 +102,30 @@ Both are in `Cors:Origins` of the Development settings and in `.env.example`; a 
 Photos come straight from the phone camera: `POST /claims/{id}/submit` takes a JPEG up to `Storage:MaxPhotoBytes` (10 MB, a 2048 px JPEG is about 1 to 2 MB);
 EXIF is stripped and the orientation applied on the server, so the app does not have to. To reach the API from a phone on the same network, start it with
 `--urls http://0.0.0.0:5076` and use the computer's address as API URL in the app.
+
+## Tree cards
+
+Every approved submission can give a **tree card**: the genus of the tree (for a genus quest the genus the player found out), with a rarity of `common`, `uncommon`, `rare`
+or `legendary` ([ADR-0009](../../docs/adr/0009-tree-cards-and-rarity.md)). How rare it turns out to be depends on how frequent that genus is among the trees of the
+tree's **district**: an abundant genus (the lime trees of Münster) gives mostly common cards, a scarce one (a Ginkgo among a thousand Tilia) has much better chances of
+a rare one, and a genus that does not grow in the district at all the best. The dice roll comes from the submission's id, so a redelivered event gives the same card.
+No genus known and none found out: no card.
+
+Chances go up further when the submission brings something new: `new_information` (the data had no genus or another one) and `condition_fact` (damaged, dead or gone
+was reported). Each moves the genus one class towards scarce. The reasons are on the card (`reasons`: `scarce_in_district`, `new_to_district`, `new_information`,
+`condition_fact`), so the app can say why a card is special.
+
+| Who | Call | Notes |
+|---|---|---|
+| player | `GET /me/cards?offset&limit` | Cards, newest first: `genus`, `rarity`, `frequency` (`abundant`, `common`, `scarce`, `very_scarce`), `share` of the genus in the district, `reasons`, district, tree position, `obtainedAt` |
+| player | `GET /me/collection` | The tree book: `totalCards`, `distinctGenera`, `byRarity` (all four), `genera[]` with `count`, `bestRarity`, `firstObtainedAt` (best first) |
+| player | `GET /districts/{id}/genera?limit` | Which genera grow in a district: `treeCount`, `share`, `frequency`, most frequent first, plus `knownGenusTrees` and `calculatedAt` |
+| admin | `POST /admin/districts/{id}/genera/refresh` | Recalculate the genus statistics now |
+
+The genus statistics are counted from the assets inside the district's outline (about 75 ms per district for 43,000 trees). They are recalculated when missing, after the district
+was redrawn or changed, or when older than `Gamification:GenusStatsMaxAgeHours` (24), because the importer changes the assets on its own. Districts with fewer than 30 trees of
+known genus (`MinSample`) do not have reliable statistics: nothing counts as scarce there. The thresholds and chances can be tuned per deployment (`Gamification:Rarity`,
+see `.env.example`); the defaults are in `RarityProfile.Default` in the core.
 
 ## Admin panel
 
@@ -196,5 +221,5 @@ approve  ->  transaction: change = accepted + outbox event (same commit)  ->  NO
 
 ## Not built yet
 
-Gamification beyond points, levels and the district leaderboard (cards, recurring quests, badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
+Gamification beyond points, levels, the district leaderboard and cards (recurring quests, new-tree reports, badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
 account deletion (`user.deleted_at` is honored on login but there is no endpoint), street name enrichment, admin-created moderators (set `user.role` in the database for now).
