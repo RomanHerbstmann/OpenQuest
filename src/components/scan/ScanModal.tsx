@@ -6,21 +6,27 @@ import { Camera, Check, ImagePlus, RotateCcw, ScanLine, X } from 'lucide-react';
 import { usePlayer } from '@/context/PlayerContext';
 import { cardArtBySpecies } from '@/data/cardArt';
 import { species } from '@/data/species';
+import { trees } from '@/data/trees';
 import { recognizeTreeForPrototype } from '@/lib/mockScan';
+import { loadObservations, saveObservations } from '@/lib/observations';
+import type { Observation } from '@/types/observation';
+import type { ScanEvent } from '@/types/player';
 import type { Tree } from '@/types/tree';
 
 type Stage = 'camera' | 'scanning' | 'revealing' | 'result' | 'saved';
 type SpeciesName = (typeof species)[number]['name'];
 
 export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () => void }) {
-  const { progress, ready, addScannedCard } = usePlayer();
+  const { progress, ready, recordScan } = usePlayer();
   const [stage, setStage] = useState<Stage>('camera');
+  const [selectedTreeId, setSelectedTreeId] = useState(tree?.id ?? '');
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [scanError, setScanError] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [selectedSpecies, setSelectedSpecies] = useState<SpeciesName>('Birke');
   const [earnedXp, setEarnedXp] = useState(0);
+  const [observationSaved, setObservationSaved] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -28,7 +34,9 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
   const photoUrlRef = useRef<string | null>(null);
   const scanRunRef = useRef(0);
   const revealTimerRef = useRef<number | null>(null);
+  const savedRef = useRef(false);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const targetTree = tree ?? trees.find((candidate) => candidate.id === selectedTreeId) ?? null;
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -97,6 +105,10 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
   }, [stage]);
 
   const processImage = async (image: Blob) => {
+    if (!targetTree) {
+      setScanError('Wähle zuerst einen Baum auf der Karte aus.');
+      return;
+    }
     if (!image.type.startsWith('image/') || image.size === 0 || image.size > 15 * 1024 * 1024) {
       setScanError('Bitte wähle ein Bild mit höchstens 15 MB aus.');
       return;
@@ -111,7 +123,7 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
     setScanError('');
     setStage('scanning');
     try {
-      const result = await recognizeTreeForPrototype(image, tree?.species);
+      const result = await recognizeTreeForPrototype(image, targetTree.species);
       if (scanRunRef.current !== run) return;
       const matched = species.find((item) => item.name === result.species);
       setSelectedSpecies(matched?.name ?? 'Birke');
@@ -162,19 +174,34 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
   };
 
   const saveCard = () => {
-    if (!ready) return;
-    const reward = tree?.presentation && selectedSpecies === tree.species ? tree.xpReward : 0;
-    addScannedCard(selectedSpecies, reward);
+    if (!ready || !targetTree || savedRef.current) return;
+    savedRef.current = true;
+    const scannedAt = new Date().toISOString();
+    const id = crypto.randomUUID();
+    const observationId = targetTree.presentation ? null : crypto.randomUUID();
+    const event: ScanEvent = { id, treeId: targetTree.id, assetId: targetTree.assetId ?? null, species: selectedSpecies, scannedAt, observationId, source: 'demo' };
+    if (observationId) {
+      const observation: Observation = {
+        id: observationId, treeId: targetTree.id, action: 'species_suggestion', observedAt: scannedAt,
+        lat: targetTree.lat, lng: targetTree.lng, accuracyMeters: null, suggestedSpecies: selectedSpecies,
+        reviewStatus: 'pending', reviewNote: 'Demo-Scan: Baumposition ausgewählt, Foto nicht gespeichert und kein GPS-Abgleich.',
+        source: 'local', userId: 'explorer',
+      };
+      try { saveObservations([...loadObservations(), observation]); setObservationSaved(true); }
+      catch { setObservationSaved(false); }
+    }
+    const reward = targetTree.presentation && selectedSpecies === targetTree.species && !progress.unlockedCards.includes(selectedSpecies) ? targetTree.xpReward : 0;
+    recordScan(event, reward);
     setEarnedXp(reward);
     setStage('saved');
   };
 
   const cardArt = cardArtBySpecies[selectedSpecies];
-  const alreadyCollected = progress.discoveredSpecies.includes(selectedSpecies);
+  const alreadyCollected = progress.unlockedCards.includes(selectedSpecies);
 
   return <div className="scan-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="scan-modal" role="dialog" aria-modal="true" aria-labelledby="scan-title">
-      <header className="scan-header"><div><p className="eyebrow">OPENQUEST / ENTDECKEN</p><h2 id="scan-title">{stage === 'saved' ? 'Karte gesammelt!' : stage === 'result' ? 'Deine Sammelkarte' : stage === 'revealing' ? 'Deine Karte entsteht' : 'Baum scannen'}</h2></div><button ref={closeRef} type="button" className="scan-close" onClick={onClose} aria-label="Scan schließen"><X size={21} /></button></header>
+      <header className="scan-header"><div><p className="eyebrow">OPENQUEST / ENTDECKEN</p><h2 id="scan-title">{stage === 'saved' ? cardArt ? 'Karte gesammelt!' : 'Fund gespeichert!' : stage === 'result' ? cardArt ? 'Deine Sammelkarte' : 'Dein Baumfund' : stage === 'revealing' ? 'Deine Karte entsteht' : 'Baum scannen'}</h2></div><button ref={closeRef} type="button" className="scan-close" onClick={onClose} aria-label="Scan schließen"><X size={21} /></button></header>
       <div className="scan-progress-steps" aria-label="Scan-Fortschritt"><span className="active">01 AUFNEHMEN</span><span className={stage === 'camera' ? '' : 'active'}>02 ERKENNEN</span><span className={stage === 'result' || stage === 'saved' ? 'active' : ''}>03 SAMMELN</span></div>
 
       {stage === 'camera' && <>
@@ -184,11 +211,13 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
           <span className="scan-viewfinder-caption" aria-hidden="true"><ScanLine size={15} /> BAUM IM RAHMEN POSITIONIEREN</span>
           {!cameraReady && <div className="scan-camera-message"><Camera size={28} /><span>{cameraError || 'Kamera wird geöffnet …'}</span></div>}
         </div>
-        <p className="scan-help">{tree ? `Fotografiere den Baum bei ${tree.area}.` : 'Richte die Kamera auf einen Baum oder wähle ein vorhandenes Foto.'}</p>
+        {!tree && <label className="scan-target-label" htmlFor="scan-target">Welchen Baumpunkt scannst du?</label>}
+        {!tree && <select id="scan-target" className="scan-species-select scan-target-select" value={selectedTreeId} onChange={(event) => setSelectedTreeId(event.target.value)}><option value="">Baumpunkt auswählen …</option><optgroup label="Kataster-Beispieldaten">{trees.filter((candidate) => candidate.sampleAsset).map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.inventory?.genus} · {candidate.area}</option>)}</optgroup><optgroup label="Quest-Bäume">{trees.filter((candidate) => !candidate.sampleAsset && !candidate.presentation).map((candidate) => <option key={candidate.id} value={candidate.id}>{candidate.species} · {candidate.area}</option>)}</optgroup></select>}
+        <p className="scan-help">{targetTree ? `Fotografiere den Baum bei ${targetTree.area}. ${targetTree.assetId ? 'Dieser Scan wird mit der Datensatz-ID verknüpft.' : 'Dieser Quest-Punkt hat noch keine Backend-Datensatz-ID.'}` : 'Wähle einen Baumpunkt, damit dein Fund dem richtigen Standort zugeordnet wird.'}</p>
         {scanError && <p className="scan-error" role="alert">{scanError}</p>}
-        <button type="button" className="scan-primary" onClick={capturePhoto} disabled={!cameraReady}><Camera size={19} /> Foto aufnehmen</button>
-        {cameraError && <button type="button" className="scan-secondary" onClick={() => captureInputRef.current?.click()}><Camera size={18} /> Handykamera öffnen</button>}
-        <button type="button" className="scan-secondary" onClick={() => fileInputRef.current?.click()}><ImagePlus size={18} /> Bild auswählen</button>
+        <button type="button" className="scan-primary" onClick={capturePhoto} disabled={!cameraReady || !targetTree}><Camera size={19} /> Foto aufnehmen</button>
+        {cameraError && <button type="button" className="scan-secondary" onClick={() => captureInputRef.current?.click()} disabled={!targetTree}><Camera size={18} /> Handykamera öffnen</button>}
+        <button type="button" className="scan-secondary" onClick={() => fileInputRef.current?.click()} disabled={!targetTree}><ImagePlus size={18} /> Bild auswählen</button>
         <input ref={captureInputRef} className="scan-file-input" type="file" accept="image/*" capture="environment" aria-label="Baumfoto mit Handykamera aufnehmen" onChange={onPhotoSelected} />
         <input ref={fileInputRef} className="scan-file-input" type="file" accept="image/*" aria-label="Baumfoto auswählen" onChange={onPhotoSelected} />
       </>}
@@ -215,16 +244,17 @@ export function ScanModal({ tree, onClose }: { tree?: Tree | null; onClose: () =
 
       {(stage === 'result' || stage === 'saved') && <>
         {stage === 'result' ? <>
-          <p className="scan-demo-note">Testantwort: {tree ? `Für diesen Baum wird ${tree.species} vorgeschlagen.` : 'Die Demo schlägt Birke vor.'} Das Foto wurde nicht durch eine Bilderkennung geprüft.</p>
+          <p className="scan-demo-note">Testantwort: Für den ausgewählten Baum wird {targetTree?.species} vorgeschlagen. {targetTree?.inventory && `Im Datensatz steht die Gattung ${targetTree.inventory.genus}; die genaue Art ist ${targetTree.inventory.species ? 'hinterlegt' : 'noch offen'}.`} Das Foto wurde nicht durch eine Bilderkennung geprüft.</p>
           <label className="scan-species-label" htmlFor="scan-species">Baumart prüfen oder ändern</label>
-          <select id="scan-species" className="scan-species-select" value={selectedSpecies} onChange={(event) => setSelectedSpecies(event.target.value as SpeciesName)}>{species.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</select>
-          {alreadyCollected && <p className="scan-existing">Diese Karte ist bereits in deinem Baumbuch.</p>}
-          <button type="button" className="scan-primary" onClick={alreadyCollected ? onClose : saveCard} disabled={!ready}>{alreadyCollected ? 'Fertig' : 'Karte zum Baumbuch hinzufügen'}</button>
+          <select id="scan-species" className="scan-species-select" value={selectedSpecies} onChange={(event) => setSelectedSpecies(event.target.value as SpeciesName)}>{species.filter((item) => targetTree?.presentation ? item.name === 'Festtanne' : item.name !== 'Festtanne').map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}</select>
+          {alreadyCollected && <p className="scan-existing">Diese Karte ist schon aufgedeckt. Der neue Fund wird trotzdem einzeln gezählt.</p>}
+          {!cardArt && <p className="scan-existing">Für diese Art gibt es noch kein Kartenmotiv. Der Baumfund wird trotzdem gespeichert.</p>}
+          <button type="button" className="scan-primary" onClick={saveCard} disabled={!ready || !targetTree}>{!cardArt ? 'Fund zur Prüfung speichern' : alreadyCollected ? 'Weiteren Fund speichern' : 'Karte aufdecken & Fund speichern'}</button>
           <button type="button" className="scan-secondary" onClick={retry}><RotateCcw size={17} /> Neues Foto aufnehmen</button>
         </> : <>
-          <p className="scan-success"><Check size={19} /> {selectedSpecies} ist jetzt in deinem Baumbuch.</p>
+          <p className="scan-success"><Check size={19} /> {selectedSpecies}: Fund am gewählten Baumpunkt gespeichert.</p>
           {earnedXp > 0 && <p className="scan-reward">+{earnedXp} XP für die Präsentationskarte</p>}
-          <p className="scan-disclaimer">{tree?.presentation ? 'Der Bühnenbaum zählt nicht für Stadtteil-Punkte.' : 'Demo-Scan: keine XP und keine Stadtteil-Punkte.'}</p>
+          <p className="scan-disclaimer">{targetTree?.presentation ? 'Der Bühnenbaum zählt nicht für Stadtteil-Punkte.' : observationSaved ? 'Artvorschlag wartet im Admin-Panel auf Prüfung. Wiederholte Scans geben keine zusätzlichen XP oder Stadtteil-Punkte.' : 'Demo-Fund gespeichert. Ein Prüfeintrag konnte lokal nicht angelegt werden.'}</p>
           <button type="button" className="scan-primary" onClick={onClose}>Fertig</button>
         </>}
       </>}

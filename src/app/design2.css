@@ -202,7 +202,7 @@ button:active, a:active { transform: scale(.975); }
 .collection-page .species-art { border-radius: 15px; background: radial-gradient(circle at 50% 35%, #92ce9a, #254d3d); }
 .collection-page .species-art.has-card-image { background: #183629; }
 .collection-page .species-art.has-card-image img { object-fit: cover; }
-.collection-page .species-card.locked .species-art.has-card-image img { filter: saturate(.7) brightness(.76); }
+.collection-page .species-card.locked .species-art.has-card-image img { filter: none; }
 .collection-page .species-card.locked .species-art:not(.has-card-image) { color: #e6d58c; background: radial-gradient(circle, #426550, #24392f 70%); }
 .collection-page .species-card-open { z-index: 3; }
 .collection-page .species-card-open svg, .collection-page .species-card-open span { color: #164a31; background: #e9ffd5; }
@@ -216,6 +216,17 @@ button:active, a:active { transform: scale(.975); }
 .collection-page .species-note { color: #a6cab0; }
 .collection-page .species-copy > span { color: #dbf993; font-weight: 850; }
 .collection-page .species-card.locked .species-copy > span { color: #a5bfaa; }
+.scan-target-label { display: block; margin: 12px 0 6px; color: #e9ffe3; font-size: 11px; font-weight: 800; }
+.scan-target-select { margin-bottom: 8px; }
+.scan-secondary:disabled { opacity: .5; cursor: not-allowed; }
+.tree-asset-id span { overflow-wrap: anywhere; }
+.map-count { cursor: pointer; text-align: left; }
+.card-find-history { margin-top: 13px; padding: 12px 14px; border: 1px solid #d4f1ba3d; border-radius: 14px; background: #ffffff0d; }
+.card-find-history > div { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 7px; }
+.card-find-history strong { color: #e3fba4; font-size: 12px; }
+.card-find-history > div span { color: #c4d9c6; font-size: 10px; }
+.card-find-history p { display: flex; justify-content: space-between; gap: 10px; margin: 0; padding: 6px 0; border-top: 1px solid #ffffff1a; color: #f2fff1; font-size: 10px; }
+.card-find-history time { color: #b9d5bd; white-space: nowrap; }
 .collection-empty, .lexicon-empty { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 32px; border: 1px dashed #a5c8ae; border-radius: 20px; color: #5d9271; background: #f6faf1; text-align: center; }
 .collection-empty strong, .lexicon-empty strong { color: #194633; font-size: 14px; }
 .collection-empty span, .lexicon-empty span { color: #6b8a75; font-size: 11px; }

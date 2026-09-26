@@ -2,6 +2,9 @@ import type { species } from './species';
 
 type SpeciesName = (typeof species)[number]['name'];
 
+export const cardBackSrc = '/cards/back.png';
+export const initiallyUnlockedCards: SpeciesName[] = ['Stieleiche', 'Winterlinde', 'Zierkirsche'];
+
 export const cardArtBySpecies: Partial<Record<SpeciesName, { src: string; motif: string }>> = {
   Stieleiche: { src: '/cards/eiche.png', motif: 'Eiche' },
   Bergahorn: { src: '/cards/ahorn.png', motif: 'Ahorn' },

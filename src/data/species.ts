@@ -12,4 +12,6 @@ export const species = [
   { name: 'Kiefer', latin: 'Pinus sp.', emoji: '🌲', note: 'Nadeln · bisher nur per Scan' },
   { name: 'Zierkirsche', latin: 'Prunus sp.', emoji: '🌸', note: 'Blüten · bisher nur per Scan' },
   { name: 'Festtanne', latin: 'Art nicht bestimmt', emoji: '🎄', note: 'Legendäre Bühnenkarte · MS Hack 2026' },
+  // Keep appended: the demo quest rows above still refer to the original species indices.
+  { name: 'Hainbuche', latin: 'Carpinus sp.', emoji: '🍃', note: 'Gattung Hainbuche · genaue Art offen' },
 ] as const;

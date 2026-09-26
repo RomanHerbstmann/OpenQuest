@@ -7,7 +7,7 @@ import { districtStandings } from '@/lib/districts';
 import type { District, TerritoryContribution } from '@/types/district';
 import type { Tree } from '@/types/tree';
 
-type Props = { trees: Tree[]; densityTrees: Tree[]; selectedId: string | null; onSelect: (tree: Tree) => void; userPosition: { lat: number; lng: number } | null; locateTick: number; focusTree: Tree | null; focusTick: number; contributions: TerritoryContribution[]; selectedDistrictId: string | null; onSelectDistrict: (district: District) => void; onInventoryChange: (count: number, live: boolean) => void };
+type Props = { trees: Tree[]; densityTrees: Tree[]; selectedId: string | null; onSelect: (tree: Tree) => void; userPosition: { lat: number; lng: number } | null; locateTick: number; focusTree: Tree | null; focusTick: number; focusDistrict: District | null; districtFocusTick: number; contributions: TerritoryContribution[]; selectedDistrictId: string | null; onSelectDistrict: (district: District) => void; onInventoryChange: (count: number, live: boolean) => void };
 
 type InventoryPoint = [number, number]; // GeoJSON coordinates: longitude, latitude
 type WfsFeature = { geometry?: { type?: string; coordinates?: unknown } };
@@ -69,7 +69,20 @@ function markerIcon(tree: Tree, selected: boolean) {
   });
 }
 
-export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect, userPosition, locateTick, focusTree, focusTick, contributions, selectedDistrictId, onSelectDistrict, onInventoryChange }: Props) {
+function escapeHtml(value: string) {
+  return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character] ?? character);
+}
+
+const crownIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 8 5 4 5-7 5 7 5-4-2 11H4L2 8Z"/><path d="M4 22h16"/></svg>';
+
+function districtCard(district: District, standing: ReturnType<typeof districtStandings>, selected: boolean) {
+  const color = standing.owner?.color ?? (standing.tied ? '#c58b52' : '#6a9b83');
+  const state = standing.owner ? 'beansprucht' : standing.tied ? 'umkämpft' : 'frei';
+  const rows = standing.ranking.slice(0, 3).map((player) => `<span class="district-map-rank ${standing.owner?.id === player.id ? 'is-owner' : ''}"><span class="district-map-position">${standing.owner?.id === player.id ? crownIcon : standing.topCount === 0 ? '–' : player.rank}</span><span class="district-map-player">${escapeHtml(player.name)}</span><b>${player.count}</b></span>`).join('');
+  return `<div class="district-map-card district-${district.id} ${selected ? 'is-selected' : ''} ${standing.tied ? 'is-contested' : ''}" style="--district-accent:${color}"><span class="district-map-head"><strong>${escapeHtml(district.shortName)}</strong><small>${state}</small></span><span class="district-map-ranks">${rows}</span></div>`;
+}
+
+export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect, userPosition, locateTick, focusTree, focusTick, focusDistrict, districtFocusTick, contributions, selectedDistrictId, onSelectDistrict, onInventoryChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -84,6 +97,9 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     const map = L.map(containerRef.current, { zoomControl: false, attributionControl: false, scrollWheelZoom: false }).setView([51.9607, 7.6261], 14);
+    const syncDistrictZoom = () => map.getContainer().classList.toggle('district-compact', map.getZoom() < 15);
+    map.on('zoomend', syncDistrictZoom);
+    syncDistrictZoom();
     const attribution = L.control.attribution({ position: 'bottomleft', prefix: false }).addTo(map);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -99,12 +115,12 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
     dotsPane.style.pointerEvents = 'none';
     inventoryRendererRef.current = L.canvas({ pane: 'tree-dots', padding: .1 });
     inventoryDotsRef.current = L.layerGroup().addTo(map);
-    map.createPane('district-labels').style.zIndex = '450';
+    map.createPane('district-labels').style.zIndex = '650';
     districtLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
     const resize = new ResizeObserver(() => map.invalidateSize());
     resize.observe(containerRef.current);
-    return () => { resize.disconnect(); map.remove(); mapRef.current = null; districtLayerRef.current = null; densityLayerRef.current = null; inventoryDotsRef.current = null; inventoryRendererRef.current = null; };
+    return () => { resize.disconnect(); map.off('zoomend', syncDistrictZoom); map.remove(); mapRef.current = null; districtLayerRef.current = null; densityLayerRef.current = null; inventoryDotsRef.current = null; inventoryRendererRef.current = null; };
   }, []);
 
   useEffect(() => {
@@ -188,14 +204,14 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
     layer.clearLayers();
     districts.forEach((district) => {
       const standing = districtStandings(district, contributions);
-      const color = standing.owner?.color ?? (standing.tied ? '#b78066' : '#8ca99a');
+      const color = standing.owner?.color ?? (standing.tied ? '#c58b52' : '#6a9b83');
       const selected = selectedDistrictId === district.id;
-      L.polygon(district.polygon, { color: selected ? color : '#7d9b86', weight: selected ? 2.5 : 1.2, opacity: selected ? .8 : .42, fillColor: color, fillOpacity: selected ? .12 : .035, dashArray: selected ? undefined : '7 7' })
+      L.polygon(district.polygon, { className: `district-boundary ${selected ? 'is-selected' : ''}`, color, weight: selected ? 3.7 : 2.5, opacity: selected ? 1 : .9, fillColor: color, fillOpacity: selected ? .23 : .14 })
         .on('click', () => onSelectDistrict(district))
         .addTo(layer);
       L.marker(district.center, {
-        pane: 'district-labels', keyboard: true, title: `${district.name}, ${standing.owner ? `führt ${standing.owner.name}` : standing.tied ? 'umkämpft' : 'noch frei'}`,
-        icon: L.divIcon({ className: 'district-label-marker', html: `<span class="district-map-label"><span class="district-map-dot" style="background:${color}"></span>${district.shortName}</span>`, iconSize: [100, 26], iconAnchor: [50, 13] }),
+        pane: 'district-labels', keyboard: true, title: `${district.name}: ${standing.owner ? `${standing.owner.name} führt` : standing.tied ? 'umkämpft' : 'noch frei'}. Top 3: ${standing.ranking.slice(0, 3).map((player) => `${player.name} ${player.count}`).join(', ')}`,
+        icon: L.divIcon({ className: 'district-label-marker', html: districtCard(district, standing, selected), iconSize: [150, 112], iconAnchor: [75, 56] }),
       }).on('click', () => onSelectDistrict(district)).addTo(layer);
     });
   }, [contributions, selectedDistrictId, onSelectDistrict]);
@@ -205,7 +221,7 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
     if (!map) return;
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = trees.map((tree) => {
-      const marker = L.marker([tree.lat, tree.lng], { icon: markerIcon(tree, tree.id === selectedId), title: `${tree.species}, ${tree.area}`, keyboard: true, zIndexOffset: tree.presentation ? 1000 : 0 });
+      const marker = L.marker([tree.lat, tree.lng], { icon: markerIcon(tree, tree.id === selectedId), title: `${tree.sampleAsset ? `Gattung ${tree.inventory?.genus} · Art offen` : tree.species}, ${tree.area}`, keyboard: true, zIndexOffset: tree.presentation ? 1000 : 0 });
       marker.on('click', () => onSelect(tree));
       marker.addTo(map);
       return marker;
@@ -226,6 +242,10 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
   useEffect(() => {
     if (focusTree && focusTick > 0) mapRef.current?.flyTo([focusTree.lat, focusTree.lng], 17, { duration: 0.8 });
   }, [focusTree, focusTick]);
+
+  useEffect(() => {
+    if (focusDistrict && districtFocusTick > 0) mapRef.current?.flyTo(focusDistrict.center, 16, { duration: .85 });
+  }, [focusDistrict, districtFocusTick]);
 
   return <div ref={containerRef} className="explorer-map" role="application" aria-label="Interaktive Karte mit Stadtbäumen, Baumdichte und spielbaren Quest-Bäumen in Münster" />;
 }

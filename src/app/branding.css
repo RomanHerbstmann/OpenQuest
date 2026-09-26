@@ -1,0 +1,69 @@
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('/fonts/PressStart2P-Regular.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+:root { --font-pixel: 'Press Start 2P', 'Courier New', monospace; }
+
+/* The supplied horizontal artwork is the common wordmark everywhere in the app. */
+.brand { display: inline-flex; flex: 0 0 auto; align-items: center; width: fit-content; padding: 3px 6px; overflow: hidden; border: 1px solid #d5e1d0; border-radius: 13px; background: #fff; box-shadow: 0 4px 14px #072d201c; line-height: 0; }
+.brand-logo { display: block; width: 168px; height: auto; }
+.map-header { padding: 8px 10px; }
+.map-header .brand { border-color: #f9f8e8; box-shadow: 0 4px 14px #031d1770; }
+.map-header .brand-logo { width: 136px; }
+.admin-sidebar .brand { margin-bottom: 40px; }
+.admin-sidebar .brand-logo { width: 164px; }
+
+/* Pixel typography carries the game identity; paragraphs stay readable. */
+.collection-hero h1, .lexicon-hero h1, .missions-hero h1,
+.profile-intro h1, .lexicon-detail-copy h1 {
+  font-family: var(--font-pixel);
+  font-size: clamp(20px, 2.75vw, 31px);
+  font-weight: 400;
+  letter-spacing: -1px;
+  line-height: 1.5;
+}
+.profile-intro h1 { font-size: clamp(18px, 2.3vw, 27px); }
+.lexicon-detail-copy h1 { font-size: clamp(19px, 2.5vw, 28px); }
+.d2-section-heading h2, .district-heading h2, .sheet-hero h2,
+.scan-header h2, .card-viewer-header h2, .admin-heading-row h1 {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  letter-spacing: -.5px;
+  line-height: 1.5;
+}
+.d2-section-heading h2 { font-size: clamp(14px, 2vw, 20px); }
+.district-sheet .district-heading h2 { font-size: clamp(11px, 1.6vw, 15px); }
+.sheet-hero h2 { font-size: clamp(12px, 2vw, 18px); }
+.scan-header h2, .card-viewer-header h2 { font-size: clamp(12px, 1.7vw, 17px); }
+.admin-shell .admin-heading-row h1 { font-size: clamp(15px, 2vw, 22px); }
+.d2-top-pill, .demo-tag, .d2-kicker, .d2-hero-kicker,
+.collection-scan-button, .map-intro strong, .district-section-title h3 {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.d2-top-pill, .demo-tag { font-size: 8px; }
+.d2-kicker, .d2-hero-kicker { font-size: 8px; line-height: 1.7; }
+.collection-scan-button { font-size: 9px; }
+.map-intro strong { font-size: 10px; line-height: 1.5; }
+.district-section-title h3 { font-size: 11px; line-height: 1.5; }
+
+@media (max-width: 550px) {
+  .page-top .brand-logo { width: 141px; }
+  .map-header .brand-logo { width: 130px; }
+  .collection-hero h1, .lexicon-hero h1, .missions-hero h1 { font-size: 20px; }
+  .profile-intro h1 { font-size: 18px; }
+  .lexicon-detail-copy h1 { font-size: 19px; }
+  .d2-section-heading h2 { font-size: 14px; }
+  .admin-shell .admin-heading-row h1 { font-size: 15px; }
+}
+@media (max-width: 385px) {
+  .page-top .brand-logo { width: 128px; }
+  .map-header .brand-logo { width: 118px; }
+  .d2-top-pill { font-size: 7px; }
+  .collection-hero h1, .lexicon-hero h1, .missions-hero h1 { font-size: 18px; }
+}
