@@ -363,10 +363,35 @@ Findings that affect the model:
     "quality_flags": { "type": "array", "items": { "enum": ["placeholder_genus", "near_duplicate", "typo_corrected"] } },
     "trunk_circumference_cm": { "type": ["number", "null"] },
     "condition":    { "enum": ["good", "damaged", "dead", "gone", null] },
-    "photo_url":    { "type": ["string", "null"] }
+    "photo_url":    { "type": ["string", "null"] },
+    "vitality":     { "enum": ["healthy", "slightly_damaged", "clearly_damaged", "severely_damaged_or_dead", null], "description": "Roloff-like scale, from player photos" },
+    "damage":       { "type": "array", "items": { "enum": ["bark_wound", "cavity", "crack", "leaning", "broken_branch", "dead_branches", "root_damage"] } },
+    "pests":        { "type": "array", "items": { "enum": ["oak_processionary_nests", "leaf_miner_damage", "mistletoe", "other_pest"] } },
+    "age_class":    { "enum": ["young", "semi_mature", "mature", "veteran", null] },
+    "tree_pit": {
+      "type": ["object", "null"],
+      "properties": {
+        "surface": { "enum": ["open_soil", "planted", "mulched", "sealed", "grate"] },
+        "watering_bag": { "type": "boolean" },
+        "stakes": { "type": "boolean" },
+        "protection_guard": { "type": "boolean" }
+      }
+    }
   }
 }
 ```
+
+### Attributes vs. observations from player photos
+
+`@openquest/tree-verification` returns `proposedChanges` for every photo (see [ADR-0005](../adr/0005-tree-assessment-from-player-photos.md)):
+
+- `kind: "attribute"` (condition, vitality, damage, pests, age_class, tree_pit, genus): the **state** of the tree. Becomes an `ATTRIBUTE_CHANGE` with `status = proposed`.
+- `kind: "observation"` (phenology, drought_stress, tree_pit_issue, safety_concern): **time stamped facts** that must not overwrite each other, e.g. "flowering on 2026-05-03". They form a history per asset (useful for phenology time series) and fit `ATTRIBUTE_CHANGE` rows with `attribute_key = "observation:<key>"` for now; a dedicated `ASSET_OBSERVATION` table in the API is the cleaner option.
+- `kind: "new_asset"`: a photographed tree with no inventory tree nearby; a candidate for a new `ASSET` after review.
+
+`requiresReview = true` (always for hazards, dead or missing trees, new assets) means a moderator has to confirm before the change may be accepted or exported to the city.
+
+The assessment attributes above (`vitality`, `damage`, `pests`, `age_class`, `tree_pit`) are not yet part of the tree schema in `AssetType.Known` (`packages/core/OpenQuest.Core/Domain/AssetType.cs`); they have to be added there before the API accepts them.
 
 ## Implementation notes (backend, .NET)
 
