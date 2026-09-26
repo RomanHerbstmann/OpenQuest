@@ -50,6 +50,9 @@ export function MapExplorer() {
   const [viewCenter, setViewCenter] = useState<{ lat: number; lng: number } | null>(null);
   const [locateTick, setLocateTick] = useState(0);
   const [presentationTick, setPresentationTick] = useState(0);
+  const [focusedTree, setFocusedTree] = useState<Tree | null>(null);
+  const [focusedDistrict, setFocusedDistrict] = useState<District | null>(null);
+  const [districtFocusTick, setDistrictFocusTick] = useState(0);
   const [locationMessage, setLocationMessage] = useState('');
   const [inventory, setInventory] = useState({ count: 0, live: false });
   const [search, setSearch] = useState<TreeSearchResponse | null>(null);
@@ -71,6 +74,7 @@ export function MapExplorer() {
   const onClose = useCallback(() => setSelected(null), []);
   const onSelectDistrict = useCallback((district: District) => { setSelected(null); setSelectedDistrict(district); setDistrictSheetOpen(true); }, []);
   const onCloseDistrict = useCallback(() => setDistrictSheetOpen(false), []);
+  const onFocusDistrict = useCallback((district: District) => { setFocusedDistrict(district); setDistrictFocusTick((tick) => tick + 1); setDistrictSheetOpen(false); }, []);
   const onInventoryChange = useCallback((count: number, live: boolean) => setInventory({ count, live }), []);
   const onSearchResult = useCallback((result: TreeSearchResponse | null) => { setSearch(result); setSearchFocus(null); setSelected(null); setDistrictSheetOpen(false); }, []);
   const onFocusItem = useCallback((item: ResultItem) => setSearchFocus((prev) => ({ item, tick: (prev?.tick ?? 0) + 1 })), []);
@@ -117,6 +121,7 @@ export function MapExplorer() {
     setFilter('all');
     setDistrictSheetOpen(false);
     setSelected(presentationTree);
+    setFocusedTree(presentationTree);
     setPresentationTick((tick) => tick + 1);
   };
 
@@ -165,8 +170,18 @@ export function MapExplorer() {
   const countTitle = live ? (nearby.loading && questTrees.length === 0 ? lt.map.loading : lt.map.nearby(visibleQuestTrees.length)) : `${visibleTrees.length} Quest-Bäume`;
   const countSub = live ? (nearby.error || (!nearby.loading && questTrees.length === 0 ? lt.map.empty : lt.map.nearbySub)) : 'zum Entdecken';
 
-  return <main className={`map-screen ${live ? 'live-mode' : 'demo-mode'}`}>
-    <ExplorerMap trees={visibleTrees} densityTrees={densityTrees} selectedId={selected?.id ?? null} onSelect={onSelect} userPosition={userPosition} locateTick={locateTick} focusTree={presentationTree} focusTick={presentationTick} contributions={contributions} selectedDistrictId={districtSheetOpen ? selectedDistrict?.id ?? null : null} onSelectDistrict={onSelectDistrict} onInventoryChange={onInventoryChange} search={search} searchFocus={searchFocus} onViewChange={onViewChange} />
+  const openSampleTree = () => {
+    const sample = trees.find((tree) => tree.sampleAsset && tree.inventory?.genus === 'Fagus') ?? trees.find((tree) => tree.sampleAsset);
+    if (!sample) return;
+    setFilter('all');
+    setDistrictSheetOpen(false);
+    setSelected(sample);
+    setFocusedTree(sample);
+    setPresentationTick((tick) => tick + 1);
+  };
+
+  return <main className={`map-screen ${live ? 'live-mode' : 'demo-mode'} ${selected || districtSheetOpen ? 'has-sheet' : ''}`}>
+    <ExplorerMap trees={visibleTrees} densityTrees={densityTrees} selectedId={selected?.id ?? null} onSelect={onSelect} userPosition={userPosition} locateTick={locateTick} focusTree={focusedTree} focusTick={presentationTick} focusDistrict={focusedDistrict} districtFocusTick={districtFocusTick} contributions={contributions} selectedDistrictId={districtSheetOpen ? selectedDistrict?.id ?? null : null} onSelectDistrict={onSelectDistrict} onInventoryChange={onInventoryChange} search={search} searchFocus={searchFocus} onViewChange={onViewChange} />
     <header className="map-header">
       <div className="header-main"><Brand />{live
         ? <span className="demo-tag live-tag" title={lt.auth.signedInAs(session.username)}>{lt.mode.live}</span>
@@ -182,13 +197,15 @@ export function MapExplorer() {
       : filters.map((item) => <button key={item.value} type="button" className={filter === item.value ? 'filter-chip active' : 'filter-chip'} onClick={() => { setFilter(item.value); setSelected(null); }} aria-pressed={filter === item.value}>{item.label}</button>)}</div>
     <div className="map-density-legend" aria-label="Grünere Flächen zeigen mehr erfasste Stadtbäume"><span className="map-density-gradient" aria-hidden="true" /><span>Baumdichte <small>· {inventory.count ? `${inventory.count.toLocaleString('de-DE')} Stadtbäume${inventory.live ? ' live' : ''}` : 'lädt …'}</small></span></div>
     <div className="map-bottom-area">
-      <div className={`map-count ${live && nearby.error ? 'has-error' : ''}`}><span className="count-icon"><Trees size={20} /></span><div><strong>{countTitle}</strong><span>{countSub}</span></div>{live && nearby.error && <button type="button" className="map-count-retry" onClick={nearby.reload} aria-label={lt.map.retry}><RefreshCw size={16} /></button>}</div>
+      {live
+        ? <div className={`map-count ${nearby.error ? 'has-error' : ''}`}><span className="count-icon"><Trees size={20} /></span><div><strong>{countTitle}</strong><span>{countSub}</span></div>{nearby.error && <button type="button" className="map-count-retry" onClick={nearby.reload} aria-label={lt.map.retry}><RefreshCw size={16} /></button>}</div>
+        : <button type="button" className="map-count" onClick={openSampleTree} aria-label="Kataster-Beispielbaum mit Gattung und Höhe anzeigen"><span className="count-icon"><Trees size={20} /></span><div><strong>{visibleTrees.length} Baumpunkte</strong><span>10 mit Zusatzdaten · ansehen</span></div></button>}
       <button className="district-open-button" type="button" onClick={() => { setSelected(null); setSelectedDistrict(null); setDistrictSheetOpen(true); }}><Flag size={17} /><span>{districts.length} Viertel</span></button>
       <button className="locate-button" type="button" onClick={() => locate()} aria-label="Meinen Standort anzeigen"><Crosshair size={23} /></button>
     </div>
     {locationMessage && <div className="location-message" role="status"><MapPin size={15} />{locationMessage}<button type="button" onClick={() => setLocationMessage('')} aria-label="Hinweis schließen">×</button></div>}
     {selected && <TreeBottomSheet tree={selected} onClose={onClose} onOpenDistrict={onSelectDistrict} onScan={() => { setScanTree(selected); setSelected(null); }} userPosition={userPosition} questActions={selected.quest ? questActions : undefined} />}
-    {districtSheetOpen && <DistrictSheet district={selectedDistrict} contributions={contributions} onSelect={onSelectDistrict} onBack={() => setSelectedDistrict(null)} onClose={onCloseDistrict} />}
+    {districtSheetOpen && <DistrictSheet district={selectedDistrict} contributions={contributions} onSelect={onSelectDistrict} onFocus={onFocusDistrict} onBack={() => setSelectedDistrict(null)} onClose={onCloseDistrict} />}
     {scanTree && <ScanModal tree={scanTree} onClose={() => setScanTree(null)} onSubmitted={scanTree.quest ? () => void afterQuestChange() : undefined} onCancelClaim={scanTree.quest?.claim ? () => cancelClaim(scanTree) : undefined} />}
   </main>;
 }

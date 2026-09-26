@@ -1,9 +1,8 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowRight, BookOpenText, Flower2, Leaf, MapPin, ScanEye, TreeDeciduous } from 'lucide-react';
 import { Brand } from '@/components/ui/Brand';
-import { cardArtBySpecies } from '@/data/cardArt';
+import { LexiconArt } from '@/components/collection/LexiconArt';
 import { lexiconEntries, lexiconForSlug } from '@/data/lexicon';
 import { species } from '@/data/species';
 
@@ -14,7 +13,6 @@ export default async function LexiconEntryPage({ params }: { params: Promise<{ s
   const entry = lexiconForSlug(slug);
   if (!entry) notFound();
   const speciesEntry = species.find((item) => item.name === entry.name);
-  const art = cardArtBySpecies[entry.name];
   const currentIndex = lexiconEntries.findIndex((item) => item.slug === slug);
   const next = lexiconEntries[(currentIndex + 1) % lexiconEntries.length];
 
@@ -23,11 +21,7 @@ export default async function LexiconEntryPage({ params }: { params: Promise<{ s
     <Link href="/lexicon" className="lexicon-back"><ArrowLeft size={18} /> Alle Arten</Link>
     <section className="lexicon-detail-hero">
       <div className="lexicon-detail-copy"><span className="d2-kicker">ARTENPORTRÄT / {String(currentIndex + 1).padStart(2, '0')}</span><h1>{entry.name}</h1><em>{speciesEntry?.latin}</em><p>{entry.introduction}</p><span className="lexicon-detail-group"><Leaf size={16} /> {entry.group}</span></div>
-      <div className="lexicon-detail-visual" aria-label={art ? `Künstlerisches Kartenmotiv ${entry.name}` : `Symbol ${entry.name}`}>
-        <span className="lexicon-detail-halo" aria-hidden="true" />
-        {art ? <Image src={art.src} alt={`Künstlerisches OpenQuest-Kartenmotiv: ${entry.name}`} fill sizes="(max-width: 700px) 42vw, 260px" /> : <span className="lexicon-detail-emoji" aria-hidden="true">{speciesEntry?.emoji}</span>}
-        <small>{art ? 'KARTENMOTIV' : 'ARTENSYMBOL'}</small>
-      </div>
+      <LexiconArt name={entry.name} emoji={speciesEntry?.emoji} />
     </section>
     <div className="d2-section-heading"><div><span className="d2-kicker">DRAUSSEN ERKENNEN</span><h2>Drei gute Hinweise</h2></div></div>
     <div className="lexicon-facts">

@@ -1,5 +1,6 @@
 import type { Tree, TreeRarity, TreeStatus } from '@/types/tree';
 import { species } from './species';
+import treeAssetSamples from './treeAssetSamples.json';
 
 // Standorte und Gattungen: Stadt Münster, Digitales Baumkataster (WFS, 26.09.2026), dl-de/by-2.0.
 // Je ein eindeutiger Katasterpunkt derselben Gattung nahe der früheren Demo-Position.
@@ -31,21 +32,58 @@ const records: Array<[number, number, number, string, TreeStatus, TreeRarity, nu
   [51.95474636587724, 7.614770762709126, 1, 'Bismarckallee', 'unverified', 'common', 2, 'Fagus', '00985'],
 ];
 
-const demoTrees: Tree[] = records.map(([lat, lng, speciesIndex, area, status, rarity, verificationCount, genus, streetKey], index) => ({
-  id: `ms-${String(index + 1).padStart(3, '0')}`,
-  lat,
-  lng,
-  species: species[speciesIndex].name,
-  speciesLatin: species[speciesIndex].latin,
-  area,
-  inventory: { genus, streetKey },
-  status,
-  rarity,
-  verificationCount,
-  discovered: false,
-  xpReward: rarity === 'rare' ? 40 : 25,
-  lastChecked: status === 'verified' ? 'vor 5 Monaten' : verificationCount > 0 ? 'vor 3 Jahren' : undefined,
-}));
+// Only join a normalized asset to a quest marker when genus, street key and position agree.
+// The ten sample rows do not match the existing 24 quest markers; we keep those markers
+// at their original coordinates instead of inventing backend UUIDs for them.
+const matchedSampleIds = new Set<string>();
+const demoTrees: Tree[] = records.map(([lat, lng, speciesIndex, area, status, rarity, verificationCount, genus, streetKey], index) => {
+  const asset = treeAssetSamples.find((item) => item.genus === genus && item.streetKey === streetKey && Math.abs(item.lat - lat) < .00002 && Math.abs(item.lng - lng) < .00003);
+  if (asset) matchedSampleIds.add(asset.id);
+  return {
+    id: `ms-${String(index + 1).padStart(3, '0')}`,
+    assetId: asset?.id,
+    lat,
+    lng,
+    species: species[speciesIndex].name,
+    speciesLatin: species[speciesIndex].latin,
+    area,
+    inventory: { genus, genusRaw: asset?.genusRaw ?? genus, streetKey, externalId: asset?.externalId, assetStatus: asset?.status, species: asset?.species ?? null, heightM: asset?.heightM ?? null, district: asset?.district, quarter: asset?.quarter, dataSource: asset?.dataSource ?? 'Stadt Münster · WFS', firstSeenAt: asset?.firstSeenAt, lastSeenAt: asset?.lastSeenAt, qualityFlags: asset?.qualityFlags },
+    status,
+    rarity,
+    verificationCount,
+    discovered: false,
+    xpReward: rarity === 'rare' ? 40 : 25,
+    lastChecked: status === 'verified' ? 'vor 5 Monaten' : verificationCount > 0 ? 'vor 3 Jahren' : undefined,
+  };
+});
+
+const genusDemoSuggestion: Record<string, string> = {
+  Quercus: 'Stieleiche', Fagus: 'Rotbuche', Carpinus: 'Hainbuche',
+  Aesculus: 'Rosskastanie', Tilia: 'Winterlinde', Prunus: 'Zierkirsche',
+  Betula: 'Birke', Sorbus: 'Eberesche',
+};
+
+// These are backend sample assets, not confirmed species. The prototype's scan suggestion
+// below is deliberately separate from the imported inventory.species field.
+const sampleTrees: Tree[] = treeAssetSamples.filter((asset) => !matchedSampleIds.has(asset.id)).map((asset) => {
+  const suggestion = species.find((item) => item.name === genusDemoSuggestion[asset.genus]);
+  return {
+    id: asset.id,
+    assetId: asset.id,
+    lat: asset.lat,
+    lng: asset.lng,
+    species: suggestion?.name ?? 'Art offen',
+    speciesLatin: suggestion?.latin ?? asset.genus,
+    area: `${asset.streetName} · ${asset.quarter}`,
+    inventory: { genus: asset.genus, genusRaw: asset.genusRaw, streetKey: asset.streetKey, externalId: asset.externalId, assetStatus: asset.status, species: asset.species, heightM: asset.heightM, district: asset.district, quarter: asset.quarter, dataSource: asset.dataSource, firstSeenAt: asset.firstSeenAt, lastSeenAt: asset.lastSeenAt, qualityFlags: asset.qualityFlags },
+    status: 'unverified',
+    rarity: 'common',
+    verificationCount: 0,
+    discovered: false,
+    xpReward: 25,
+    sampleAsset: true,
+  };
+});
 
 // Bühnenobjekt für die Präsentation; kein Eintrag aus einem Stadtbaumkataster.
 // Kartenposition: Gebäude Hafenweg 7 gemäß OpenStreetMap (way 299383160).
@@ -64,4 +102,4 @@ export const presentationTree: Tree = {
   presentation: true,
 };
 
-export const trees: Tree[] = [...demoTrees, presentationTree];
+export const trees: Tree[] = [...demoTrees, ...sampleTrees, presentationTree];

@@ -29,8 +29,9 @@ export function TreeBottomSheet({ tree, onClose, onOpenDistrict, onScan, userPos
 
   const distance = userPosition ? formatDistance(distanceMeters(userPosition, tree)) : null;
   const district = districtForTree(tree);
-  const lexicon = lexiconForSpecies(tree.lexiconSpecies ?? tree.species);
+  const lexicon = tree.sampleAsset ? undefined : lexiconForSpecies(tree.lexiconSpecies ?? tree.species);
   const quest = tree.quest;
+  const inventoryUpdated = tree.inventory?.lastSeenAt?.slice(0, 10).split('-').reverse().join('.');
   return <>
     <button className="sheet-backdrop" type="button" onClick={onClose} aria-label="Baumdetails schließen" />
     <section className="tree-sheet" role="dialog" aria-modal="true" aria-labelledby="tree-sheet-title">
@@ -40,17 +41,24 @@ export function TreeBottomSheet({ tree, onClose, onOpenDistrict, onScan, userPos
       <div className="sheet-topline"><span><Sparkles size={13} /> FIELD NOTE / MÜNSTER</span><span>{quest ? (quest.kind === 'photo' ? q.photo : q.verify).toUpperCase() : tree.id.toUpperCase()}</span></div>
       <div className="sheet-hero">
         <span className={`sheet-tree-icon ${tree.presentation ? 'presentation-tree-icon' : ''}`}>{tree.presentation ? <TreePine size={42} strokeWidth={1.6} /> : <TreeDeciduous size={42} strokeWidth={1.6} />}</span>
-        <div><p className="eyebrow">{tree.presentation ? 'PRÄSENTATIONSBAUM · MS HACK 2026' : quest ? q.eyebrow(tree.area) : `BAUM ENTDECKEN · ${tree.area.toUpperCase()}`}</p><h2 id="tree-sheet-title">{tree.species}</h2><p className="latin">{tree.presentation ? tree.area : quest && !quest.genus ? quest.title : tree.speciesLatin}</p>{lexicon && <p className="sheet-hero-signature">{lexicon.signature}</p>}</div>
+        <div><p className="eyebrow">{tree.presentation ? 'PRÄSENTATIONSBAUM · MS HACK 2026' : quest ? q.eyebrow(tree.area) : `BAUM ENTDECKEN · ${tree.area.toUpperCase()}`}</p><h2 id="tree-sheet-title">{tree.sampleAsset ? `Gattung ${tree.inventory?.genus}` : tree.species}</h2><p className="latin">{tree.presentation ? tree.area : tree.sampleAsset ? 'Genaue Art noch nicht bestimmt' : quest && !quest.genus ? quest.title : tree.speciesLatin}</p>{lexicon && <p className="sheet-hero-signature">{lexicon.signature}</p>}</div>
       </div>
       {quest ? <QuestDetails quest={quest} distance={distance} actions={questActions} onScan={onScan} /> : tree.presentation ? <>
         <div className="sheet-pills"><span className="pill pill-amber"><Star size={13} /> LEGENDARY · FULL ART</span><span className="pill pill-neutral">+{tree.xpReward} XP beim ersten Scan</span></div>
         <div className="presentation-tree-story"><strong>Deine Bühnen-Sonderkarte wartet.</strong><p>Fotografiere den kleinen Tannenbaum auf der Bühne. Die Demo zeigt danach die Festtanne als Full-Art-Karte.</p></div>
         <div className="sheet-info presentation-tree-info"><div><MapPin size={18} /><span>{tree.area}</span></div>{distance && <div><MapPin size={18} /><span>{distance} entfernt</span></div>}</div>
       </> : <>
-        <div className="sheet-pills"><span className={`pill ${tree.status === 'unverified' ? 'pill-amber' : tree.status === 'verified' ? 'pill-green' : 'pill-neutral'}`}>{tree.status === 'verified' ? <Check size={13} /> : <Sparkles size={13} />}{statusText[tree.status]}</span><span className="pill pill-neutral">{tree.rarity === 'rare' ? 'Selten' : tree.rarity === 'uncommon' ? 'Besonders' : 'Häufig'}</span></div>
+        <div className="sheet-pills"><span className={`pill ${tree.status === 'unverified' ? 'pill-amber' : tree.status === 'verified' ? 'pill-green' : 'pill-neutral'}`}>{tree.status === 'verified' ? <Check size={13} /> : <Sparkles size={13} />}{tree.sampleAsset ? 'Kataster-Beispiel' : statusText[tree.status]}</span><span className="pill pill-neutral">{tree.sampleAsset ? 'Art offen' : tree.rarity === 'rare' ? 'Selten' : tree.rarity === 'uncommon' ? 'Besonders' : 'Häufig'}</span></div>
         <div className="sheet-info">
           <div><MapPin size={18} /><span>{distance ? `${distance} entfernt` : tree.area}</span></div>
-          {tree.inventory && <div><TreeDeciduous size={18} /><span>Kataster-Gattung: {tree.inventory.genus} · genaue Art offen</span></div>}
+          {tree.inventory && <div><TreeDeciduous size={18} /><span>Gattung: {tree.inventory.genus} · Art: {tree.inventory.species ?? 'noch offen'}</span></div>}
+          {tree.inventory?.heightM != null && <div><TreeDeciduous size={18} /><span>Höhe im Beispieldatensatz: {tree.inventory.heightM.toLocaleString('de-DE')} m</span></div>}
+          {tree.inventory?.assetStatus && <div><ShieldCheck size={18} /><span>Datensatzstatus: {tree.inventory.assetStatus === 'active' ? 'aktiv' : tree.inventory.assetStatus}</span></div>}
+          {tree.inventory?.quarter && <div><MapPin size={18} /><span>{tree.inventory.quarter} · {tree.inventory.district}</span></div>}
+          {tree.assetId && <div className="tree-asset-id"><ShieldCheck size={18} /><span>Datensatz-ID: {tree.assetId}</span></div>}
+          {tree.inventory?.dataSource && <div><ShieldCheck size={18} /><span>Quelle: {tree.inventory.dataSource}{inventoryUpdated ? ` · Stand ${inventoryUpdated}` : ''}</span></div>}
+          {tree.inventory?.qualityFlags?.length ? <div><ShieldCheck size={18} /><span>Datenhinweise: {tree.inventory.qualityFlags.join(', ')}</span></div> : null}
+          {tree.sampleAsset && <div><Sparkles size={18} /><span>Scan-Testvorschlag: {tree.species} · noch nicht bestätigt</span></div>}
           <div><Clock3 size={18} /><span>{tree.lastChecked ? `Zuletzt geprüft ${tree.lastChecked}` : 'Noch kein Prüftermin'}</span></div>
           <div><UsersRound size={18} /><span>{tree.verificationCount} {tree.verificationCount === 1 ? 'Bestätigung' : 'Bestätigungen'} bisher</span></div>
           {district && <button type="button" className="tree-district-link" onClick={() => onOpenDistrict(district)}><Flag size={18} /><span>Spielgebiet: {district.name}</span><ArrowRight size={15} /></button>}
@@ -67,9 +75,9 @@ export function TreeBottomSheet({ tree, onClose, onOpenDistrict, onScan, userPos
         <h3>Steht dieser Baum noch hier?</h3>
         <p>Ein kurzer Check vor Ort hilft, die Baumkarte aktuell zu halten.</p>
         <button type="button" className="mission-disabled" disabled aria-describedby="mission-note">Mission startet in Phase 3 <ArrowRight size={18} /></button>
-        <p id="mission-note" className="sheet-note">Dieser Prototyp zeigt zunächst Karte und Baumdetails. Beiträge werden noch nicht erfasst.</p>
+        <p id="mission-note" className="sheet-note">Scans prüfen dein Foto und speichern den Fund lokal. Die separate Vor-Ort-Mission folgt später.</p>
       </div>}</>}
-      <p className="sheet-footer-note">{tree.presentation ? 'Präsentationsobjekt · Kein öffentlicher Stadtbaum' : quest ? q.footer : 'Standort & Gattung: Stadt Münster · Art, Status und Checks: Demo'}</p>
+      <p className="sheet-footer-note">{tree.presentation ? 'Präsentationsobjekt · Kein öffentlicher Stadtbaum' : quest ? q.footer : tree.sampleAsset ? 'Beispiel-Asset aus dem bereitgestellten Export · Art offen · kein amtlich bestätigter Scan' : 'Standort & Gattung: Stadt Münster · Art, Status und Checks: Demo'}</p>
     </section>
   </>;
 }

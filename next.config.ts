@@ -15,7 +15,11 @@ const nextConfig: NextConfig = {
   // Their relative imports end in `.ts`; tsconfig.json sets `allowImportingTsExtensions` (fine with `noEmit`)
   // and Turbopack resolves them as is, including `new URL('../data/trees.json', import.meta.url)`.
   transpilePackages: ['@openquest/tree-search', '@openquest/tree-verification', '@openquest/adapter-de-muenster'],
-  ...(mobile ? { output: 'export', trailingSlash: true } : {}),
+  // Leon's prototype settings: no generated agent rules, allow the dev server on 127.0.0.1.
+  agentRules: false,
+  allowedDevOrigins: ['127.0.0.1'],
+  // Web: self-contained server for Docker (Dockerfile.web copies .next/standalone). Mobile: static export.
+  ...(mobile ? ({ output: 'export', trailingSlash: true } as const) : ({ output: 'standalone' } as const)),
   // The image optimizer needs a server; the static export has none.
   images: { unoptimized: mobile },
   // The free Render instance sleeps and needs up to a minute for the first request; the default proxy timeout is 30 s.

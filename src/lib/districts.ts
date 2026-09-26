@@ -47,8 +47,10 @@ export function districtStandings(district: District, contributions: TerritoryCo
     uniqueTreesByPlayer.set(contribution.userId, ids);
   }
 
-  const ranking = territoryPlayers.map((player) => ({ ...player, count: uniqueTreesByPlayer.get(player.id)?.size ?? 0 }))
+  const sorted = territoryPlayers.map((player) => ({ ...player, count: uniqueTreesByPlayer.get(player.id)?.size ?? 0 }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'de'));
+  // Equal tree counts share a rank. Alphabetical sorting only stabilizes their display order.
+  const ranking = sorted.map((player) => ({ ...player, rank: sorted.findIndex((entry) => entry.count === player.count) + 1 }));
   const topCount = ranking[0]?.count ?? 0;
   const topPlayers = ranking.filter((entry) => entry.count === topCount);
   const owner = topCount > 0 && topPlayers.length === 1 ? ranking[0] : null;

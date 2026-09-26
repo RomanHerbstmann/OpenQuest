@@ -4,14 +4,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react';
-import { cardArtBySpecies } from '@/data/cardArt';
+import { cardArtBySpecies, cardBackSrc } from '@/data/cardArt';
 import { lexiconForSpecies } from '@/data/lexicon';
 import { species } from '@/data/species';
+import { trees } from '@/data/trees';
+import type { ScanEvent } from '@/types/player';
 
-export function CardViewer({ initialIndex, cardNames, discovered, onClose }: {
+export function CardViewer({ initialIndex, cardNames, unlockedCards, scanEvents, onClose }: {
   initialIndex: number;
   cardNames: string[];
-  discovered: string[];
+  unlockedCards: string[];
+  scanEvents: ScanEvent[];
   onClose: () => void;
 }) {
   const [index, setIndex] = useState(initialIndex);
@@ -20,8 +23,10 @@ export function CardViewer({ initialIndex, cardNames, discovered, onClose }: {
   const cards = species.filter((candidate) => cardNames.includes(candidate.name));
   const item = cards[index];
   const art = cardArtBySpecies[item.name]!;
-  const unlocked = discovered.includes(item.name);
+  const unlocked = unlockedCards.includes(item.name);
   const lexicon = lexiconForSpecies(item.name);
+  const representedSpecies = art.src === '/cards/ahorn.png' ? ['Bergahorn', 'Spitzahorn'] : [item.name];
+  const finds = scanEvents.filter((event) => representedSpecies.includes(event.species)).slice().reverse();
 
   useEffect(() => {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -72,14 +77,14 @@ export function CardViewer({ initialIndex, cardNames, discovered, onClose }: {
         {cards.length > 1 && <button className="card-viewer-arrow" type="button" onClick={() => step(-1)} aria-label="Vorherige Karte"><ChevronLeft size={25} /></button>}
         <div className="card-viewer-motion" key={item.name}>
           <div ref={tiltRef} className={`card-viewer-card has-art ${item.name === 'Festtanne' && unlocked ? 'legendary' : ''}`} onPointerMove={moveTilt} onPointerLeave={resetTilt}>
-            <Image src={art.src} alt={`Sammelkarte ${item.name} in voller Größe`} fill sizes="(max-width: 600px) 72vw, 340px" priority />
-            <div className="card-viewer-sheen" aria-hidden="true" />
-            <div className="card-viewer-sparkles" aria-hidden="true"><i /><i /><i /><i /><i /><i /></div>
+            <Image src={unlocked ? art.src : cardBackSrc} alt={unlocked ? `Sammelkarte ${item.name} in voller Größe` : 'Verdeckte OpenQuest-Sammelkarte'} fill sizes="(max-width: 600px) 72vw, 340px" priority />
+            {unlocked && <><div className="card-viewer-sheen" aria-hidden="true" /><div className="card-viewer-sparkles" aria-hidden="true"><i /><i /><i /><i /><i /><i /></div></>}
           </div>
         </div>
         {cards.length > 1 && <button className="card-viewer-arrow" type="button" onClick={() => step(1)} aria-label="Nächste Karte"><ChevronRight size={25} /></button>}
       </div>
-      <footer className="card-viewer-footer"><span>{item.latin}</span><strong>{item.note}</strong><small>Bewege die Karte und entdecke den Holo-Effekt ✨</small>{lexicon && <Link className="card-viewer-lexicon-link" href={`/lexicon/${lexicon.slug}`}>Im Naturlexikon nachlesen <ChevronRight size={16} /></Link>}</footer>
+      <footer className="card-viewer-footer"><span>{unlocked ? item.latin : 'Diese Karte ist noch verdeckt'}</span><strong>{unlocked ? item.note : 'Scanne einen passenden Baum, um das Motiv aufzudecken.'}</strong>{unlocked && <small>Bewege die Karte und entdecke den Holo-Effekt ✨</small>}{lexicon && <Link className="card-viewer-lexicon-link" href={`/lexicon/${lexicon.slug}`}>Im Naturlexikon nachlesen <ChevronRight size={16} /></Link>}</footer>
+      {unlocked && <section className="card-find-history" aria-label="Deine Funde"><div><strong>{finds.length} {finds.length === 1 ? 'Fund' : 'Funde'}</strong><span>{finds.length ? 'Mehrfachfunde bleiben einzeln erhalten.' : 'Vorab freigeschaltet · noch kein Scan'}</span></div>{finds.slice(0, 5).map((find) => { const tree = trees.find((candidate) => candidate.id === find.treeId); return <p key={find.id}><span>{tree?.area ?? find.treeId ?? 'Freier Scan'}</span><time dateTime={find.scannedAt}>{new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(find.scannedAt))}</time></p>; })}</section>}
     </section>
   </div>;
 }
