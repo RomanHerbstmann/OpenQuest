@@ -3,16 +3,25 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { districts } from '@/data/districts';
+import { treeSearchText } from '@/i18n/treeSearch';
 import { districtStandings } from '@/lib/districts';
 import type { District, TerritoryContribution } from '@/types/district';
 import type { Tree } from '@/types/tree';
+import type { ResultItem, TreeSearchResponse } from '@/types/treeSearch';
 
-type Props = { trees: Tree[]; densityTrees: Tree[]; selectedId: string | null; onSelect: (tree: Tree) => void; userPosition: { lat: number; lng: number } | null; locateTick: number; focusTree: Tree | null; focusTick: number; contributions: TerritoryContribution[]; selectedDistrictId: string | null; onSelectDistrict: (district: District) => void; onInventoryChange: (count: number, live: boolean) => void };
+type Props = { trees: Tree[]; densityTrees: Tree[]; selectedId: string | null; onSelect: (tree: Tree) => void; userPosition: { lat: number; lng: number } | null; locateTick: number; focusTree: Tree | null; focusTick: number; contributions: TerritoryContribution[]; selectedDistrictId: string | null; onSelectDistrict: (district: District) => void; onInventoryChange: (count: number, live: boolean) => void; search: TreeSearchResponse | null; searchFocus: SearchFocus | null };
+export type SearchFocus = { item: ResultItem; tick: number };
 
 type InventoryPoint = [number, number]; // GeoJSON coordinates: longitude, latitude
 type WfsFeature = { geometry?: { type?: string; coordinates?: unknown } };
 const WFS_URL = 'https://geo.stadt-muenster.de/mapserv/odgruen_serv';
 const SNAPSHOT_URL = '/data/muenster-trees-snapshot.json';
+const SEARCH_TOP_MARKERS = 25;
+/** Room for the legend, the bottom bar and the navigation below the map. */
+const SEARCH_BOTTOM_CLEARANCE = 200;
+// Blue keeps search matches apart from the green inventory dots, the green quest markers and the gold presentation pin.
+const SEARCH_COLOR = '#2f5fd8';
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function parseWfsPoints(data: { features?: WfsFeature[] }): InventoryPoint[] {
   return (data.features ?? []).flatMap((feature): InventoryPoint[] => {
@@ -69,7 +78,28 @@ function markerIcon(tree: Tree, selected: boolean) {
   });
 }
 
-export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect, userPosition, locateTick, focusTree, focusTick, contributions, selectedDistrictId, onSelectDistrict, onInventoryChange }: Props) {
+function searchIcon(rank: number) {
+  return L.divIcon({ className: 'search-marker', html: `<span>${rank}</span>`, iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -14] });
+}
+
+function searchPopup(item: ResultItem) {
+  const t = treeSearchText.de;
+  const name = item.genusDe || item.rawGenus || t.unknownGenus;
+  const height = item.heightM !== null ? `${item.heightM.toLocaleString('de-DE')} m` : t.noHeight;
+  const place = [item.street, item.quarter].filter(Boolean).join(' · ') || t.unknownStreet;
+  return `<div class="search-popup"><strong>${item.rank}. ${escapeHtml(name)}</strong>${item.genus ? `<em>${escapeHtml(item.genus)}</em>` : ''}<span>${escapeHtml(height)} · ${escapeHtml(place)}</span></div>`;
+}
+
+/** Map area (container pixels) not covered by the search panel above or the map controls below. */
+function freeMapArea(map: L.Map) {
+  const mapTop = map.getContainer().getBoundingClientRect().top;
+  const panelBottom = document.querySelector('.tree-search')?.getBoundingClientRect().bottom ?? mapTop + 230;
+  const height = map.getSize().y;
+  const top = Math.min(Math.max(60, panelBottom - mapTop + 24), height / 2);
+  return { top, bottom: Math.max(top + 80, height - SEARCH_BOTTOM_CLEARANCE) };
+}
+
+export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect, userPosition, locateTick, focusTree, focusTick, contributions, selectedDistrictId, onSelectDistrict, onInventoryChange, search, searchFocus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -79,6 +109,9 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
   const inventoryDotsRef = useRef<L.LayerGroup | null>(null);
   const inventoryRendererRef = useRef<L.Canvas | null>(null);
   const liveLoadedRef = useRef(false);
+  const searchLayerRef = useRef<L.LayerGroup | null>(null);
+  const searchRendererRef = useRef<L.Canvas | null>(null);
+  const searchMarkersRef = useRef<Map<number, L.Marker>>(new Map());
   const [inventoryPoints, setInventoryPoints] = useState<InventoryPoint[]>([]);
 
   useEffect(() => {
@@ -99,12 +132,18 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
     dotsPane.style.pointerEvents = 'none';
     inventoryRendererRef.current = L.canvas({ pane: 'tree-dots', padding: .1 });
     inventoryDotsRef.current = L.layerGroup().addTo(map);
+    // Search matches sit above the inventory dots; their numbered markers sit above the quest markers.
+    const searchPane = map.createPane('tree-search');
+    searchPane.style.zIndex = '340';
+    searchPane.style.pointerEvents = 'none';
+    searchRendererRef.current = L.canvas({ pane: 'tree-search', padding: .3 });
+    map.createPane('tree-search-markers').style.zIndex = '640';
     map.createPane('district-labels').style.zIndex = '450';
     districtLayerRef.current = L.layerGroup().addTo(map);
     mapRef.current = map;
     const resize = new ResizeObserver(() => map.invalidateSize());
     resize.observe(containerRef.current);
-    return () => { resize.disconnect(); map.remove(); mapRef.current = null; districtLayerRef.current = null; densityLayerRef.current = null; inventoryDotsRef.current = null; inventoryRendererRef.current = null; };
+    return () => { resize.disconnect(); map.remove(); mapRef.current = null; districtLayerRef.current = null; densityLayerRef.current = null; inventoryDotsRef.current = null; inventoryRendererRef.current = null; searchLayerRef.current = null; searchRendererRef.current = null; };
   }, []);
 
   useEffect(() => {
@@ -227,5 +266,47 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
     if (focusTree && focusTick > 0) mapRef.current?.flyTo([focusTree.lat, focusTree.lng], 17, { duration: 0.8 });
   }, [focusTree, focusTick]);
 
-  return <div ref={containerRef} className="explorer-map" role="application" aria-label="Interaktive Karte mit Stadtbäumen, Baumdichte und spielbaren Quest-Bäumen in Münster" />;
+  // Search matches: every position as a canvas dot (thousands stay fast), the top results as numbered markers.
+  useEffect(() => {
+    const map = mapRef.current;
+    const renderer = searchRendererRef.current;
+    if (!map || !renderer) return;
+    map.closePopup();
+    searchLayerRef.current?.remove();
+    searchLayerRef.current = null;
+    searchMarkersRef.current = new Map();
+    if (!search) return;
+    const layer = L.layerGroup();
+    for (const [lat, lon] of search.positions) {
+      L.circleMarker([lat, lon], { renderer, radius: 4, color: '#ffffff', weight: 1.4, fillColor: SEARCH_COLOR, fillOpacity: .92, interactive: false }).addTo(layer);
+    }
+    const top = search.items.slice(0, SEARCH_TOP_MARKERS);
+    for (const item of [...top].reverse()) {
+      const marker = L.marker([item.lat, item.lon], { pane: 'tree-search-markers', icon: searchIcon(item.rank), zIndexOffset: 10000 - item.rank, keyboard: true, title: `${item.rank}. ${item.genusDe || item.rawGenus || treeSearchText.de.unknownGenus}` });
+      marker.bindPopup(searchPopup(item), { closeButton: false, className: 'search-popup-wrap' });
+      marker.addTo(layer);
+      searchMarkersRef.current.set(item.rank, marker);
+    }
+    layer.addTo(map);
+    searchLayerRef.current = layer;
+    const points: L.LatLngExpression[] = top.length ? top.map((item) => [item.lat, item.lon]) : search.positions;
+    const { top: padTop } = freeMapArea(map);
+    if (points.length) map.flyToBounds(L.latLngBounds(points), { paddingTopLeft: [40, padTop], paddingBottomRight: [40, SEARCH_BOTTOM_CLEARANCE], maxZoom: 17, duration: 0.8 });
+  }, [search]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !searchFocus) return;
+    const { item } = searchFocus;
+    const marker = searchMarkersRef.current.get(item.rank);
+    if (marker) map.once('moveend', () => marker.openPopup());
+    // Center the tree in the free area below the search panel, not in the middle of the map.
+    const zoom = Math.max(map.getZoom(), 18);
+    const area = freeMapArea(map);
+    const offsetY = (area.top + area.bottom) / 2 - map.getSize().y / 2;
+    const center = map.unproject(map.project([item.lat, item.lon], zoom).subtract([0, offsetY]), zoom);
+    map.flyTo(center, zoom, { duration: 0.8 });
+  }, [searchFocus]);
+
+  return <div ref={containerRef} className="explorer-map" role="application" aria-label={search ? 'Interaktive Karte mit Stadtbäumen, Baumdichte, Quest-Bäumen und Suchtreffern in Münster' : 'Interaktive Karte mit Stadtbäumen, Baumdichte und spielbaren Quest-Bäumen in Münster'} />;
 }
