@@ -145,6 +145,23 @@ function setSlow(delta: 1 | -1) {
 
 type RequestOptions = { method?: string; body?: BodyInit; json?: unknown; auth?: boolean; signal?: AbortSignal };
 
+/**
+ * On the free hosting plan the photo storage sleeps and the first upload after a break fails with a 5xx
+ * while it wakes up (about 20 s). The API stores nothing in that case, so retrying the same submit is safe;
+ * a claim that did get submitted answers with a 4xx and is not retried.
+ */
+async function withWakeRetry<T>(call: () => Promise<T>, delaysMs: number[] = [3_000, 10_000]): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await call();
+    } catch (err) {
+      const retryable = err instanceof ApiError && err.status >= 500 && attempt < delaysMs.length;
+      if (!retryable) throw err;
+      await new Promise((resolve) => window.setTimeout(resolve, delaysMs[attempt]));
+    }
+  }
+}
+
 async function request<T>(path: string, { method = 'GET', body, json, auth = true, signal }: RequestOptions = {}): Promise<T> {
   const headers = new Headers({ Accept: 'application/json' });
   if (json !== undefined) headers.set('Content-Type', 'application/json');
@@ -215,7 +232,7 @@ export const api = {
     form.set('lon', String(input.lon));
     form.set('payload', JSON.stringify(input.payload));
     if (input.photo) form.set('photo', input.photo, 'quest.jpg');
-    return request<SubmitResult>(`/claims/${encodeURIComponent(claimId)}/submit`, { method: 'POST', body: form });
+    return withWakeRetry(() => request<SubmitResult>(`/claims/${encodeURIComponent(claimId)}/submit`, { method: 'POST', body: form }));
   },
 
   myClaims: () => request<MyClaimDto[]>('/me/claims'),
