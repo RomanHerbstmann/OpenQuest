@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using OpenQuest.Api.AutoReview;
 using OpenQuest.Api.Auth;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Cards;
@@ -22,6 +23,7 @@ using OpenQuest.Core.Domain;
 using OpenQuest.Core.Events;
 using OpenQuest.Core.Rules;
 using OpenQuest.Core.Publishing;
+using OpenQuest.Core.Review;
 
 namespace OpenQuest.Api.Composition;
 
@@ -41,6 +43,7 @@ public static class ServiceRegistration
         s.Configure<GamificationOptions>(c.GetSection(GamificationOptions.Section));
         s.Configure<StorageOptions>(c.GetSection(StorageOptions.Section));
         s.Configure<OutboxOptions>(c.GetSection(OutboxOptions.Section));
+        s.Configure<AutoReviewOptions>(c.GetSection(AutoReviewOptions.Section));
         s.Configure<PublishingOptions>(c.GetSection(PublishingOptions.Section));
         s.AddSingleton(TimeProvider.System);
         return s;
@@ -117,6 +120,7 @@ public static class ServiceRegistration
         s.AddScoped<IQuestCampaignService, QuestCampaignService>();
 
         s.AddScoped<INearbyQuests, NearbyQuests>();
+        s.AddScoped<IAreaQuests, AreaQuests>();
         s.AddScoped<INearbyAssets, NearbyAssets>();
         s.AddScoped<IPlayerClaims, PlayerClaims>();
         s.AddScoped<IModerationQueue, ModerationQueue>();
@@ -174,7 +178,21 @@ public static class ServiceRegistration
         s.AddScoped<IEventHandler<SubmissionApproved>, AwardPointsHandler>();
         s.AddScoped<IEventHandler<SubmissionApproved>, AwardCardHandler>();
         s.AddScoped<IEventHandler<SubmissionApproved>, AssetActivityHandler>();
+        s.AddScoped<IEventHandler<SubmissionSubmitted>, AutoReviewHandler>();
         s.AddScoped<IEventHandler<AssetSyncCompleted>, InvalidateGenusStatsHandler>();
+        return s;
+    }
+
+    /// <summary>The automatic check of photo submissions. Registered only when it is switched on and has an address; without it the handler does nothing.</summary>
+    public static IServiceCollection AddOpenQuestAutoReview(this IServiceCollection s, IConfiguration c)
+    {
+        var o = c.GetSection(AutoReviewOptions.Section).Get<AutoReviewOptions>() ?? new AutoReviewOptions();
+        if (o.Enabled && !string.IsNullOrWhiteSpace(o.VerifyUrl))
+            s.AddHttpClient<ISubmissionAutoReviewer, TreeVerificationReviewer>(h =>
+            {
+                h.Timeout = TimeSpan.FromSeconds(Math.Max(5, o.TimeoutSeconds));
+                h.DefaultRequestHeaders.UserAgent.ParseAdd("OpenQuest/0.1");
+            });
         return s;
     }
 

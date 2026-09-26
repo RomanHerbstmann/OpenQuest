@@ -1147,3 +1147,153 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    ALTER TABLE quest DROP CONSTRAINT fk_quest_asset_asset_id;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    ALTER TABLE submission ADD auto_review jsonb;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    ALTER TABLE submission ADD auto_reviewed_at timestamp with time zone;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    ALTER TABLE quest ALTER COLUMN asset_id DROP NOT NULL;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    ALTER TABLE quest ADD district_id uuid;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    CREATE TABLE asset_proposal (
+        id uuid NOT NULL,
+        submission_id uuid NOT NULL,
+        data_source_id uuid NOT NULL,
+        asset_type_id uuid NOT NULL,
+        district_id uuid,
+        geom geography (point) NOT NULL,
+        genus character varying(100),
+        species character varying(100),
+        note text,
+        photo_url text,
+        status character varying(24) NOT NULL,
+        export_run_id uuid,
+        created_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_asset_proposal PRIMARY KEY (id),
+        CONSTRAINT fk_asset_proposal_asset_type_asset_type_id FOREIGN KEY (asset_type_id) REFERENCES asset_type (id) ON DELETE CASCADE,
+        CONSTRAINT fk_asset_proposal_data_source_data_source_id FOREIGN KEY (data_source_id) REFERENCES data_source (id) ON DELETE CASCADE,
+        CONSTRAINT fk_asset_proposal_district_district_id FOREIGN KEY (district_id) REFERENCES district (id) ON DELETE SET NULL,
+        CONSTRAINT fk_asset_proposal_export_runs_export_run_id FOREIGN KEY (export_run_id) REFERENCES export_run (id),
+        CONSTRAINT fk_asset_proposal_submission_submission_id FOREIGN KEY (submission_id) REFERENCES submission (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    CREATE INDEX ix_quest_district_id ON quest (district_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    ALTER TABLE quest ADD CONSTRAINT ck_quest_place CHECK (asset_id IS NOT NULL OR district_id IS NOT NULL);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    CREATE INDEX ix_asset_proposal_asset_type_id ON asset_proposal (asset_type_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    CREATE INDEX ix_asset_proposal_data_source_id ON asset_proposal (data_source_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    CREATE INDEX ix_asset_proposal_district_id ON asset_proposal (district_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    CREATE INDEX ix_asset_proposal_export_run_id ON asset_proposal (export_run_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    CREATE INDEX ix_asset_proposal_geom ON asset_proposal USING gist (geom);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    CREATE INDEX ix_asset_proposal_status ON asset_proposal (status);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    CREATE UNIQUE INDEX ix_asset_proposal_submission_id ON asset_proposal (submission_id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    ALTER TABLE quest ADD CONSTRAINT fk_quest_asset_asset_id FOREIGN KEY (asset_id) REFERENCES asset (id);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    ALTER TABLE quest ADD CONSTRAINT fk_quest_districts_district_id FOREIGN KEY (district_id) REFERENCES district (id) ON DELETE RESTRICT;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926105941_AddNewTreeReportsAndAutoReview') THEN
+    INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
+    VALUES ('20260926105941_AddNewTreeReportsAndAutoReview', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+

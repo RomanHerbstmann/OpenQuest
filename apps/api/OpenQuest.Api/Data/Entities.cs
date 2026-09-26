@@ -211,8 +211,11 @@ public class Quest
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid? CampaignId { get; set; }
-    public Guid AssetId { get; set; }
-    public AssetEntity Asset { get; set; } = null!;
+    /// <summary>The asset the quest is about. Null for a quest that belongs to a district (<see cref="DistrictId"/>): report a tree that is missing in the data.</summary>
+    public Guid? AssetId { get; set; }
+    public AssetEntity? Asset { get; set; }
+    /// <summary>The district of a quest without asset: the player has to be inside its outline.</summary>
+    public Guid? DistrictId { get; set; }
     public Guid TaskTypeId { get; set; }
     public TaskTypeEntity TaskType { get; set; } = null!;
     public Guid CreatedBy { get; set; }
@@ -255,6 +258,10 @@ public class Submission
     public Point Location { get; set; } = null!;
     public double DistanceM { get; set; }
     public SubmissionStatus Status { get; set; } = SubmissionStatus.Pending;
+    /// <summary>The verdict and reasons of the automatic check (JSON), if there was one; the moderator sees it next to the photo.</summary>
+    public string? AutoReview { get; set; }
+    public DateTimeOffset? AutoReviewedAt { get; set; }
+    /// <summary>Null when the automatic check approved it.</summary>
     public Guid? ReviewedBy { get; set; }
     public DateTimeOffset? ReviewedAt { get; set; }
     public string? RejectionReason { get; set; }
@@ -398,6 +405,30 @@ public class AttributeChange
     public string AttributeKey { get; set; } = "";
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
+    public ChangeStatus Status { get; set; } = ChangeStatus.Proposed;
+    public Guid? ExportRunId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>
+/// A player found a tree that is not in the data. It is only a proposal: assets belong to the importer, so an approved proposal
+/// goes out with the other accepted changes (attribute <c>new_tree</c>) and shows up in the data after the city adopted it.
+/// </summary>
+public class AssetProposal
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid SubmissionId { get; set; }
+    public Submission Submission { get; set; } = null!;
+    public Guid DataSourceId { get; set; }
+    public Guid AssetTypeId { get; set; }
+    public Guid? DistrictId { get; set; }
+    /// <summary>Where the player stood when submitting (WGS84).</summary>
+    public Point Geom { get; set; } = null!;
+    public string? Genus { get; set; }
+    public string? Species { get; set; }
+    public string? Note { get; set; }
+    /// <summary>Path of the photo (<c>/media/{id}</c>).</summary>
+    public string? PhotoUrl { get; set; }
     public ChangeStatus Status { get; set; } = ChangeStatus.Proposed;
     public Guid? ExportRunId { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

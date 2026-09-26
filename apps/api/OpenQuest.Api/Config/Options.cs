@@ -35,6 +35,8 @@ public class GameOptions
     public int ClaimTimeoutMinutes { get; set; } = 30;
     public int MaxNearbyResults { get; set; } = 200;
     public double MaxNearbyRadiusMeters { get; set; } = 5000;
+    /// <summary>A reported new tree is refused when the data (or another report) already has a tree this close.</summary>
+    public double NewTreeMinDistanceMeters { get; set; } = 5;
 }
 
 public class GamificationOptions
@@ -82,6 +84,18 @@ public class RarityOptions
             AbundantShare ?? d.AbundantShare, CommonShare ?? d.CommonShare, ScarceShare ?? d.ScarceShare, MinSample ?? d.MinSample,
             weights, NewInformationBoost ?? d.NewInformationBoost, ConditionFactBoost ?? d.ConditionFactBoost).Validated();
     }
+}
+
+/// <summary>The automatic check of photo submissions (phase 6). Off by default: it needs the photo verification of the web app and costs vision-model credits.</summary>
+public class AutoReviewOptions
+{
+    public const string Section = "AutoReview";
+    public bool Enabled { get; set; }
+    /// <summary>Full address of the web app's <c>POST /api/verify</c>, e.g. https://openquest.fun/api/verify.</summary>
+    public string? VerifyUrl { get; set; }
+    /// <summary>Task types whose submissions are checked (with a photo). A photo of the tree is what the check can vouch for; a reported new tree changes the city's data, so it stays with the moderators unless added here.</summary>
+    public string[] TaskTypes { get; set; } = ["photo"];
+    public int TimeoutSeconds { get; set; } = 90;
 }
 
 public class StorageOptions

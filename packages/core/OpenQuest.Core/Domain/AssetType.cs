@@ -23,11 +23,12 @@ public sealed record AssetType(
           "avenue_name":{"type":["string","null"]},
           "trunk_circumference_cm":{"type":["number","null"]},
           "condition":{"enum":["good","damaged","dead","gone",null]},
+          "issues":{"type":["array","null"],"items":{"type":"string"},"description":"Problems reported by players, see TaskTypes.IssueCodes (root_lift, trunk_damage, ...)"},
           "photo_url":{"type":["string","null"]},
           "quality_flags":{"type":"array","items":{"enum":["placeholder_genus","near_duplicate","typo_corrected","ambiguous_genus"]}}
         }}
         """,
-        new HashSet<TaskType> { TaskType.Photo, TaskType.VerifyAttribute, TaskType.Measure, TaskType.ConditionReport });
+        new HashSet<TaskType> { TaskType.Photo, TaskType.VerifyAttribute, TaskType.Measure, TaskType.ConditionReport, TaskType.ReportNewTree });
 
     /// <summary>
     /// Legally protected natural monument (Naturdenkmal): usually one outstanding tree, sometimes a small group.
@@ -47,6 +48,7 @@ public sealed record AssetType(
           "historical_context":{"type":["string","null"]},
           "landscape_context":{"type":["string","null"]},
           "condition":{"enum":["good","damaged","dead","gone",null]},
+          "issues":{"type":["array","null"],"items":{"type":"string"},"description":"Problems reported by players, see TaskTypes.IssueCodes"},
           "photo_url":{"type":["string","null"]},
           "avenue_id":{"type":["string","null"]},
           "avenue_name":{"type":["string","null"]},

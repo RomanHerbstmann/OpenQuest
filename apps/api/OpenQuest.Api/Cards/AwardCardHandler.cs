@@ -28,11 +28,12 @@ public sealed class AwardCardHandler(
         var todo = ids.Where(id => !done.Contains(id)).ToList();
         if (todo.Count == 0) return;
 
-        var submissions = await db.Submissions.AsNoTracking().Where(s => todo.Contains(s.Id))
+        // a quest without asset (a tree that is missing in the data) gives no card: there is no tree to compare with the district's statistics
+        var submissions = await db.Submissions.AsNoTracking().Where(s => todo.Contains(s.Id) && s.Claim.Quest.AssetId != null)
             .Select(s => new
             {
                 s.Id, s.Payload, s.Claim.UserId, TaskType = s.Claim.Quest.TaskType.Key, s.Claim.Quest.TaskConfig,
-                s.Claim.Quest.AssetId, AssetAttributes = s.Claim.Quest.Asset.Attributes,
+                AssetId = s.Claim.Quest.AssetId!.Value, AssetAttributes = s.Claim.Quest.Asset!.Attributes,
             }).ToListAsync(ct);
 
         var now = clock.GetUtcNow();
@@ -48,7 +49,9 @@ public sealed class AwardCardHandler(
 
             // the data did not have this genus (no genus, or another one): the player brought new information
             var newInformation = found is not null && !string.Equals(found, known, StringComparison.OrdinalIgnoreCase);
-            var conditionFact = s.TaskType == "condition_report" && Text(payload, "condition") is { } c && ProblemConditions.Contains(c);
+            // a problem with the tree is a fact worth a boost: a bad condition, or any reported issue (root lift, damage, ...)
+            var conditionFact = s.TaskType == "condition_report"
+                                && ((Text(payload, "condition") is { } c && ProblemConditions.Contains(c)) || payload?["issues"] is JsonArray { Count: > 0 });
 
             var districtId = await districts.FindForAssetAsync(s.AssetId, ct);
             var share = districtId is null ? null : await stats.GetShareAsync(districtId.Value, genus, ct);

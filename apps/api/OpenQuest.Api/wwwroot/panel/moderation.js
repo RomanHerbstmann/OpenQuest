@@ -31,7 +31,15 @@ export function mountModeration(root) {
     }
     const reason = h('input', { type: 'text', placeholder: t.moderation.reason, maxlength: 500, hidden: true });
     const confirm = h('button', { type: 'button', class: 'danger', hidden: true, onclick: () => review(item, false, reason.value.trim(), el) }, t.moderation.confirmReject);
-    const value = item.payload?.value ?? item.payload?.condition;
+    const value = item.payload?.value ?? item.payload?.condition ?? item.payload?.genus;
+    // a quest without asset (a tree that is missing in the data) has an area instead: show where the player stood
+    const place = item.asset
+      ? `${item.asset.attributes?.genus ?? '—'} · ${item.asset.lat?.toFixed(5)}, ${item.asset.lon?.toFixed(5)} · ${t.moderation.distance}: ${Math.round(item.distanceMeters)} m`
+      : `${item.area?.name ?? '—'} · ${item.reportedLat?.toFixed(5)}, ${item.reportedLon?.toFixed(5)} · ${t.moderation.newTree}`;
+    const issues = Array.isArray(item.payload?.issues) && item.payload.issues.length ? item.payload.issues.join(', ') : null;
+    const auto = item.autoReview
+      ? `${t.moderation.autoReview}: ${t.moderation.verdicts[item.autoReview.verdict] ?? item.autoReview.verdict}${item.autoReview.reasons?.length ? ` (${item.autoReview.reasons.join(', ')})` : ''}`
+      : null;
     const el = h('article', { class: 'submission' },
       photo,
       h('div', { class: 'body' },
@@ -39,7 +47,9 @@ export function mountModeration(root) {
         h('p', { class: 'muted' }, `${t.moderation.by} ${item.username} · ${new Date(item.submittedAt).toLocaleString('de-DE')}`),
         h('p', null, `${t.moderation.task}: ${item.taskType}`, item.taskConfig?.attribute ? ` (${item.taskConfig.attribute})` : ''),
         value !== undefined && h('p', null, `${t.moderation.value}: `, h('strong', null, String(value))),
-        h('p', { class: 'muted small' }, `${item.asset?.attributes?.genus ?? '—'} · ${item.asset?.lat?.toFixed(5)}, ${item.asset?.lon?.toFixed(5)} · ${t.moderation.distance}: ${Math.round(item.distanceMeters)} m`),
+        issues && h('p', null, `${t.moderation.issues}: `, h('strong', null, issues)),
+        h('p', { class: 'muted small' }, place),
+        auto && h('p', { class: 'muted small' }, auto, item.status === 'approved' && !item.reviewedBy ? ` · ${t.moderation.approvedAutomatically}` : ''),
         item.rejectionReason && h('p', { class: 'problem' }, item.rejectionReason),
         item.status === 'pending' && h('div', { class: 'row' },
           h('button', { type: 'button', class: 'primary', onclick: () => review(item, true, null, el) }, t.moderation.approve),

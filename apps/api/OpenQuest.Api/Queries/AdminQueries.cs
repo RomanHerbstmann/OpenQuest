@@ -77,16 +77,19 @@ public sealed class ModerationQueue(AppDbContext db) : IModerationQueue
             .Select(s => new
             {
                 Sub = s, Quest = s.Claim.Quest, Asset = s.Claim.Quest.Asset,
-                AssetType = s.Claim.Quest.Asset.AssetType.Key, TaskType = s.Claim.Quest.TaskType.Key,
+                AssetType = s.Claim.Quest.Asset == null ? null : s.Claim.Quest.Asset.AssetType.Key, TaskType = s.Claim.Quest.TaskType.Key,
+                District = db.Districts.Where(d => d.Id == s.Claim.Quest.DistrictId).Select(d => new { d.Id, d.Name, d.CentroidLat, d.CentroidLon, d.Color }).FirstOrDefault(),
                 Username = db.Users.Where(u => u.Id == s.Claim.UserId).Select(u => u.Username).First(),
                 MediaId = db.Media.Where(m => m.SubmissionId == s.Id).Select(m => (Guid?)m.Id).FirstOrDefault(),
             }).ToListAsync(ct);
 
         return rows.Select(x => new AdminSubmissionDto(
             x.Sub.Id, x.Sub.Status, x.Sub.SubmittedAt, x.Username, x.Quest.Id, x.Quest.Title, x.TaskType,
-            JsonNode.Parse(x.Quest.TaskConfig), Mapping.ToDto(x.Asset, x.AssetType),
+            JsonNode.Parse(x.Quest.TaskConfig), x.Asset is null || x.AssetType is null ? null : Mapping.ToDto(x.Asset, x.AssetType),
             x.Sub.Location.Y, x.Sub.Location.X, x.Sub.DistanceM, JsonNode.Parse(x.Sub.Payload), x.MediaId,
-            x.Sub.RejectionReason, x.Sub.ReviewedAt)).ToList();
+            x.Sub.RejectionReason, x.Sub.ReviewedAt,
+            x.District is null ? null : new QuestAreaDto(x.District.Id, x.District.Name, x.District.CentroidLat, x.District.CentroidLon, x.District.Color),
+            x.Sub.AutoReview is null ? null : JsonNode.Parse(x.Sub.AutoReview), x.Sub.ReviewedBy)).ToList();
     }
 }
 
@@ -99,7 +102,8 @@ public sealed class QuestOverview(AppDbContext db) : IQuestOverview
             .OrderByDescending(q => q.CreatedAt).Skip(offset).Take(limit)
             .Select(q => new
             {
-                Quest = q, Asset = q.Asset, AssetType = q.Asset.AssetType.Key, TaskType = q.TaskType.Key,
+                Quest = q, Asset = q.Asset, AssetType = q.Asset == null ? null : q.Asset.AssetType.Key, TaskType = q.TaskType.Key,
+                DistrictName = db.Districts.Where(d => d.Id == q.DistrictId).Select(d => d.Name).FirstOrDefault(),
                 Pending = db.Submissions.Count(s => s.Claim.QuestId == q.Id && s.Status == SubmissionStatus.Pending),
                 Approved = db.Submissions.Count(s => s.Claim.QuestId == q.Id && s.Status == SubmissionStatus.Approved),
             }).ToListAsync(ct);
@@ -108,7 +112,8 @@ public sealed class QuestOverview(AppDbContext db) : IQuestOverview
             r.Quest.Id, r.Quest.CampaignId, r.Quest.Title, taskType = r.TaskType, status = r.Quest.Status,
             r.Quest.MaxCompletions, r.Quest.SlotsTaken, r.Quest.RewardPoints, r.Quest.GeofenceRadiusM, r.Quest.ClaimTtlMinutes,
             r.Quest.StartsAt, r.Quest.EndsAt, pendingSubmissions = r.Pending, approvedSubmissions = r.Approved,
-            asset = Mapping.ToDto(r.Asset, r.AssetType),
+            asset = r.Asset is null || r.AssetType is null ? null : Mapping.ToDto(r.Asset, r.AssetType),
+            r.Quest.DistrictId, r.DistrictName,
         }).ToList();
     }
 

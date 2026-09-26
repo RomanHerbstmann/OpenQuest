@@ -9,6 +9,8 @@ public enum TaskType
     VerifyAttribute,
     Measure,
     ConditionReport,
+    /// <summary>A tree that is not in the data: the quest belongs to a district, not to an asset; the report becomes an <c>asset_proposal</c>.</summary>
+    ReportNewTree,
 }
 
 public sealed record TaskTypeDefinition(TaskType Type, string Name, string ConfigSchemaJson, string ResultSchemaJson)
@@ -36,9 +38,16 @@ public static class TaskTypes
     {
         TaskType.Photo => "photo_url",
         TaskType.ConditionReport => "condition",
+        TaskType.ReportNewTree => null,   // creates a proposal for a new asset instead of changing an attribute
         TaskType.VerifyAttribute or TaskType.Measure => taskConfigAttribute,
         _ => null,
     };
+
+    /// <summary>Problems a player can report on a tree besides its overall condition (<c>issues</c> of a condition report).</summary>
+    public static readonly IReadOnlyList<string> IssueCodes =
+        ["root_lift", "trunk_damage", "dead_branches", "crown_damage", "fungus", "cavity", "leaning", "pests", "vandalism"];
+
+    private static readonly string IssueEnum = string.Join(",", IssueCodes.Select(c => $"\"{c}\""));
 
     private const string EmptyObject = """{"type":"object","additionalProperties":false,"properties":{}}""";
 
@@ -64,7 +73,18 @@ public static class TaskTypes
         new(TaskType.ConditionReport, "task_type.condition_report", EmptyObject,
             """
             {"type":"object","required":["condition"],"additionalProperties":false,
-             "properties":{"condition":{"enum":["good","damaged","dead","gone"]},"note":{"type":"string","maxLength":500}}}
+             "properties":{"condition":{"enum":["good","damaged","dead","gone"]},"note":{"type":"string","maxLength":500},
+                           "issues":{"type":"array","uniqueItems":true,"maxItems":9,"items":{"enum":[__ISSUES__]}}}}
+            """.Replace("__ISSUES__", IssueEnum)),
+        new(TaskType.ReportNewTree, "task_type.report_new_tree",
+            """
+            {"type":"object","required":["dataSource"],"additionalProperties":false,
+             "properties":{"dataSource":{"type":"string","minLength":1,"maxLength":64}}}
+            """,
+            """
+            {"type":"object","additionalProperties":false,
+             "properties":{"genus":{"type":"string","minLength":1,"maxLength":100},"species":{"type":"string","minLength":1,"maxLength":100},
+                           "note":{"type":"string","maxLength":500}}}
             """),
     ];
 }

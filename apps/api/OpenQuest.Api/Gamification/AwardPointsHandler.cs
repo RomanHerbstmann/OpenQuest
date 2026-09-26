@@ -29,15 +29,16 @@ public sealed class AwardPointsHandler(AppDbContext db, IDistrictLocator distric
         if (todo.Count == 0) return;
 
         var questIds = todo.Select(a => a.QuestId).Distinct().ToList();
-        var assetOfQuest = await db.Quests.AsNoTracking().Where(q => questIds.Contains(q.Id)).ToDictionaryAsync(q => q.Id, q => q.AssetId, ct);
+        var quests = await db.Quests.AsNoTracking().Where(q => questIds.Contains(q.Id)).Select(q => new { q.Id, q.AssetId, q.DistrictId }).ToDictionaryAsync(q => q.Id, ct);
         var districtOfAsset = new Dictionary<Guid, Guid?>();
         var districtOf = new Dictionary<Guid, Guid?>(); // by submission
         foreach (var a in todo)
         {
             Guid? district = null;
-            if (assetOfQuest.TryGetValue(a.QuestId, out var assetId))
+            if (quests.TryGetValue(a.QuestId, out var quest))
             {
-                if (!districtOfAsset.TryGetValue(assetId, out district))
+                if (quest.DistrictId is not null) district = quest.DistrictId;   // a quest of a district: the points go there
+                else if (quest.AssetId is { } assetId && !districtOfAsset.TryGetValue(assetId, out district))
                     districtOfAsset[assetId] = district = await districts.FindForAssetAsync(assetId, ct);
             }
             districtOf[a.SubmissionId] = district;

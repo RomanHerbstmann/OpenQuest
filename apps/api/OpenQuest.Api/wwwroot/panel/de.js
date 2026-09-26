@@ -43,7 +43,8 @@ export const t = {
   moderation: {
     heading: 'Abgaben prüfen', pending: 'Offen', approved: 'Freigegeben', rejected: 'Abgelehnt', empty: 'Keine Abgaben.', approve: 'Freigeben', reject: 'Ablehnen',
     reason: 'Grund der Ablehnung', confirmReject: 'Ablehnen bestätigen', approvedDone: 'Freigegeben. Die Punkte werden gutgeschrieben.', rejectedDone: 'Abgelehnt.',
-    by: 'von', distance: 'Abstand zum Baum', noPhoto: 'Kein Foto', task: 'Aufgabe', value: 'Angabe', reloadHint: 'Aktualisieren',
+    by: 'von', distance: 'Abstand zum Baum', newTree: 'gemeldeter neuer Baum', issues: 'Probleme', autoReview: 'Automatische Prüfung',
+    verdicts: { approve: 'sicher in Ordnung', review: 'unsicher', reject: 'sieht falsch aus' }, approvedAutomatically: 'automatisch freigegeben', noPhoto: 'Kein Foto', task: 'Aufgabe', value: 'Angabe', reloadHint: 'Aktualisieren',
   },
   errors: { generic: 'Das hat nicht geklappt.', network: 'Keine Verbindung zum Server.' },
 };
