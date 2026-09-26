@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenQuest.Api.AutoReview;
 using OpenQuest.Api.Auth;
+using OpenQuest.Api.Badges;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Cards;
 using OpenQuest.Api.Data;
@@ -19,6 +20,7 @@ using OpenQuest.Api.Scheduling;
 using OpenQuest.Api.Services;
 using OpenQuest.Api.Startup;
 using OpenQuest.Api.Storage;
+using OpenQuest.Api.Sync;
 using OpenQuest.Core.Domain;
 using OpenQuest.Core.Events;
 using OpenQuest.Core.Rules;
@@ -102,6 +104,7 @@ public static class ServiceRegistration
         s.AddSingleton<IBlobWriter>(sp => sp.GetRequiredService<S3BlobStore>());
         s.AddSingleton<IBlobReader>(sp => sp.GetRequiredService<S3BlobStore>());
         s.AddSingleton<IBlobDeleter>(sp => sp.GetRequiredService<S3BlobStore>());
+        s.AddSingleton<ISnapshotReader, S3SnapshotReader>();
         s.AddSingleton<IPhotoProcessor, SkiaPhotoProcessor>();
         s.AddScoped<IPhotoDuplicateFinder, DbPhotoDuplicateFinder>();
         s.AddScoped<IPhotoIngestor, PhotoIngestor>();
@@ -128,6 +131,8 @@ public static class ServiceRegistration
         s.AddScoped<IPublicationOverview, PublicationOverview>();
         s.AddScoped<IAssetHistory, AssetHistory>();
         s.AddScoped<IImportedFeeds, ImportedFeeds>();
+        s.AddScoped<ISyncRequests, SyncRequests>();
+        s.AddScoped<ISyncSnapshots, SyncSnapshots>();
 
         s.AddHostedService<ClaimExpiryWorker>();
         return s;
@@ -156,6 +161,10 @@ public static class ServiceRegistration
         s.AddScoped<IDistrictGenusStats, DistrictGenusStats>();
         s.AddScoped<ICardCollection, CardCollection>();
 
+        // badges: earned by what a player did (points, approvals, cards); evaluated after every approval
+        s.AddScoped<IBadgeService, BadgeService>();
+        s.AddScoped<IBadgeDirectory, BadgeDirectory>();
+
         // recurring quests: what players verified when (asset_activity), and the weekly schedules that use it
         s.AddScoped<IQuestScheduleRunner, QuestScheduleRunner>();
         s.AddScoped<IQuestScheduleAdmin, QuestScheduleAdmin>();
@@ -179,6 +188,7 @@ public static class ServiceRegistration
         s.AddScoped<IEventHandler<SubmissionApproved>, AwardCardHandler>();
         s.AddScoped<IEventHandler<SubmissionApproved>, AssetActivityHandler>();
         s.AddScoped<IEventHandler<SubmissionSubmitted>, AutoReviewHandler>();
+        s.AddScoped<IEventHandler<SubmissionApproved>, EvaluateBadgesHandler>();   // after the handlers above: badges count points and cards
         s.AddScoped<IEventHandler<AssetSyncCompleted>, InvalidateGenusStatsHandler>();
         return s;
     }
@@ -212,7 +222,7 @@ public static class ServiceRegistration
     public static IServiceCollection AddOpenQuestStartupTasks(this IServiceCollection s)
     {
         // Order matters: migrate, then seed the catalog, then the admin.
-        foreach (var type in new[] { typeof(MigrateDatabaseTask), typeof(SeedCatalogTask), typeof(SeedAdminTask) })
+        foreach (var type in new[] { typeof(MigrateDatabaseTask), typeof(SeedCatalogTask), typeof(SeedAdminTask), typeof(SeedBadgesTask) })
         {
             s.AddScoped(type);
             s.AddSingleton(new StartupTaskDescriptor(type));
@@ -229,6 +239,7 @@ public static class ServiceRegistration
         app.MapGamification();
         app.MapCities();
         app.MapCards();
+        app.MapBadges();
         app.MapDistrictAdmin();
         app.MapMedia();
         app.MapAdminQuests();

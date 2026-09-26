@@ -7,4 +7,6 @@ public enum PointReason
     QuestApproved,
     /// <summary>A manual adjustment (may be negative).</summary>
     Correction,
+    /// <summary>The bonus that comes with a badge (once per badge and player).</summary>
+    BadgeReward,
 }

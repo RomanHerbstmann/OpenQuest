@@ -29,11 +29,11 @@ public static class PlayerEndpoints
                 return Results.Ok(new
                 {
                     id = user.GetUserId(), username = user.FindFirst("unique_name")?.Value, role = user.FindFirst("role")?.Value,
-                    totalPoints = p.TotalPoints, level = p.Level, cardCount = p.CardCount,
+                    totalPoints = p.TotalPoints, level = p.Level, cardCount = p.CardCount, badgeCount = p.BadgeCount,
                 });
             })
             .WithName("Me")
-            .WithSummary("The signed-in user with total points and level progress (level, current, required, percent).");
+            .WithSummary("The signed-in user with total points, level progress (level, current, required, percent), number of cards and of badges.");
 
         g.MapGet("/quests/nearby", async (double lat, double lon, double? radius, string? taskType, ClaimsPrincipal user,
                 INearbyQuests quests, CancellationToken ct) =>

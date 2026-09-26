@@ -30,6 +30,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<DistrictPoint> DistrictPoints => Set<DistrictPoint>();
     public DbSet<DistrictGenusStat> DistrictGenusStats => Set<DistrictGenusStat>();
     public DbSet<Card> Cards => Set<Card>();
+    public DbSet<Badge> Badges => Set<Badge>();
+    public DbSet<UserBadge> UserBadges => Set<UserBadge>();
+    public DbSet<SyncRequest> SyncRequests => Set<SyncRequest>();
     public DbSet<AssetProposal> AssetProposals => Set<AssetProposal>();
     public DbSet<AssetActivity> AssetActivities => Set<AssetActivity>();
     public DbSet<QuestSchedule> QuestSchedules => Set<QuestSchedule>();
@@ -330,6 +333,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne<QuestCampaign>().WithMany().HasForeignKey(x => x.CampaignId).OnDelete(DeleteBehavior.SetNull);
             e.Property(x => x.PeriodKey).HasMaxLength(48);
             e.HasIndex(x => new { x.ScheduleId, x.RanAt });
+        });
+
+        b.Entity<Badge>(e =>
+        {
+            e.ToTable("badge", t => t.HasCheckConstraint("ck_badge_reward", "reward_points >= 0"));
+            e.HasIndex(x => x.Key).IsUnique();
+            e.Property(x => x.Key).HasMaxLength(64);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.Property(x => x.Icon).HasMaxLength(64);
+            e.Property(x => x.Criteria).HasColumnType("jsonb");
+        });
+
+        b.Entity<UserBadge>(e =>
+        {
+            e.ToTable("user_badge");
+            e.HasKey(x => new { x.UserId, x.BadgeId });
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.UserId);
+            e.HasOne<Badge>().WithMany().HasForeignKey(x => x.BadgeId);
+            e.HasIndex(x => x.BadgeId);
+            e.HasIndex(x => new { x.UserId, x.AwardedAt });
+        });
+
+        b.Entity<SyncRequest>(e =>
+        {
+            e.ToTable("sync_request", t => t.HasCheckConstraint("ck_sync_request_status", "status IN ('pending','running','succeeded','failed')"));
+            e.HasOne<User>().WithMany().HasForeignKey(x => x.RequestedBy).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<SyncRun>().WithMany().HasForeignKey(x => x.SyncRunId).OnDelete(DeleteBehavior.SetNull);
+            e.Property(x => x.DataSourceKey).HasMaxLength(64);
+            e.Property(x => x.Status).HasMaxLength(24);
+            e.Property(x => x.Error).HasMaxLength(2000);
+            e.HasIndex(x => new { x.Status, x.RequestedAt });
+            // one waiting or running request per source at a time
+            e.HasIndex(x => x.DataSourceKey).IsUnique().HasFilter("status IN ('pending','running')");
         });
 
         b.Entity<AssetProposal>(e =>

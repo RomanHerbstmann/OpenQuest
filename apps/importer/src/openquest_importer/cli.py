@@ -1,4 +1,4 @@
-"""Command line interface: ``openquest-importer check | sync | adapters``."""
+"""Command line interface: ``openquest-importer check | sync | serve | adapters``."""
 
 from __future__ import annotations
 
@@ -8,13 +8,14 @@ import os
 import sys
 from pathlib import Path
 
-from openquest_importer.adapters import available_adapters, create_adapter
+from openquest_importer.adapters import available_adapters
 from openquest_importer.adapters.base import DataSourceAdapter, ReportAdapter
 from openquest_importer.config import ConfigError, load_config
 from openquest_importer.db import SchemaNotReadyError, connect, wait_for_schema
-from openquest_importer.enrichers import available_enrichers, create_enricher
-from openquest_importer.snapshots import LocalSnapshotStore
-from openquest_importer.sync import run_sync
+from openquest_importer.enrichers import available_enrichers
+from openquest_importer.runner import sync_source
+from openquest_importer.serve import serve
+from openquest_importer.snapshots import create_store
 
 log = logging.getLogger("openquest_importer")
 
@@ -41,6 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
                       help="apply the sync even if it removes more assets than max_removal_ratio")
     sync.add_argument("--accept-schema-change", action="store_true",
                       help="import even if the source's fields differ from what the adapter expects")
+
+    serve_parser = commands.add_parser(
+        "serve", help="sync on a schedule and whenever an admin requests it (POST /admin/sync in the API)")
+    serve_parser.add_argument("--interval", type=float, default=86400, metavar="SECONDS",
+                              help="seconds between scheduled syncs of all sources; 0 = only sync on request (default: 86400)")
+    serve_parser.add_argument("--no-initial-sync", action="store_true", help="wait one interval before the first scheduled sync")
 
     commands.add_parser("adapters", help="list installed adapters and enrichers")
     return parser
@@ -90,6 +97,10 @@ def main(argv: list[str] | None = None) -> int:
         log.error("%s", exc)
         return 2
 
+    if args.command == "serve":
+        serve(config, create_store(config), interval_seconds=args.interval, initial_sync=not args.no_initial_sync)
+        return 0
+
     with connect(config.database_url) as conn:
 
         keys = [k for k, s in config.sources.items() if s.enabled] if args.all else args.sources
@@ -101,17 +112,14 @@ def main(argv: list[str] | None = None) -> int:
             log.error("Unknown source(s): %s", ", ".join(unknown))
             return 2
 
-        store = LocalSnapshotStore(config.snapshot_dir)
+        store = create_store(config)
         failed = 0
         for key in keys:
             source = config.sources[key]
             if not source.enabled:
                 log.warning("%s is disabled in the config; syncing it because it was named explicitly", key)
             try:
-                enrichers = [(e.name, create_enricher(e.name, e.options, config.cache_dir)) for e in source.enrichers]
-                report = run_sync(conn, source, create_adapter(source.adapter, source.options), store,
-                                  enrichers=enrichers, force=args.force,
-                                  accept_schema_change=args.accept_schema_change)
+                report = sync_source(conn, config, store, key, force=args.force, accept_schema_change=args.accept_schema_change)
             except Exception as exc:  # report and continue with the other sources
                 log.error("%s: %s", key, exc)
                 failed += 1

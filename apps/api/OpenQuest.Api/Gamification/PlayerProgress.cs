@@ -19,7 +19,8 @@ public sealed class PlayerProgress(AppDbContext db, GamificationProfile profile)
         var total = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => u.TotalPoints).FirstOrDefaultAsync(ct);
         var p = profile.Levels.ProgressFor(total);
         var cards = await db.Cards.AsNoTracking().CountAsync(c => c.UserId == userId, ct);
-        return new PlayerProgressDto(total, new LevelDto(p.Level, p.Current, p.Required, p.Percent, p.IsMaxLevel), cards);
+        var badges = await db.UserBadges.AsNoTracking().CountAsync(b => b.UserId == userId && db.Badges.Any(x => x.Id == b.BadgeId && x.IsActive), ct);
+        return new PlayerProgressDto(total, new LevelDto(p.Level, p.Current, p.Required, p.Percent, p.IsMaxLevel), cards, badges);
     }
 
     public async Task<IReadOnlyList<PointTransactionDto>> ListPointsAsync(Guid userId, int offset, int limit, CancellationToken ct)

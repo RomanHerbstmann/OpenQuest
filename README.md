@@ -95,6 +95,8 @@ Alle Bäume auf einer Karte, Suche per Jev: [apps/dashboard](apps/dashboard/READ
 - [ADR-0007: Cities and districts are drawn by admins and owned by the API](docs/adr/0007-cities-and-districts-drawn-by-admins.md)
 - [ADR-0010: Recurring quests for stale data, and sync events](docs/adr/0010-recurring-quests-and-sync-events.md)
 - [ADR-0011: Reports of missing trees, reported problems, and the automatic review of photos](docs/adr/0011-new-tree-reports-and-automatic-review.md)
+- [ADR-0012: Badges](docs/adr/0012-badges.md)
+- [ADR-0013: Sync on request and snapshots in S3](docs/adr/0013-sync-on-request-and-snapshots-in-s3.md)
 
 ## Datenmodell
 

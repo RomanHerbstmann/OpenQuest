@@ -109,6 +109,8 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
             s.AddSingleton<IBlobWriter>(Storage);
             s.AddSingleton<IBlobReader>(Storage);
             s.AddSingleton<IBlobDeleter>(Storage);
+            s.RemoveAll<ISnapshotReader>();
+            s.AddSingleton<ISnapshotReader>(Storage);   // the importer's raw downloads are read from the same in-memory store
             s.AddSingleton<IContributionPublisher>(Publisher);
             s.RemoveAll<ISubmissionAutoReviewer>();
             s.AddSingleton<ISubmissionAutoReviewer>(AutoReviewer);
@@ -197,7 +199,7 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     }
 }
 
-public sealed class InMemoryBlobStore : IBlobWriter, IBlobReader, IBlobDeleter
+public sealed class InMemoryBlobStore : IBlobWriter, IBlobReader, IBlobDeleter, ISnapshotReader
 {
     public Dictionary<string, byte[]> Objects { get; } = new();
     public Task PutAsync(string key, byte[] content, string contentType, CancellationToken ct = default)

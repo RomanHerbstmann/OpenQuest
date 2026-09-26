@@ -33,7 +33,7 @@ services:
     environment:
       MINIO_ROOT_USER: openquest
       MINIO_ROOT_PASSWORD: openquest-secret
-      MINIO_DEFAULT_BUCKETS: openquest-photos
+      MINIO_DEFAULT_BUCKETS: openquest-photos,openquest-snapshots
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -65,9 +65,16 @@ services:
       dockerfile: apps/importer/Dockerfile
     environment:
       DATABASE_URL: postgresql://openquest:openquest@db:5432/openquest
-      # Sync all sources on start and then every interval (default: daily).
-      # 0 = sync once and exit.
+      # Sync all sources on start and then every interval (default: daily), and whenever an admin asks
+      # for it (POST /admin/sync in the API). 0 = sync once and exit (unless SYNC_ON_REQUEST=true).
       SYNC_INTERVAL_SECONDS: ${SYNC_INTERVAL_SECONDS:-86400}
+      # Raw downloads go to MinIO, so that the API can offer them to admins (GET /admin/sync/runs/{id}/snapshot).
+      # Remove these five lines to keep them in the `snapshots` volume instead.
+      OPENQUEST_SNAPSHOT_BACKEND: s3
+      OPENQUEST_SNAPSHOT_S3_URL: http://minio:9000
+      OPENQUEST_SNAPSHOT_S3_BUCKET: openquest-snapshots
+      OPENQUEST_SNAPSHOT_S3_ACCESS_KEY: openquest
+      OPENQUEST_SNAPSHOT_S3_SECRET_KEY: openquest-secret
     volumes:
       - snapshots:/app/data/snapshots
       - importer-cache:/app/data/cache
@@ -76,6 +83,8 @@ services:
         condition: service_healthy
       # The importer waits until the API has created the schema (see docker-entrypoint.sh).
       api:
+        condition: service_started
+      minio:
         condition: service_started
     restart: unless-stopped
 

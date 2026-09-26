@@ -4,6 +4,7 @@ using OpenQuest.Api.Auth;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Data;
 using OpenQuest.Core.Domain;
+using OpenQuest.Core.Rules;
 
 namespace OpenQuest.Api.Startup;
 
@@ -59,6 +60,33 @@ public sealed class SeedCatalogTask(AppDbContext db) : IStartupTask
                     db.AssetTypeTaskTypes.Add(new AssetTypeTaskType { AssetTypeId = a, TaskTypeId = t });
             }
         await db.SaveChangesAsync(ct);
+    }
+}
+
+/// <summary>
+/// Adds the badges of the default catalog that are missing (by key). What an admin changed or deactivated is left alone. Players who already
+/// reached a badge that was just added get it right away.
+/// </summary>
+public sealed class SeedBadgesTask(AppDbContext db, OpenQuest.Api.Badges.IBadgeService badges) : IStartupTask
+{
+    public async Task RunAsync(CancellationToken ct)
+    {
+        var existing = (await db.Badges.AsNoTracking().Select(b => b.Key).ToListAsync(ct)).ToHashSet();
+        var now = DateTimeOffset.UtcNow;
+        var added = 0;
+        foreach (var def in BadgeCatalog.Defaults.Where(d => !existing.Contains(d.Key)))
+        {
+            db.Badges.Add(new Badge
+            {
+                Key = def.Key, Name = def.Name, Description = def.Description, Icon = def.Icon,
+                Criteria = BadgeRules.ToJson(def.Criteria), RewardPoints = def.RewardPoints, IsActive = true, CreatedAt = now, UpdatedAt = now,
+            });
+            added++;
+        }
+        if (added == 0) return;
+        await db.SaveChangesAsync(ct);
+        db.ChangeTracker.Clear();
+        await badges.EvaluateAllAsync(ct);
     }
 }
 

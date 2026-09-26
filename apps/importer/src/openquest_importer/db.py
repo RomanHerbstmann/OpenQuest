@@ -3,7 +3,7 @@
 The database schema belongs to the API: its EF Core migrations create the
 tables when the API starts, and it seeds the asset types. The importer only
 writes the open data tables (``data_source``, ``sync_run``, ``asset``,
-``asset_snapshot``) and reads ``asset_type``.
+``asset_snapshot``), answers the API's ``sync_request`` rows and reads ``asset_type``.
 """
 
 from __future__ import annotations
@@ -25,6 +25,9 @@ REQUIRED_COLUMNS: dict[str, set[str]] = {
     "asset": {"id", "asset_type_id", "data_source_id", "external_id", "geom", "attributes", "raw", "source_hash",
               "status", "first_seen_at", "last_seen_at", "updated_at"},
     "asset_snapshot": {"id", "asset_id", "sync_run_id", "change_type", "geom", "raw", "source_hash"},
+    # written by the API (admins ask for a sync), answered by ``serve``
+    "sync_request": {"id", "data_source_key", "force", "accept_schema_change", "requested_at", "started_at",
+                     "finished_at", "status", "sync_run_id", "error"},
 }
 
 

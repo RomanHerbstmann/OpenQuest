@@ -14,7 +14,7 @@ WORKDIR /app/apps/importer
 # Dependencies first so code changes don't reinstall them.
 COPY apps/importer/pyproject.toml apps/importer/README.md ./
 RUN mkdir -p src/openquest_importer && touch src/openquest_importer/__init__.py \
-    && pip install . && pip uninstall -y openquest-importer
+    && pip install ".[s3]" && pip uninstall -y openquest-importer
 
 COPY apps/importer/ ./
 RUN pip install --no-deps . \

@@ -434,6 +434,69 @@ public class AssetProposal
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
+/// <summary>
+/// A badge a player can earn (ADR-0012). <c>Criteria</c> is a <see cref="OpenQuest.Core.Domain.BadgeCriteria"/> as JSON. <c>Name</c> and
+/// <c>Description</c> are translation keys for the default badges, plain text for badges an admin made up.
+/// </summary>
+public class Badge
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public string Key { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
+    public string Icon { get; set; } = "trophy";
+    public string Criteria { get; set; } = "{}";
+    /// <summary>Points paid once when the badge is earned (0 = none).</summary>
+    public int RewardPoints { get; set; }
+    /// <summary>An inactive badge is not shown and not awarded; players keep what they earned.</summary>
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>A badge a player earned. The primary key makes the award happen once, however often it is evaluated.</summary>
+public class UserBadge
+{
+    public Guid UserId { get; set; }
+    public Guid BadgeId { get; set; }
+    public DateTimeOffset AwardedAt { get; set; }
+}
+
+/// <summary>The status values of <see cref="SyncRequest"/>; the importer writes the later ones.</summary>
+public static class SyncRequestStatus
+{
+    public const string Pending = "pending";
+    public const string Running = "running";
+    public const string Succeeded = "succeeded";
+    public const string Failed = "failed";
+}
+
+public static class SyncRequestKeys
+{
+    /// <summary>All enabled sources of the importer's configuration.</summary>
+    public const string All = "*";
+}
+
+/// <summary>An admin's wish to sync a data source now. The importer's <c>serve</c> command picks it up, runs the sync and records the outcome.</summary>
+public class SyncRequest
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    /// <summary>Key of the data source in the importer's configuration, or <see cref="SyncRequestKeys.All"/>.</summary>
+    public string DataSourceKey { get; set; } = SyncRequestKeys.All;
+    /// <summary>Apply the sync even if it removes more assets than the source's <c>max_removal_ratio</c>.</summary>
+    public bool Force { get; set; }
+    /// <summary>Import even if the fields of the source changed.</summary>
+    public bool AcceptSchemaChange { get; set; }
+    public Guid RequestedBy { get; set; }
+    public DateTimeOffset RequestedAt { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
+    public DateTimeOffset? FinishedAt { get; set; }
+    public string Status { get; set; } = SyncRequestStatus.Pending;
+    /// <summary>The run the request made (when it was for one source).</summary>
+    public Guid? SyncRunId { get; set; }
+    public string? Error { get; set; }
+}
+
 public class ExportRun
 {
     public Guid Id { get; set; } = Guid.NewGuid();
