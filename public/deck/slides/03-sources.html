@@ -1,0 +1,168 @@
+<section class="slide s03" data-seconds="12">
+  <p class="eyebrow rise"><span lang="de">Datenquellen</span><span lang="en">Data sources</span></p>
+  <h2 class="display display-sm rise" style="--d: 1">
+    <span lang="de">Sieben offene Quellen. <em class="gradient-text">Ein Baumbild.</em></span>
+    <span lang="en">Seven open sources. <em class="gradient-text">One tree picture.</em></span>
+  </h2>
+
+  <div class="s03-flow" role="img" data-de-aria="Sieben offene Datenquellen fließen über Importer und tree-search in PostGIS und trees.json, von dort ins Spiel und in die Karte" data-en-aria="Seven open data sources flow through the importer and tree-search into PostGIS and trees.json, and on to the game and the map">
+    <svg class="s03-lines" viewBox="0 0 1400 580" aria-hidden="true">
+      <g class="s03-in">
+        <path class="flow" id="s03p0" d="M420 40 C475 40 475 250 530 250" />
+        <path class="flow" id="s03p1" d="M420 122 C475 122 475 263 530 263" />
+        <path class="flow" id="s03p2" d="M420 204 C475 204 475 276 530 276" />
+        <path class="flow" id="s03p3" d="M420 286 C475 286 475 290 530 290" />
+        <path class="flow" id="s03p4" d="M420 368 C475 368 475 304 530 304" />
+        <path class="flow" id="s03p5" d="M420 450 C475 450 475 317 530 317" />
+        <path class="flow" id="s03p6" d="M420 532 C475 532 475 330 530 330" />
+      </g>
+      <g class="s03-out">
+        <path class="flow" id="s03q0" d="M820 250 C860 250 860 200 900 200" />
+        <path class="flow" id="s03q1" d="M820 330 C860 330 860 380 900 380" />
+        <path class="flow" id="s03r0" d="M1080 200 C1120 200 1120 290 1135 290" />
+        <path class="flow" id="s03r1" d="M1080 380 C1120 380 1120 290 1135 290" />
+        <path class="flow" id="s03r2" d="M1135 290 C1150 290 1150 200 1180 200" />
+        <path class="flow" id="s03r3" d="M1135 290 C1150 290 1150 380 1180 380" />
+      </g>
+      <g class="s03-dots">
+        <circle r="5"><animateMotion dur="2.4s" begin="0s" repeatCount="indefinite"><mpath href="#s03p0" /></animateMotion></circle>
+        <circle r="5"><animateMotion dur="2.4s" begin="0.35s" repeatCount="indefinite"><mpath href="#s03p1" /></animateMotion></circle>
+        <circle r="5"><animateMotion dur="2.4s" begin="0.7s" repeatCount="indefinite"><mpath href="#s03p2" /></animateMotion></circle>
+        <circle r="5"><animateMotion dur="2.4s" begin="1.05s" repeatCount="indefinite"><mpath href="#s03p3" /></animateMotion></circle>
+        <circle r="5"><animateMotion dur="2.4s" begin="1.4s" repeatCount="indefinite"><mpath href="#s03p4" /></animateMotion></circle>
+        <circle r="5"><animateMotion dur="2.4s" begin="1.75s" repeatCount="indefinite"><mpath href="#s03p5" /></animateMotion></circle>
+        <circle r="5"><animateMotion dur="2.4s" begin="2.1s" repeatCount="indefinite"><mpath href="#s03p6" /></animateMotion></circle>
+        <circle r="6" class="g"><animateMotion dur="1.6s" begin="0.4s" repeatCount="indefinite"><mpath href="#s03q0" /></animateMotion></circle>
+        <circle r="6" class="g"><animateMotion dur="1.6s" begin="1.2s" repeatCount="indefinite"><mpath href="#s03q1" /></animateMotion></circle>
+      </g>
+    </svg>
+
+    <!-- Sources -->
+    <div class="s03-src rise" style="--d: 2; --i: 0">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9" r="6" /><path d="M12 15v6" /></svg>
+      <div><b><span lang="de">Stadt Münster</span><span lang="en">City of Münster</span> <span class="badge">dl-de/by-2.0</span></b><small><span lang="de">Baumkataster (WFS) · <strong>43.114 Bäume</strong></span><span lang="en">Tree inventory (WFS) · <strong>43,114 trees</strong></span></small></div>
+    </div>
+    <div class="s03-src rise" style="--d: 2.4; --i: 1">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3 5 21M16 3l3 18M12 4v3M12 11v3M12 18v3" /></svg>
+      <div><b>Straßen.NRW <span class="badge">dl-de/zero-2.0</span></b><small><span lang="de">Bundes- und Landesstraßen · <strong>+2.314</strong></span><span lang="en">Federal and state roads · <strong>+2,314</strong></span></small></div>
+    </div>
+    <div class="s03-src rise" style="--d: 2.8; --i: 2">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V13M9 21V6M14 21V10M19 21V3" /></svg>
+      <div><b>Geobasis NRW <span class="badge">dl-de/zero-2.0</span></b><small><span lang="de">nDOM50 · Höhe jedes Baums</span><span lang="en">nDOM50 · height of every tree</span></small></div>
+    </div>
+    <div class="s03-src rise" style="--d: 3.2; --i: 3">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4M6 4h11l-2 4 2 4H6" /></svg>
+      <div><b><span lang="de">Mängelmelder</span><span lang="en">Mängelmelder</span> <span class="badge">dl-de/by-2.0</span></b><small><span lang="de">Open311 · Bürgermeldungen</span><span lang="en">Open311 · citizen reports</span></small></div>
+    </div>
+    <div class="s03-src rise" style="--d: 3.6; --i: 4">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11Z" /></svg>
+      <div><b>DWD <span class="badge">GeoNutzV</span></b><small><span lang="de">Bodenfeuchte täglich</span><span lang="en">Daily soil moisture</span></small></div>
+    </div>
+    <div class="s03-src rise" style="--d: 4; --i: 5">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="3" /><circle cx="18" cy="7" r="3" /><path d="M6 10v10M18 10v10M11 13h2M11 18h2" /></svg>
+      <div><b><span lang="de">Alleenkataster NRW</span><span lang="en">NRW avenue register</span> <span class="badge">dl-de/zero-2.0</span></b><small><span lang="de"><strong>22</strong> geschützte Alleen</span><span lang="en"><strong>22</strong> protected avenues</span></small></div>
+    </div>
+    <div class="s03-src rise" style="--d: 4.4; --i: 6">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s6-6 6-11a6 6 0 0 0-12 0c0 5 6 11 6 11Z" /><circle cx="12" cy="10" r="2" /></svg>
+      <div><b>OpenStreetMap <span class="badge">ODbL</span></b><small><span lang="de">Kontext</span><span lang="en">Context</span></small></div>
+    </div>
+
+    <!-- Processing -->
+    <div class="s03-core pop" style="--d: 6">
+      <p class="s03-core-title">Importer <span class="muted">(Python)</span><br />+ tree-search</p>
+      <ul>
+        <li><i>1 m</i><span lang="de">Abgleich per 1-m-Matching</span><span lang="en">1 m spatial matching</span></li>
+        <li><i>ID</i><span lang="de">Eigene stabile Baum-ID</span><span lang="en">Own stable tree id</span></li>
+        <li><i>+</i><span lang="de">Straße · Bezirk · Stadtteil · Höhe</span><span lang="en">Street · district · quarter · height</span></li>
+      </ul>
+    </div>
+
+    <!-- Stores -->
+    <div class="s03-store pop" style="--d: 8; --y: 200">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></svg>
+      <b>PostGIS</b><small>API</small>
+    </div>
+    <div class="s03-store pop" style="--d: 8.5; --y: 380">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6ZM14 3v4h4M9 13h6M9 17h6" /></svg>
+      <b class="mono">trees.json</b><small>tree-search</small>
+    </div>
+
+    <!-- Apps -->
+    <div class="s03-app pop" style="--d: 10; --y: 200">
+      <b><span lang="de">Spiel</span><span lang="en">Game</span></b>
+      <small class="mono">openquest.fun</small>
+    </div>
+    <div class="s03-app pop" style="--d: 10.5; --y: 380">
+      <b><span lang="de">Karte</span><span lang="en">Map</span></b>
+      <small class="mono">karte.openquest.fun</small>
+    </div>
+  </div>
+
+  <p class="s03-attr small muted rise" style="--d: 11">
+    <span lang="de">Daten: Stadt Münster (dl-de/by-2.0), Straßen.NRW, Geobasis NRW, LANUK NRW (dl-de/zero-2.0), Quelle: Deutscher Wetterdienst (GeoNutzV), © OpenStreetMap-Mitwirkende (ODbL)</span>
+    <span lang="en">Data: City of Münster (dl-de/by-2.0), Straßen.NRW, Geobasis NRW, LANUK NRW (dl-de/zero-2.0), source: Deutscher Wetterdienst (GeoNutzV), © OpenStreetMap contributors (ODbL)</span>
+  </p>
+</section>
+<style>
+  .s03 { gap: clamp(12px, 2.2vh, 28px); }
+  /* Diagram: fixed 1400 x 580 coordinate system, HTML boxes positioned in % of it, text in cqw. */
+  .s03 .s03-flow {
+    position: relative; container-type: inline-size;
+    width: min(100%, 1400px, calc((100vh - 64px - 330px) * 1400 / 580));
+    aspect-ratio: 1400 / 580;
+  }
+  .s03 .s03-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .s03 .s03-lines .flow { stroke-width: 2.2; }
+  .s03 .s03-out .flow { stroke: var(--tree); }
+  .s03 .s03-dots circle { fill: var(--gold); }
+  .s03 .s03-dots circle.g { fill: var(--tree); }
+  .s03 .s03-lines g { opacity: 0; }
+  .s03.is-entering .s03-in, .s03.is-entering .s03-dots { animation: s03-fade .6s ease both 1.6s; }
+  .s03.is-entering .s03-out { animation: s03-fade .6s ease both 2s; }
+  @keyframes s03-fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .s03 .s03-src {
+    position: absolute; left: 0; width: calc(420 / 1400 * 100%); top: calc((5 + var(--i) * 82) / 580 * 100%); height: calc(70 / 580 * 100%);
+    display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 0.9cqw;
+    padding: 0 1.1cqw; border: 1px solid var(--line); border-radius: 1cqw; background: var(--surface);
+    box-shadow: 0 8px 22px -18px #1b1c1a55;
+  }
+  .s03 .s03-src > svg { width: 2cqw; height: 2cqw; fill: none; stroke: var(--tree); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .s03 .s03-src b { display: block; font: 600 1.25cqw/1.2 var(--sans); }
+  .s03 .s03-src small { display: block; margin-top: .2cqw; font-size: 1cqw; line-height: 1.25; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s03 .s03-src .badge { margin-left: .5cqw; font-size: .8cqw; padding: .2cqw .5cqw; white-space: nowrap; vertical-align: .1cqw; font-weight: 600; }
+  .s03 .s03-src > div { min-width: 0; }
+  .s03 .s03-src small strong { color: var(--tree-dark); font-weight: 700; }
+
+  .s03 .s03-core {
+    position: absolute; left: calc(530 / 1400 * 100%); width: calc(290 / 1400 * 100%); top: calc(150 / 580 * 100%); height: calc(280 / 580 * 100%);
+    display: flex; flex-direction: column; justify-content: center; gap: 1.2cqw; padding: 1.4cqw;
+    border-radius: 1.4cqw; background: var(--tree-dark); color: var(--parchment);
+    box-shadow: 0 24px 50px -28px #16271dcc;
+  }
+  .s03 .s03-core-title { margin: 0; font: 500 1.75cqw/1.2 var(--display); text-align: center; }
+  .s03 .s03-core-title .muted { color: #a9ad96; font-size: .8em; }
+  .s03 .s03-core ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .7cqw; }
+  .s03 .s03-core li { display: flex; align-items: center; gap: .8cqw; font-size: 1.05cqw; line-height: 1.25; }
+  .s03 .s03-core li i { flex: 0 0 auto; display: grid; place-items: center; min-width: 2.6cqw; height: 1.9cqw; padding: 0 .4cqw; border-radius: .5cqw; background: var(--gold); color: var(--tree-dark); font: 700 .85cqw/1 var(--mono); font-style: normal; }
+  .s03.is-entering .s03-core li { animation: rise .5s cubic-bezier(.2,.7,.2,1) both; }
+  .s03.is-entering .s03-core li:nth-child(1) { animation-delay: 1.3s; }
+  .s03.is-entering .s03-core li:nth-child(2) { animation-delay: 1.5s; }
+  .s03.is-entering .s03-core li:nth-child(3) { animation-delay: 1.7s; }
+
+  .s03 .s03-store, .s03 .s03-app {
+    position: absolute; top: calc((var(--y) - 50) / 580 * 100%); height: calc(100 / 580 * 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .3cqw;
+    border-radius: 1cqw; text-align: center;
+  }
+  .s03 .s03-store { left: calc(900 / 1400 * 100%); width: calc(180 / 1400 * 100%); border: 1px solid var(--line); background: var(--surface); }
+  .s03 .s03-store svg { width: 2.2cqw; height: 2.2cqw; fill: none; stroke: var(--ink-2); stroke-width: 1.6; stroke-linejoin: round; }
+  .s03 .s03-store b { font: 600 1.3cqw/1.1 var(--sans); }
+  .s03 .s03-store b.mono { font-family: var(--mono); font-size: 1.15cqw; }
+  .s03 .s03-store small, .s03 .s03-app small { font-size: .95cqw; color: var(--ink-3); }
+  .s03 .s03-app { left: calc(1180 / 1400 * 100%); width: calc(220 / 1400 * 100%); border: 2px solid var(--tree); background: #eef4ef; }
+  .s03 .s03-app b { font: 500 2.1cqw/1 var(--display); color: var(--tree-dark); }
+  .s03 .s03-app small { color: var(--tree); }
+
+  .s03 .s03-attr { margin: 0; max-width: 1400px; font-size: 12px; text-align: center; }
+</style>
