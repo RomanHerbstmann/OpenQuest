@@ -9,7 +9,7 @@ import type { District, TerritoryContribution } from '@/types/district';
 import type { Tree } from '@/types/tree';
 import type { ResultItem, TreeSearchResponse } from '@/types/treeSearch';
 
-type Props = { trees: Tree[]; densityTrees: Tree[]; selectedId: string | null; onSelect: (tree: Tree) => void; userPosition: { lat: number; lng: number } | null; locateTick: number; focusTree: Tree | null; focusTick: number; focusDistrict: District | null; districtFocusTick: number; contributions: TerritoryContribution[]; selectedDistrictId: string | null; onSelectDistrict: (district: District) => void; onInventoryChange: (count: number, live: boolean) => void; search: TreeSearchResponse | null; searchFocus: SearchFocus | null; onViewChange?: (center: { lat: number; lng: number }) => void };
+type Props = { trees: Tree[]; densityTrees: Tree[]; selectedId: string | null; onSelect: (tree: Tree) => void; userPosition: { lat: number; lng: number } | null; locateTick: number; focusTree: Tree | null; focusTick: number; focusDistrict: District | null; districtFocusTick: number; contributions: TerritoryContribution[]; selectedDistrictId: string | null; onSelectDistrict: (district: District) => void; onInventoryChange: (count: number, live: boolean) => void; search: TreeSearchResponse | null; searchFocus: SearchFocus | null; onViewChange?: (center: { lat: number; lng: number }) => void; showDistricts: boolean };
 export type SearchFocus = { item: ResultItem; tick: number };
 
 type InventoryPoint = [number, number]; // GeoJSON coordinates: longitude, latitude
@@ -124,7 +124,7 @@ function districtCard(district: District, standing: ReturnType<typeof districtSt
   return `<div class="district-map-card district-${district.id} ${selected ? 'is-selected' : ''} ${standing.tied ? 'is-contested' : ''}" style="--district-accent:${color}"><span class="district-map-head"><strong>${escapeHtml(district.shortName)}</strong><small>${state}</small></span><span class="district-map-ranks">${rows}</span></div>`;
 }
 
-export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect, userPosition, locateTick, focusTree, focusTick, focusDistrict, districtFocusTick, contributions, selectedDistrictId, onSelectDistrict, onInventoryChange, search, searchFocus, onViewChange }: Props) {
+export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect, userPosition, locateTick, focusTree, focusTick, focusDistrict, districtFocusTick, contributions, selectedDistrictId, onSelectDistrict, onInventoryChange, search, searchFocus, onViewChange, showDistricts }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -254,6 +254,8 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
     const layer = districtLayerRef.current;
     if (!layer) return;
     layer.clearLayers();
+    // Districts are off by default and toggled with the "Viertel" button, so they do not cover quests and trees.
+    if (!showDistricts) return;
     districts.forEach((district) => {
       const standing = districtStandings(district, contributions);
       const color = standing.owner?.color ?? (standing.tied ? '#c58b52' : '#6a9b83');
@@ -266,7 +268,7 @@ export default function ExplorerMap({ trees, densityTrees, selectedId, onSelect,
         icon: L.divIcon({ className: 'district-label-marker', html: districtCard(district, standing, selected), iconSize: [150, 112], iconAnchor: [75, 56] }),
       }).on('click', () => onSelectDistrict(district)).addTo(layer);
     });
-  }, [contributions, selectedDistrictId, onSelectDistrict]);
+  }, [contributions, selectedDistrictId, onSelectDistrict, showDistricts]);
 
   // Reports the map center after every move; the live mode reloads nearby quests from it (debounced by the caller).
   useEffect(() => {

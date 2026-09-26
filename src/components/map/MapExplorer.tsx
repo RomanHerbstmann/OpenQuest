@@ -41,6 +41,8 @@ export function MapExplorer() {
   const [selected, setSelected] = useState<Tree | null>(null);
   const [scanTree, setScanTree] = useState<Tree | null>(null);
   const [districtSheetOpen, setDistrictSheetOpen] = useState(false);
+  // District boundaries and rankings are hidden until the player switches them on.
+  const [districtsVisible, setDistrictsVisible] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [demoContributions] = useState(() => getDemoTerritoryContributions());
   const [localContributions, setLocalContributions] = useState<TerritoryContribution[]>([]);
@@ -72,9 +74,9 @@ export function MapExplorer() {
   const contributions = useMemo(() => [...demoContributions, ...localContributions], [demoContributions, localContributions]);
   const onSelect = useCallback((tree: Tree) => { setDistrictSheetOpen(false); setQuestError(''); setSelected(tree); }, []);
   const onClose = useCallback(() => setSelected(null), []);
-  const onSelectDistrict = useCallback((district: District) => { setSelected(null); setSelectedDistrict(district); setDistrictSheetOpen(true); }, []);
+  const onSelectDistrict = useCallback((district: District) => { setSelected(null); setDistrictsVisible(true); setSelectedDistrict(district); setDistrictSheetOpen(true); }, []);
   const onCloseDistrict = useCallback(() => setDistrictSheetOpen(false), []);
-  const onFocusDistrict = useCallback((district: District) => { setFocusedDistrict(district); setDistrictFocusTick((tick) => tick + 1); setDistrictSheetOpen(false); }, []);
+  const onFocusDistrict = useCallback((district: District) => { setDistrictsVisible(true); setFocusedDistrict(district); setDistrictFocusTick((tick) => tick + 1); setDistrictSheetOpen(false); }, []);
   const onInventoryChange = useCallback((count: number, live: boolean) => setInventory({ count, live }), []);
   const onSearchResult = useCallback((result: TreeSearchResponse | null) => { setSearch(result); setSearchFocus(null); setSelected(null); setDistrictSheetOpen(false); }, []);
   const onFocusItem = useCallback((item: ResultItem) => setSearchFocus((prev) => ({ item, tick: (prev?.tick ?? 0) + 1 })), []);
@@ -181,7 +183,7 @@ export function MapExplorer() {
   };
 
   return <main className={`map-screen ${live ? 'live-mode' : 'demo-mode'} ${selected || districtSheetOpen ? 'has-sheet' : ''}`}>
-    <ExplorerMap trees={visibleTrees} densityTrees={densityTrees} selectedId={selected?.id ?? null} onSelect={onSelect} userPosition={userPosition} locateTick={locateTick} focusTree={focusedTree} focusTick={presentationTick} focusDistrict={focusedDistrict} districtFocusTick={districtFocusTick} contributions={contributions} selectedDistrictId={districtSheetOpen ? selectedDistrict?.id ?? null : null} onSelectDistrict={onSelectDistrict} onInventoryChange={onInventoryChange} search={search} searchFocus={searchFocus} onViewChange={onViewChange} />
+    <ExplorerMap trees={visibleTrees} densityTrees={densityTrees} selectedId={selected?.id ?? null} onSelect={onSelect} userPosition={userPosition} locateTick={locateTick} focusTree={focusedTree} focusTick={presentationTick} focusDistrict={focusedDistrict} districtFocusTick={districtFocusTick} contributions={contributions} selectedDistrictId={districtSheetOpen ? selectedDistrict?.id ?? null : null} onSelectDistrict={onSelectDistrict} onInventoryChange={onInventoryChange} search={search} searchFocus={searchFocus} onViewChange={onViewChange} showDistricts={districtsVisible} />
     <header className="map-header">
       <div className="header-main"><Brand />{live
         ? <span className="demo-tag live-tag" title={lt.auth.signedInAs(session.username)}>{lt.mode.live}</span>
@@ -200,7 +202,7 @@ export function MapExplorer() {
       {live
         ? <div className={`map-count ${nearby.error ? 'has-error' : ''}`}><span className="count-icon"><Trees size={20} /></span><div><strong>{countTitle}</strong><span>{countSub}</span></div>{nearby.error && <button type="button" className="map-count-retry" onClick={nearby.reload} aria-label={lt.map.retry}><RefreshCw size={16} /></button>}</div>
         : <button type="button" className="map-count" onClick={openSampleTree} aria-label="Kataster-Beispielbaum mit Gattung und Höhe anzeigen"><span className="count-icon"><Trees size={20} /></span><div><strong>{visibleTrees.length} Baumpunkte</strong><span>10 mit Zusatzdaten · ansehen</span></div></button>}
-      <button className="district-open-button" type="button" onClick={() => { setSelected(null); setSelectedDistrict(null); setDistrictSheetOpen(true); }}><Flag size={17} /><span>{districts.length} Viertel</span></button>
+      <button className={`district-open-button ${districtsVisible ? 'is-active' : ''}`} type="button" aria-pressed={districtsVisible} title={districtsVisible ? 'Viertel ausblenden' : 'Viertel einblenden'} onClick={() => { setDistrictsVisible((visible) => !visible); setDistrictSheetOpen(false); setSelectedDistrict(null); }}><Flag size={17} /><span>{districts.length} Viertel</span></button>
       <button className="locate-button" type="button" onClick={() => locate()} aria-label="Meinen Standort anzeigen"><Crosshair size={23} /></button>
     </div>
     {locationMessage && <div className="location-message" role="status"><MapPin size={15} />{locationMessage}<button type="button" onClick={() => setLocationMessage('')} aria-label="Hinweis schließen">×</button></div>}

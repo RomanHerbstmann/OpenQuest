@@ -50,6 +50,8 @@ button:active, a:active { transform: scale(.975); }
 .count-icon { color: #113725; background: #d8f885; }
 .district-open-button { min-height: 45px; padding: 0 14px; border: 1px solid #b7e7c9; border-radius: 15px; color: #134932; background: #f9fff0; box-shadow: 0 9px 24px #173e2e30; font-size: 12px; }
 .district-open-button:hover { background: #e0fac0; transform: translateY(-2px); }
+.district-open-button.is-active { color: #f9fff0; background: #134932; border-color: #134932; }
+.district-open-button.is-active:hover { background: #1c6444; }
 .locate-button { width: 49px; height: 49px; border-radius: 16px; color: #0c402f; background: linear-gradient(145deg, #e1fc8d, #a4edb4); box-shadow: 0 9px 23px #18493442; }
 .locate-button:hover { transform: translateY(-2px); }
 .leaflet-bottom.leaflet-right { bottom: 173px; }
