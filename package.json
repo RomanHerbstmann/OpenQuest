@@ -16,6 +16,7 @@
     "eval": "tsx --env-file=.env eval/run.ts"
   },
   "dependencies": {
+    "@openquest/tree-search": "workspace:*",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",

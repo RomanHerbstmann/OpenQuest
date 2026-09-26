@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@openquest/tree-search':
+        specifier: workspace:*
+        version: link:packages/tree-search
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4

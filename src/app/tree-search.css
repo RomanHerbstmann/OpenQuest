@@ -1,0 +1,72 @@
+/* Map search over the real tree inventory, styled after design 2.0.
+   Search matches use blue so they stay apart from the green inventory dots,
+   the green quest markers and the gold presentation pin. */
+:root { --search: #2f5fd8; --search-dark: #1d3f9e; --search-soft: #e7eefc; }
+
+.tree-search { position: absolute; z-index: 600; top: 104px; left: 16px; right: 16px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.tree-search > * { pointer-events: auto; }
+.search-bar { display: flex; align-items: center; gap: 4px; min-height: 50px; padding: 4px 4px 4px 14px; border: 1px solid #ffffffd1; border-radius: 18px; background: #fffef5f0; box-shadow: 0 9px 27px #3055292c; backdrop-filter: blur(12px); }
+.search-bar:focus-within { border-color: var(--search); box-shadow: 0 9px 27px #3055292c, 0 0 0 3px #2f5fd833; }
+.search-icon { flex: 0 0 auto; color: #4d7a64; }
+.search-bar input { flex: 1; min-width: 0; height: 40px; padding: 0 6px; border: 0; outline: 0; background: transparent; color: #123f2d; font: inherit; font-size: 14px; }
+.search-bar input:focus-visible { outline: 0; }
+.search-bar input::placeholder { color: #8ba696; }
+.search-bar input::-webkit-search-cancel-button { display: none; }
+.search-clear { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; border: 0; border-radius: 12px; color: #607a6d; background: none; }
+.search-clear:hover { background: #e5f7d4; }
+.search-submit { display: grid; place-items: center; width: 42px; height: 42px; flex: 0 0 42px; border: 0; border-radius: 14px; color: #e3ff9a; background: linear-gradient(135deg, #0a3529, #0c553c); box-shadow: 0 6px 16px #0b362f40; }
+.search-submit:hover:not(:disabled) { transform: translateY(-1px); }
+.search-submit:disabled { color: #b7cfc0; background: #8aa598; box-shadow: none; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.search-panel { max-height: calc(100dvh - 104px - 50px - 190px - env(safe-area-inset-bottom)); overflow-y: auto; padding: 13px 14px; border: 1px solid #b1e7c659; border-radius: 18px; color: #efffec; background: linear-gradient(155deg, #092d24f7, #103a2df5 60%, #08291ff7); box-shadow: 0 13px 34px #0a372d49; backdrop-filter: blur(10px); }
+.search-status { margin: 0; color: #bde3c2; font-size: 12px; }
+.search-status.error { color: #ffc1a8; }
+.search-summary { margin: 0 0 9px; color: #f6ffeb; font-size: 13px; font-weight: 800; line-height: 1.35; }
+.search-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.search-chip { padding: 5px 8px; border: 1px solid #ffffff1c; border-radius: 999px; color: #c6e9cb; background: #ffffff14; font-size: 10px; font-weight: 650; }
+.search-chip b { color: #f3ffdc; font-weight: 850; }
+.search-chip span { color: #9cc7ad; }
+.search-chip.source { border-color: transparent; color: #fff; background: var(--search); font-weight: 850; }
+.search-note { display: flex; align-items: flex-start; gap: 6px; margin: 9px 0 0; padding: 8px 9px; border-radius: 11px; color: #ffe6a1; background: #ae7c2c3d; font-size: 11px; line-height: 1.4; }
+.search-note svg { flex: 0 0 14px; margin-top: 1px; }
+.search-meta, .search-source { margin: 8px 0 0; color: #a9c4ae; font-size: 10px; }
+.search-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 38px; margin-top: 10px; padding: 0 12px; border: 1px solid #d9ffad40; border-radius: 12px; color: #092b21; background: linear-gradient(145deg, #e2ff92, #9df0b6); font-size: 12px; font-weight: 850; }
+.search-results { display: grid; gap: 2px; margin: 7px 0 0; padding: 0; list-style: none; }
+.search-results button { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 44px; padding: 5px 6px; border: 0; border-radius: 11px; background: none; color: #efffec; text-align: left; }
+.search-results button:hover { background: #ffffff14; }
+.search-rank, .search-marker span { display: grid; place-items: center; width: 24px; height: 24px; flex: 0 0 24px; border-radius: 50%; color: #fff; background: var(--search); font-size: 11px; font-weight: 850; }
+.search-item { flex: 1; min-width: 0; }
+.search-item strong, .search-item small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-item strong { font-size: 12px; }
+.search-item small { color: #a9debf; font-size: 10px; }
+.search-height { color: #d8f885; font-size: 11px; font-weight: 800; white-space: nowrap; }
+
+/* Numbered map markers and their popups */
+.search-marker { background: none; border: 0; }
+.search-marker span { width: 28px; height: 28px; border: 2px solid #fff; box-shadow: 0 3px 10px #1d3f9e80; }
+.search-popup-wrap .leaflet-popup-content-wrapper { border-radius: 13px; }
+.search-popup-wrap .leaflet-popup-content { margin: 10px 12px; }
+.search-popup strong, .search-popup em, .search-popup span { display: block; }
+.search-popup strong { color: #102e27; font-size: 13px; }
+.search-popup em { color: #607a6d; font-size: 11px; }
+.search-popup span { margin-top: 4px; color: #315a43; font-size: 11px; }
+
+/* Phones: the search bar takes the row below the header, the shortcut and filters move down. */
+.map-screen .map-intro { top: 164px; }
+.map-screen .filter-bar { top: 238px; }
+@media (max-height: 720px) {
+  .tree-search { top: 100px; }
+  .map-screen .map-intro { top: 156px; }
+  .map-screen .filter-bar { top: 226px; }
+  .search-panel { max-height: calc(100dvh - 100px - 50px - 170px); }
+}
+
+/* Desktop: the search sits centered at the top, right of the header column. */
+@media (min-width: 900px) {
+  .tree-search { top: max(13px, env(safe-area-inset-top)); left: max(470px, calc(50% - 250px)); right: auto; width: min(500px, calc(100% - 500px)); }
+  .map-screen .map-intro { top: 104px; }
+  .map-screen .filter-bar { top: 182px; }
+  .search-panel { max-height: calc(100dvh - 210px); }
+}
