@@ -15,7 +15,7 @@ RUN dotnet publish apps/api/OpenQuest.Api/OpenQuest.Api.csproj -c Release --no-r
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 # Npgsql probes for GSSAPI (Kerberos) on connect and logs an error without it.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 tzdata \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app .

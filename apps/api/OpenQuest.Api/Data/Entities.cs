@@ -215,6 +215,63 @@ public class Media
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }
 
+/// <summary>A city. Districts belong to one city; the time zone decides where a leaderboard week starts.</summary>
+public class City
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    /// <summary>URL-safe short name, unique.</summary>
+    public string Key { get; set; } = "";
+    public string Name { get; set; } = "";
+    /// <summary>ISO 3166-1 alpha-2, e.g. "DE".</summary>
+    public string? CountryCode { get; set; }
+    /// <summary>Where the map starts (for the frontend).</summary>
+    public double? CenterLat { get; set; }
+    public double? CenterLon { get; set; }
+    public int? DefaultZoom { get; set; }
+    /// <summary>IANA id, e.g. "Europe/Berlin".</summary>
+    public string Timezone { get; set; } = "Europe/Berlin";
+    public bool IsActive { get; set; } = true;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>
+/// A part of a city ("Stadtviertel"), drawn by an admin as an ordered ring of points (<see cref="DistrictPoint"/>).
+/// <see cref="Geom"/> and the centroid are derived from the points on every save. Districts of one city do not overlap.
+/// </summary>
+public class District
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid CityId { get; set; }
+    public City City { get; set; } = null!;
+    /// <summary>URL-safe short name, unique within the city.</summary>
+    public string Key { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? Description { get; set; }
+    /// <summary>Map colour, "#RRGGBB".</summary>
+    public string? Color { get; set; }
+    /// <summary>Deactivated districts keep their history but take no new points and are hidden from players.</summary>
+    public bool IsActive { get; set; } = true;
+    /// <summary>Cache of the ledger sum of this district (like <see cref="User.TotalPoints"/>).</summary>
+    public int TotalPoints { get; set; }
+    public Polygon Geom { get; set; } = null!;
+    public double CentroidLat { get; set; }
+    public double CentroidLon { get; set; }
+    public Guid? CreatedBy { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>One corner of a district outline. <see cref="Position"/> is the order in which the corners are connected; the last connects back to the first.</summary>
+public class DistrictPoint
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid DistrictId { get; set; }
+    public int Position { get; set; }
+    public double Lat { get; set; }
+    public double Lon { get; set; }
+}
+
 /// <summary>
 /// One line of the points ledger. Append-only: corrections are new lines (which may be negative), never edits.
 /// <see cref="User.TotalPoints"/> is a cache of the sum.
@@ -225,6 +282,8 @@ public class PointTransaction
     public Guid UserId { get; set; }
     /// <summary>The submission that earned the points; unique per reason, so a redelivered event cannot pay twice.</summary>
     public Guid? SubmissionId { get; set; }
+    /// <summary>The district the points were earned in, at the time of the award. Null if the tree lies in no district.</summary>
+    public Guid? DistrictId { get; set; }
     public int Amount { get; set; }
     public PointReason Reason { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

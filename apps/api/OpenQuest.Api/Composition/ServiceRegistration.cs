@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using OpenQuest.Api.Auth;
 using OpenQuest.Api.Config;
 using OpenQuest.Api.Data;
+using OpenQuest.Api.Districts;
 using OpenQuest.Api.Eventing;
 using OpenQuest.Api.Features;
 using OpenQuest.Api.Gamification;
@@ -134,6 +135,14 @@ public static class ServiceRegistration
             return o.LevelThresholds.Length > 0 ? new GamificationProfile(new LevelCurve(o.LevelThresholds)) : GamificationProfile.Default;
         });
         s.AddScoped<IPlayerProgress, PlayerProgress>();
+
+        // cities and districts (drawn by admins), the leaderboard and the lookup of a tree's district
+        s.AddScoped<IDistrictShapeChecker, DistrictShapeChecker>();
+        s.AddScoped<ICityAdmin, CityAdmin>();
+        s.AddScoped<IDistrictAdmin, DistrictAdmin>();
+        s.AddScoped<IDistrictDirectory, DistrictDirectory>();
+        s.AddScoped<IDistrictLocator, DistrictLocator>();
+        s.AddScoped<ILeaderboards, Leaderboards>();
         return s;
     }
 
@@ -183,6 +192,8 @@ public static class ServiceRegistration
         app.MapAuth();
         app.MapPlayer();
         app.MapGamification();
+        app.MapCities();
+        app.MapDistrictAdmin();
         app.MapMedia();
         app.MapAdminQuests();
         app.MapModeration();

@@ -42,6 +42,11 @@ public class GamificationOptions
     public const string Section = "Gamification";
     /// <summary>Points at which each level starts, ascending, first entry 0. Empty = the core's default curve.</summary>
     public int[] LevelThresholds { get; set; } = [];
+    /// <summary>
+    /// Two districts of a city may share a border but not an area. Overlaps up to this share of the smaller district are
+    /// tolerated, because neighbouring outlines from different sources rarely match to the last decimal.
+    /// </summary>
+    public double OverlapToleranceRatio { get; set; } = 0.001;
 }
 
 public class StorageOptions

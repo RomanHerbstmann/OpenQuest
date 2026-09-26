@@ -684,3 +684,138 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    ALTER TABLE point_transaction ADD district_id uuid;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE TABLE city (
+        id uuid NOT NULL,
+        key character varying(64) NOT NULL,
+        name character varying(128) NOT NULL,
+        country_code character varying(2),
+        center_lat double precision,
+        center_lon double precision,
+        default_zoom integer,
+        timezone character varying(64) NOT NULL,
+        is_active boolean NOT NULL,
+        created_at timestamp with time zone NOT NULL,
+        updated_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_city PRIMARY KEY (id)
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE TABLE district (
+        id uuid NOT NULL,
+        city_id uuid NOT NULL,
+        key character varying(64) NOT NULL,
+        name character varying(128) NOT NULL,
+        description character varying(2000),
+        color character varying(7),
+        is_active boolean NOT NULL,
+        total_points integer NOT NULL,
+        geom geography (polygon) NOT NULL,
+        centroid_lat double precision NOT NULL,
+        centroid_lon double precision NOT NULL,
+        created_by uuid,
+        created_at timestamp with time zone NOT NULL,
+        updated_at timestamp with time zone NOT NULL,
+        CONSTRAINT pk_district PRIMARY KEY (id),
+        CONSTRAINT fk_district_city_city_id FOREIGN KEY (city_id) REFERENCES city (id) ON DELETE RESTRICT,
+        CONSTRAINT fk_district_user_created_by FOREIGN KEY (created_by) REFERENCES "user" (id)
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE TABLE district_point (
+        id uuid NOT NULL,
+        district_id uuid NOT NULL,
+        position integer NOT NULL,
+        lat double precision NOT NULL,
+        lon double precision NOT NULL,
+        CONSTRAINT pk_district_point PRIMARY KEY (id),
+        CONSTRAINT ck_district_point_position CHECK (position >= 0),
+        CONSTRAINT fk_district_point_district_district_id FOREIGN KEY (district_id) REFERENCES district (id) ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE INDEX ix_point_transaction_district_id_created_at ON point_transaction (district_id, created_at);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE UNIQUE INDEX ix_city_key ON city (key);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE UNIQUE INDEX ix_district_city_id_key ON district (city_id, key);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE UNIQUE INDEX ix_district_city_id_name ON district (city_id, name);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE INDEX ix_district_created_by ON district (created_by);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE INDEX ix_district_geom ON district USING gist (geom);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    CREATE UNIQUE INDEX ix_district_point_district_id_position ON district_point (district_id, position);
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    ALTER TABLE point_transaction ADD CONSTRAINT fk_point_transaction_district_district_id FOREIGN KEY (district_id) REFERENCES district (id) ON DELETE SET NULL;
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "migration_id" = '20260926085336_AddCitiesAndDistricts') THEN
+    INSERT INTO "__EFMigrationsHistory" (migration_id, product_version)
+    VALUES ('20260926085336_AddCitiesAndDistricts', '10.0.12');
+    END IF;
+END $EF$;
+COMMIT;
+

@@ -94,6 +94,56 @@ POST /admin/quests
 `target` accepts `assetIds`, `bbox`, `attributeFilter` (JSONB containment on asset attributes, for example `{"quality_flags":["placeholder_genus"]}`) and `withoutApprovedPhoto`.
 An asset never gets the same quest twice.
 
+## Cities and districts (drawn in the admin panel)
+
+Admins split a city into districts ("Stadtviertel") in the admin panel; players see them on the map and compete in a district leaderboard
+([ADR-0007](../../docs/adr/0007-cities-and-districts-drawn-by-admins.md)). A city has any number of districts, a district belongs to one city.
+The outline is an **ordered ring of points**: the points are connected in the order they were drawn, the last one back to the first. Edges must not
+cross, and districts of one city must not overlap (sharing a border is fine).
+
+All shapes are **GeoJSON** (`Polygon`, or a `Feature` holding one): coordinates are `[lon, lat]`, the ring may be open or closed, the order is kept,
+holes and `MultiPolygon` are not supported. The API stores the corners as ordered `district_point` rows and derives the area (`geom`) and a centre for labels.
+
+| Who | Call | Notes |
+|---|---|---|
+| admin | `POST /admin/cities` `{name, key?, countryCode?, centerLat?, centerLon?, defaultZoom?, timezone?}` | `key` defaults to a slug of the name, `timezone` to `Europe/Berlin` (decides where a leaderboard week starts). `PUT /admin/cities/{id}`, `DELETE /admin/cities/{id}` (409 while it has districts), `GET /admin/cities` |
+| admin | `POST /admin/cities/{id}/districts/validate` `{geometry, districtId?}` | **Dry run for the drawing tool**: returns `{valid, pointCount, centroidLat, centroidLon, problems[]}` and saves nothing. Pass `districtId` when redrawing an existing district |
+| admin | `POST /admin/cities/{id}/districts` `{name, description?, color?, key?, geometry}` | 201 with the district. `color` is `#RRGGBB`. Problems: 422 `invalid_geometry` with `details.problems[]`, 409 `name_taken` / `key_taken` |
+| admin | `PUT /admin/districts/{id}` `{name?, description?, color?, isActive?}` | Deactivate instead of deleting to keep the leaderboard history. Re-activating checks for overlaps again |
+| admin | `PUT /admin/districts/{id}/geometry` `{geometry}` | Replaces the whole outline. Points already awarded keep the district they were earned in |
+| admin | `DELETE /admin/districts/{id}` | Only if no points were earned there (409 `district_has_points`) |
+| admin | `POST /admin/cities/{id}/districts/import` `{geoJson, nameProperty, keyProperty?, descriptionProperty?}` | Creates one district per feature of a `FeatureCollection`. All or nothing: on problems 422 `invalid_import` with `details.features[]` (index, name, problems) |
+| admin | `GET /admin/cities/{id}/districts?geometry=true`, `GET /admin/districts/{id}` | Include deactivated districts |
+| player | `GET /cities`, `GET /cities/{idOrKey}` | Cities with map centre, zoom, time zone, number of districts |
+| player | `GET /cities/{id}/districts?geometry=true` | Active districts with name, description, colour, centre, points; with `geometry=true` also the outline as GeoJSON |
+| player | `GET /districts/{id}` | One district plus `rank` in its city and `contributors` |
+| player | `GET /districts/lookup?lat&lon` | The district a position lies in (404 `no_district` if none) |
+| player | `GET /cities/{id}/leaderboard?period=all\|week` | Ranking of the districts: `rank`, `points`, `contributors`, `contributions`. `week` = Monday 00:00 to Sunday in the city's time zone. Equal points and contributors share a rank |
+| player | `GET /districts/{id}/leaderboard?period=&limit=` | The players with the most points in the district |
+
+Reading needs a login, writing needs the `admin` role. Points are awarded to the district the quest's **tree lies in** (at the moment of approval);
+trees outside every district count for the player only.
+
+Draw a district (what a Leaflet drawing tool sends and receives, `[lon, lat]`):
+
+```json
+POST /admin/cities/{cityId}/districts
+{ "name": "Kreuzviertel", "description": "Studentisch, viele Linden", "color": "#2C8054",
+  "geometry": { "type": "Polygon",
+                "coordinates": [[[7.6100, 51.9600], [7.6250, 51.9600], [7.6250, 51.9700], [7.6100, 51.9700], [7.6100, 51.9600]]] } }
+```
+
+Problems come as a list, the same for the dry run and for saving. Edge indices count the points of the ring; `lat`/`lon` is where two edges cross:
+
+```json
+{ "error": "invalid_geometry", "details": { "problems": [
+  { "code": "self_intersection", "message": "Edge 0 and edge 2 cross or touch each other.", "edgeA": 0, "edgeB": 2, "lat": 51.965, "lon": 7.617 },
+  { "code": "overlaps_district", "message": "The outline overlaps the district 'Dom'.", "districtId": "…", "districtName": "Dom", "overlapRatio": 0.42 } ] } }
+```
+
+Problem codes: `self_intersection`, `overlaps_district`, `too_few_points`, `too_many_points` (max 5000), `duplicate_point`, `zero_area`, `invalid_coordinate`,
+`invalid_geometry`, `geometry_required`, `unsupported_geometry` (not a Polygon), `holes_not_supported`.
+
 ## Import, snapshots and history
 
 The API does not import anything; a separate importer loads the city's data set and records every run in `sync_run` and every change of an asset in `asset_snapshot`. The API shows the result read-only:
@@ -125,5 +175,5 @@ approve  ->  transaction: change = accepted + outbox event (same commit)  ->  NO
 
 ## Not built yet
 
-Gamification beyond points and levels (district leaderboard, cards, recurring quests, badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
+Gamification beyond points, levels and the district leaderboard (cards, recurring quests, badges), statistics, `media.captured_at` (EXIF time is dropped, not stored),
 account deletion (`user.deleted_at` is honored on login but there is no endpoint), street name enrichment, admin-created moderators (set `user.role` in the database for now).
