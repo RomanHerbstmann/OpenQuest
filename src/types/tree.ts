@@ -3,6 +3,7 @@ export type TreeRarity = 'common' | 'uncommon' | 'rare';
 
 export type Tree = {
   id: string;
+  assetId?: string;
   lat: number;
   lng: number;
   species: string;
@@ -14,7 +15,22 @@ export type Tree = {
   xpReward: number;
   lastChecked?: string;
   area: string;
-  inventory?: { genus: string; streetKey: string };
+  inventory?: {
+    genus: string;
+    genusRaw?: string;
+    species?: string | null;
+    streetKey: string;
+    externalId?: string;
+    assetStatus?: string;
+    heightM?: number | null;
+    district?: string;
+    quarter?: string;
+    dataSource?: string;
+    firstSeenAt?: string;
+    lastSeenAt?: string;
+    qualityFlags?: string[];
+  };
+  sampleAsset?: boolean;
   presentation?: boolean;
   /** Card and lexicon species when `species` is only a genus level name (live quests). */
   lexiconSpecies?: string;

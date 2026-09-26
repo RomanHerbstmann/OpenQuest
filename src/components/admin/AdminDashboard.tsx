@@ -9,6 +9,7 @@ import { demoObservations } from '@/data/observations';
 import { trees } from '@/data/trees';
 import { loadObservations, observationsToCsv, observationsToGeoJson, saveObservations } from '@/lib/observations';
 import type { Observation, ObservationAction, ReviewStatus } from '@/types/observation';
+import type { Tree } from '@/types/tree';
 
 const AdminMap = dynamic(() => import('./AdminMap'), { ssr: false, loading: () => <div className="admin-map map-loading">Karte wird geladen …</div> });
 
@@ -25,6 +26,8 @@ const actions: Record<ObservationAction, string> = {
   species_suggestion: 'Artvorschlag',
   new_tree: 'Neuer Baum',
 };
+
+const referenceLabel = (tree?: Tree) => tree?.sampleAsset ? `Gattung ${tree.inventory?.genus} · Art offen` : tree?.species ?? 'Kein Referenzbaum';
 
 function dateTime(value: string) {
   return new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Berlin' }).format(new Date(value));
@@ -58,7 +61,12 @@ export function AdminDashboard() {
   const [saveError, setSaveError] = useState('');
   const [exportMessage, setExportMessage] = useState('');
 
-  useEffect(() => { setObservations(loadObservations()); setReady(true); }, []);
+  useEffect(() => {
+    const loaded = loadObservations();
+    setObservations(loaded);
+    setSelectedId(loaded.slice().sort((a, b) => b.observedAt.localeCompare(a.observedAt))[0]?.id ?? demoObservations[0].id);
+    setReady(true);
+  }, []);
   useEffect(() => {
     if (!ready) return;
     try { saveObservations(observations); setSaveError(''); }
@@ -68,7 +76,7 @@ export function AdminDashboard() {
   const visible = useMemo(() => observations.filter((item) => {
     if (filter !== 'all' && item.reviewStatus !== filter) return false;
     const tree = trees.find((entry) => entry.id === item.treeId);
-    const haystack = `${item.id} ${item.treeId ?? ''} ${tree?.species ?? ''} ${tree?.area ?? ''} ${item.suggestedSpecies ?? ''} ${actions[item.action]}`.toLocaleLowerCase('de-DE');
+    const haystack = `${item.id} ${item.treeId ?? ''} ${referenceLabel(tree)} ${tree?.area ?? ''} ${item.suggestedSpecies ?? ''} ${actions[item.action]}`.toLocaleLowerCase('de-DE');
     return haystack.includes(query.toLocaleLowerCase('de-DE').trim());
   }).sort((a, b) => b.observedAt.localeCompare(a.observedAt)), [observations, filter, query]);
   const selected = visible.find((item) => item.id === selectedId) ?? visible[0] ?? null;
@@ -109,7 +117,7 @@ export function AdminDashboard() {
       <div className="admin-content">
         <div className="admin-heading-row"><div><p className="eyebrow">OPENQUEST · DATENQUALITÄT</p><h1>Beobachtungen prüfen<span>.</span></h1><p>Beiträge sichten, Entscheidungen dokumentieren und Änderungsvorschläge exportieren.</p></div><div className="admin-export"><button type="button" onClick={() => exportData('csv')}><Download size={16} /> CSV</button><button type="button" onClick={() => exportData('geojson')}><FileJson2 size={16} /> GeoJSON</button></div></div>
         {exportMessage && <p className="admin-export-feedback" role="status">{exportMessage}</p>}
-        <div className="admin-notice"><Info size={18} /><span>Diese Meldungen sind erfundene Demo-Daten. Eine Freigabe ändert nur den lokalen Projekt-Prüfstatus, keinen städtischen Datensatz.</span></div>
+        <div className="admin-notice"><Info size={18} /><span>Hier stehen Demo-Meldungen und neue Scanvorschläge aus diesem Browser. Eine Freigabe ändert nur den lokalen Projekt-Prüfstatus, keinen städtischen Datensatz.</span></div>
         {saveError && <div className="admin-save-error" role="alert">{saveError}</div>}
         <section className="admin-stats" aria-label="Übersicht">
           <div className="admin-stat"><span>GESAMT</span><strong>{observations.length}</strong><small>Beobachtungen</small><Trees size={21} /></div>
@@ -126,7 +134,7 @@ export function AdminDashboard() {
               const tree = trees.find((entry) => entry.id === item.treeId);
               return <button type="button" key={item.id} className={`admin-queue-item ${selected?.id === item.id ? 'selected' : ''}`} onClick={() => setSelectedId(item.id)} aria-current={selected?.id === item.id ? 'true' : undefined}>
                 <span className={`admin-item-icon ${item.reviewStatus}`}><Trees size={19} /></span>
-                <span className="admin-item-content"><span className="admin-item-title">{tree?.species ?? item.suggestedSpecies ?? 'Neuer Baum'}</span><span className="admin-item-sub"><MapPin size={12} /> {tree?.area ?? 'Neuer Standort'} · {actions[item.action]}</span><span className="admin-item-meta">{item.id} · {dateTime(item.observedAt)}</span></span>
+                <span className="admin-item-content"><span className="admin-item-title">{tree ? referenceLabel(tree) : item.suggestedSpecies ?? 'Neuer Baum'}</span><span className="admin-item-sub"><MapPin size={12} /> {tree?.area ?? 'Neuer Standort'} · {actions[item.action]}</span><span className="admin-item-meta">{item.id} · {dateTime(item.observedAt)}</span></span>
                 <span className={`admin-status ${statuses[item.reviewStatus].className}`}>{statuses[item.reviewStatus].label}</span>
               </button>;
             }) : <div className="admin-empty"><Search size={25} /><strong>Keine Meldungen gefunden</strong><span>Suche oder Filter anpassen.</span><button type="button" onClick={() => { setQuery(''); setFilter('all'); }}>Filter zurücksetzen</button></div>}</div>
@@ -134,10 +142,10 @@ export function AdminDashboard() {
 
           <section className="admin-detail" aria-label="Details und Prüfung">
             {selected ? <>
-              <div className="admin-detail-head"><div><span className="admin-record-id">BEOBACHTUNG {selected.id}</span><h2>{selectedTree?.species ?? selected.suggestedSpecies ?? 'Neuer Baum'}</h2><p><MapPin size={14} /> {selectedTree?.area ?? 'Neuer Standort in Münster'} · {dateTime(selected.observedAt)}</p></div><span className={`admin-status ${statuses[selected.reviewStatus].className}`}>{statuses[selected.reviewStatus].label}</span></div>
+              <div className="admin-detail-head"><div><span className="admin-record-id">BEOBACHTUNG {selected.id}</span><h2>{selectedTree ? referenceLabel(selectedTree) : selected.suggestedSpecies ?? 'Neuer Baum'}</h2><p><MapPin size={14} /> {selectedTree?.area ?? 'Neuer Standort in Münster'} · {dateTime(selected.observedAt)}</p></div><span className={`admin-status ${statuses[selected.reviewStatus].className}`}>{statuses[selected.reviewStatus].label}</span></div>
               <div className="admin-map-wrap"><AdminMap observations={visible} selected={selected} onSelect={select} /><span className="admin-map-caption"><span /> Beobachtungspunkt</span></div>
-              <div className="admin-change"><div><span>REFERENZ</span><strong>{selectedTree?.species ?? 'Kein Eintrag'}</strong></div><ArrowRight size={17} /><div><span>BEOBACHTUNG / VORSCHLAG</span><strong>{selected.action === 'species_suggestion' || selected.action === 'new_tree' ? selected.suggestedSpecies ?? 'Art unbekannt' : actions[selected.action]}</strong></div></div>
-              <div className="admin-detail-grid"><div><span>REFERENZEINTRAG</span><strong>{selectedTree ? `${selectedTree.species} · ${selectedTree.id}` : 'Kein Referenzbaum'}</strong></div><div><span>BEOBACHTUNG</span><strong>{actions[selected.action]}</strong></div><div><span>ARTVORSCHLAG</span><strong>{selected.suggestedSpecies ?? 'Keiner'}</strong></div><div><span>GPS-GENAUIGKEIT</span><strong>{selected.accuracyMeters == null ? 'Nicht angegeben' : `± ${selected.accuracyMeters} m`}</strong></div><div><span>KOORDINATEN</span><strong>{selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}</strong></div><div><span>BELEG</span><strong>Kein Foto hinterlegt</strong></div></div>
+              <div className="admin-change"><div><span>REFERENZ</span><strong>{referenceLabel(selectedTree)}</strong></div><ArrowRight size={17} /><div><span>BEOBACHTUNG / VORSCHLAG</span><strong>{selected.action === 'species_suggestion' || selected.action === 'new_tree' ? selected.suggestedSpecies ?? 'Art unbekannt' : actions[selected.action]}</strong></div></div>
+              <div className="admin-detail-grid"><div><span>REFERENZEINTRAG</span><strong>{selectedTree ? `${referenceLabel(selectedTree)} · ${selectedTree.assetId ?? selectedTree.id}` : 'Kein Referenzbaum'}</strong></div><div><span>BEOBACHTUNG</span><strong>{actions[selected.action]}</strong></div><div><span>ARTVORSCHLAG</span><strong>{selected.suggestedSpecies ?? 'Keiner'}</strong></div><div><span>HÖHE IM IMPORT</span><strong>{selectedTree?.inventory?.heightM == null ? 'Nicht vorhanden' : `${selectedTree.inventory.heightM.toLocaleString('de-DE')} m`}</strong></div><div><span>GPS-GENAUIGKEIT</span><strong>{selected.accuracyMeters == null ? 'Nicht angegeben' : `± ${selected.accuracyMeters} m`}</strong></div><div><span>KOORDINATEN</span><strong>{selected.lat.toFixed(5)}, {selected.lng.toFixed(5)}</strong></div><div><span>BELEG</span><strong>Kein Foto hinterlegt</strong></div></div>
               {(selected.accuracyMeters != null && selected.accuracyMeters > 20 || selected.action === 'missing' || selected.action === 'new_tree') && <div className="admin-review-hint"><ShieldAlert size={17} /><span>{selected.action === 'missing' ? 'Eine Fehlmeldung ist nur ein Prüfhinweis. Vor Änderungen weitere Belege einholen.' : selected.action === 'new_tree' ? 'Neuer Baumkandidat: Standort und mögliche Dublette prüfen.' : 'Die GPS-Genauigkeit ist eingeschränkt. Standort vor einer Freigabe prüfen.'}</span></div>}
               <label className="admin-note-label" htmlFor="review-note">Prüfnotiz</label><textarea id="review-note" value={selected.reviewNote} onChange={(event) => updateSelected({ reviewNote: event.target.value })} placeholder="Begründung oder offene Frage festhalten …" rows={2} />
               <div className="admin-review-actions"><button type="button" className="admin-review-button secondary" onClick={() => updateSelected({ reviewStatus: 'needs_review' })}><ShieldAlert size={16} /> Rückfrage</button><button type="button" className="admin-review-button reject" onClick={() => updateSelected({ reviewStatus: 'rejected' })}><X size={16} /> Ablehnen</button><button type="button" className="admin-review-button approve" onClick={() => updateSelected({ reviewStatus: 'verified' })}><Check size={17} /> Freigeben</button></div>
