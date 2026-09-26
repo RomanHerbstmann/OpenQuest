@@ -18,6 +18,10 @@ pnpm dev
 
 Open `http://localhost:3000`. For a production build, run `pnpm build` followed by `pnpm start`.
 
+### Phone app
+
+The frontend can be packaged as an Android/iOS app with the phone's own camera and GPS (Capacitor): see [docs/mobile-app.md](docs/mobile-app.md).
+
 ### Included features
 
 - Responsive Münster map with light, colorful OpenStreetMap tiles and a localized tree-density overlay from the city's public digital tree inventory. Individual street trees appear as small dots when zoomed in. The browser refreshes the visible area from Münster's WFS; `public/data/muenster-trees-snapshot.json` is a bundled 25 September 2026 fallback. The 24 regular Quest markers now use distinct, original WFS tree coordinates matched by recorded genus and nearby location (retrieved 26 September 2026); their street labels come from Münster's street WFS. Exact species, verification status, rarity, and game progress remain demo content because the tree inventory supplies genus and position only. The separate presentation tree at Hafenweg 7 keeps its fixed stage location and does not affect the density overlay. Tree data: Stadt Münster, Digitales Baumkataster, dl-de/by-2.0.

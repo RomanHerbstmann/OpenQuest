@@ -13,9 +13,19 @@
     "typecheck": "tsc --noEmit && pnpm -r typecheck",
     "verify": "tsx --env-file=.env eval/verify.ts",
     "eval:fetch": "tsx eval/fetch-samples.ts",
-    "eval": "tsx --env-file=.env eval/run.ts"
+    "eval": "tsx --env-file=.env eval/run.ts",
+    "mobile:build": "node scripts/mobile-build.mjs",
+    "mobile:init": "node scripts/mobile-build.mjs --no-sync && cap add android && cap add ios && node scripts/mobile-native-setup.mjs && cap sync",
+    "mobile:setup": "node scripts/mobile-native-setup.mjs",
+    "mobile:android": "pnpm mobile:build && node scripts/mobile-native-setup.mjs && cap run android",
+    "mobile:apk": "pnpm mobile:build && node scripts/mobile-native-setup.mjs && cd android && ./gradlew assembleDebug",
+    "mobile:android:open": "cap open android",
+    "mobile:ios:open": "cap open ios"
   },
   "dependencies": {
+    "@capacitor/camera": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/geolocation": "^7.0.0",
     "@openquest/adapter-de-muenster": "workspace:*",
     "@openquest/tree-verification": "workspace:*",
     "@openquest/tree-search": "workspace:*",
@@ -26,6 +36,9 @@
     "lucide-react": "latest"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/ios": "^7.0.0",
     "@types/node": "^24.0.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",

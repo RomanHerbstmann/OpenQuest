@@ -2,6 +2,7 @@
 
 import { useRef, useState, type FormEvent } from 'react';
 import { ChevronDown, ChevronUp, Info, LoaderCircle, Search, X } from 'lucide-react';
+import { apiUrl } from '@/lib/config';
 import { treeSearchText } from '@/i18n/treeSearch';
 import type { ResultItem, TreeSearchResponse } from '@/types/treeSearch';
 
@@ -49,7 +50,7 @@ export function TreeSearch({ result, onResult, onFocusItem }: Props) {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/tree-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q }), signal: controller.signal });
+      const response = await fetch(apiUrl('/api/tree-search'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ q }), signal: controller.signal });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const next = (await response.json()) as TreeSearchResponse;
       setListOpen(false);

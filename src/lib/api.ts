@@ -3,8 +3,10 @@ import { liveText } from '@/i18n/liveGame';
 /**
  * Typed client for the OpenQuest API (apps/api). The browser always calls `/backend/...` on its own origin;
  * next.config.ts rewrites that to OPENQUEST_API_URL, so there is no CORS setup for local or preview hosts.
+ * The phone app is a static export without that proxy: `pnpm mobile:build` sets NEXT_PUBLIC_BACKEND_URL and the app
+ * calls the API directly (its CORS settings must allow https://localhost and capacitor://localhost).
  */
-export const API_BASE = '/backend';
+export const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').replace(/\/+$/, '') || '/backend';
 
 const t = liveText.de;
 const SESSION_KEY = 'openquest-session-v1';

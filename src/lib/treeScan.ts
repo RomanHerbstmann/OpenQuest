@@ -1,4 +1,5 @@
 import type { TreeVerificationResult } from '@openquest/tree-verification';
+import { apiUrl } from '@/lib/config';
 import type { Tree } from '@/types/tree';
 import { speciesForGenus, type SpeciesName } from '@/lib/verificationText';
 
@@ -67,7 +68,7 @@ export async function recognizeTreeForPrototype(image: Blob, expectedSpecies?: s
 
   let response: Response;
   try {
-    response = await fetch('/api/verify', { method: 'POST', body: form });
+    response = await fetch(apiUrl('/api/verify'), { method: 'POST', body: form });
   } catch {
     throw new Error('Keine Verbindung zur Prüfung. Bitte versuche es gleich noch einmal.');
   }
